@@ -5766,6 +5766,7 @@ function rowToChannel(row) {
     warning:       row.warning     || '',
     notes:         row.notes       || '',
     updatedBy:     row.updated_by  || '',
+    updatedAt:     row.updated_at  || '',
     conflictCheck: row.conflict_check !== false,
   };
 }
@@ -9414,6 +9415,14 @@ const BB_TYPE_DEFS = [
   { key: 'rotor-victor',  label: 'Rotor / Victor',      band: null,  role: 'rotor-victor'},
 ];
 
+// Shared by both the Operational Dashboard and the Big Board's TRO layout —
+// defined here, before either feature, so it's always available regardless
+// of which one runs first.
+const TRO_ZONES = [
+  'COUNTYWIDE UHF', 'COUNTYWIDE VHF', 'SOUTH', 'CENTRAL', 'SGV', 'NORTH',
+  'LARTCS UHF', 'LARTCS VHF', 'LARTCS 800',
+];
+
 function classifyChannelType(ch) {
   const haystack = `${ch.function||''} ${ch.designator||''}`.toLowerCase();
   const band = ch.band || detectBand(ch.freq || '');
@@ -9428,6 +9437,94 @@ function classifyChannelType(ch) {
 let bigBoardActiveFilters = new Set(); // empty = show everything, otherwise only show matching type keys
 let bigBoardStatusFilters = new Set(); // empty = show all statuses too
 let bigBoardFilterBarOpen = false; // collapsed by default — wall displays want max space until someone needs to change filters
+
+// ── Sort, layout, and quick-assign mode ──
+let bigBoardSort       = 'designator'; // 'designator' | 'freq' | 'function' | 'tro' | 'recent'
+let bigBoardLayout      = 'status';     // 'status' = grouped by In Use/Reserved/Available (default) | 'tro' = grouped by TRO zone
+let bigBoardJulyMode    = false;        // when true, tiles are tap-to-assign instead of read-only
+let bigBoardQuickAssignId = null;       // channel id currently showing its inline quick-assign popover, or null
+
+const BB_SORTERS = {
+  designator: (a, b) => (a.designator || '').localeCompare(b.designator || '', undefined, { numeric: true }),
+  freq:       (a, b) => parseFloat(a.freq || 0) - parseFloat(b.freq || 0),
+  function:   (a, b) => (a.function || '').localeCompare(b.function || ''),
+  tro:        (a, b) => (a.troAssignment || 'zzz').localeCompare(b.troAssignment || 'zzz') || (a.designator||'').localeCompare(b.designator||'', undefined, {numeric:true}),
+  recent:     (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0),
+};
+
+function setBigBoardSort(key) {
+  bigBoardSort = key;
+  renderBigBoard();
+}
+
+function setBigBoardLayout(key) {
+  bigBoardLayout = key;
+  renderBigBoard();
+}
+
+function toggleJulyMode() {
+  if (currentUser?.role === 'viewer') { alert('View-only accounts cannot use July 4th Mode.'); return; }
+  bigBoardJulyMode = !bigBoardJulyMode;
+  bigBoardQuickAssignId = null;
+  renderBigBoard();
+}
+
+function toggleBigBoardQuickAssign(id) {
+  bigBoardQuickAssignId = bigBoardQuickAssignId === id ? null : id;
+  renderBigBoard();
+  // Focus the input once it's rendered, so dispatchers can start typing immediately
+  if (bigBoardQuickAssignId === id) {
+    setTimeout(() => document.getElementById(`bbqa-input-${id}`)?.focus(), 30);
+  }
+}
+
+// Quick status change directly from the Big Board tile — no full modal, no
+// page navigation. Mirrors releaseChannel's "clear active_for on release to
+// available" behavior, otherwise just flips status and re-renders in place.
+async function bigBoardQuickSetStatus(id, status) {
+  if (currentUser?.role === 'viewer') return;
+  const ch = channels.find(c => c.id === id);
+  if (!ch) return;
+  const old = ch.status;
+  const who = currentUser ? currentUser.name : 'Unknown';
+  const patch = { status, updated_by: who, updated_at: new Date().toISOString() };
+  if (status === 'available') { patch.active_for = null; patch.agency = '—'; }
+
+  const { error } = await sb.from('channels').update(patch).eq('id', id);
+  if (error) { alert('Error updating channel: ' + error.message); return; }
+
+  await logChannelHistory({
+    channelId: id, designator: ch.designator, action: status === 'available' ? 'released' : 'status changed',
+    field: 'Status', oldValue: statusLabels[old], newValue: statusLabels[status], changedBy: who,
+  });
+  logEvent('channel', 'Status Change', `${ch.designator} → ${statusLabels[status]}`, { channelId: id, designator: ch.designator, oldStatus: old, newStatus: status });
+
+  await loadChannels();
+  renderBigBoard();
+}
+
+// Save the "In Use For" / event-name text from the quick-assign input without
+// touching status — useful when a dispatcher just needs to update who/what
+// a channel is tied up for mid-incident without re-clicking a status button.
+async function bigBoardQuickSaveActiveFor(id) {
+  if (currentUser?.role === 'viewer') return;
+  const ch = channels.find(c => c.id === id);
+  if (!ch) return;
+  const input = document.getElementById(`bbqa-input-${id}`);
+  const value = input ? input.value.trim() : '';
+  const who = currentUser ? currentUser.name : 'Unknown';
+
+  const { error } = await sb.from('channels').update({
+    active_for: value || null, updated_by: who, updated_at: new Date().toISOString(),
+  }).eq('id', id);
+  if (error) { alert('Error saving: ' + error.message); return; }
+
+  logEvent('channel', 'Updated', `${ch.designator} — In Use For: "${value || '(cleared)'}"`, { channelId: id, designator: ch.designator });
+
+  bigBoardQuickAssignId = null;
+  await loadChannels();
+  renderBigBoard();
+}
 
 function toggleBigBoardFilter(key) {
   if (bigBoardActiveFilters.has(key)) bigBoardActiveFilters.delete(key);
@@ -9467,7 +9564,10 @@ function openBigBoard() {
     if (el) el.textContent = bigBoardCountdown;
     if (bigBoardCountdown <= 0) {
       bigBoardCountdown = 30;
-      renderBigBoard();
+      // Don't yank a popover out from under someone mid-edit — skip this
+      // refresh cycle if a quick-assign panel is currently open, the realtime
+      // subscription will already be keeping the underlying data fresh.
+      if (!bigBoardQuickAssignId) renderBigBoard();
     }
   }, 1000);
 
@@ -9486,6 +9586,47 @@ function updateBigBoardClock() {
   const tzAbbr  = now.toLocaleString('en-US', { timeZone:'America/Los_Angeles', timeZoneName:'short' }).split(' ').pop();
   el.textContent = timeStr + ' ' + tzAbbr;
   if (de) de.textContent = now.toLocaleDateString('en-US', { timeZone:'America/Los_Angeles', month:'short', day:'numeric', year:'numeric' });
+}
+
+// TRO-grouped Big Board layout: each TRO zone gets its own section, with
+// channels inside sorted by the current bigBoardSort and tagged by status
+// color exactly as the normal status-grouped view does. Channels without a
+// TRO assignment are collected into a trailing "Unassigned" section so
+// nothing silently disappears from the board.
+function renderTroLayout(filteredChannels, t, SC, tileFn) {
+  const zones = {};
+  TRO_ZONES.forEach(z => zones[z] = []);
+  const unassigned = [];
+
+  filteredChannels.forEach(ch => {
+    if (ch.troAssignment && zones[ch.troAssignment]) zones[ch.troAssignment].push(ch);
+    else unassigned.push(ch);
+  });
+
+  function zoneSection(label, list) {
+    if (!list.length) return '';
+    const counts = { active:0, reserved:0, available:0 };
+    list.forEach(ch => { if (counts[ch.status] !== undefined) counts[ch.status]++; });
+    return `<div style="margin-bottom:32px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid ${t.borderLit};">
+        <div style="font-family:var(--font-data);font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:${t.accent};">${label}</div>
+        <div style="display:flex;gap:10px;">
+          ${counts.active    ? `<span style="font-family:var(--font-data);font-size:13px;color:${SC.active.color};">${counts.active} in use</span>` : ''}
+          ${counts.reserved  ? `<span style="font-family:var(--font-data);font-size:13px;color:${SC.reserved.color};">${counts.reserved} reserved</span>` : ''}
+          ${counts.available ? `<span style="font-family:var(--font-data);font-size:13px;color:${SC.available.color};">${counts.available} available</span>` : ''}
+        </div>
+        <div style="font-family:var(--font-data);font-size:15px;color:${t.textDim};margin-left:auto;">${list.length} channel${list.length!==1?'s':''}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">
+        ${list.map(tileFn).join('')}
+      </div>
+    </div>`;
+  }
+
+  const zoneSections = TRO_ZONES.map(z => zoneSection(z, zones[z])).join('');
+  const unassignedSection = zoneSection('Unassigned (no TRO zone set)', unassigned);
+
+  return zoneSections + unassignedSection;
 }
 
 function renderBigBoard() {
@@ -9518,7 +9659,7 @@ function renderBigBoard() {
     if (bigBoardActiveFilters.size && !bigBoardActiveFilters.has(classifyChannelType(ch))) return false;
     if (bigBoardStatusFilters.size && !bigBoardStatusFilters.has(ch.status)) return false;
     return true;
-  });
+  }).sort(BB_SORTERS[bigBoardSort] || BB_SORTERS.designator);
   filteredChannels.forEach(ch => { if (groups[ch.status]) groups[ch.status].push(ch); });
 
   // Reverse-lookup: which active/standby incident (if any) is this channel
@@ -9539,7 +9680,12 @@ function renderBigBoard() {
   function tile(ch) {
     const s = SC[ch.status] || SC.available;
     const inc = chToIncident[String(ch.id)];
-    return `<div style="background:${s.bg};border:2px solid ${s.border};border-left:6px solid ${s.color};border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:5px;min-width:0;">
+    const isQuickAssignOpen = bigBoardJulyMode && bigBoardQuickAssignId === ch.id;
+    const julyClickAttr = bigBoardJulyMode ? `onclick="toggleBigBoardQuickAssign('${ch.id}')"` : '';
+    const julyCursor = bigBoardJulyMode ? 'cursor:pointer;' : '';
+    const julyRing = isQuickAssignOpen ? `box-shadow:0 0 0 3px ${t.accent};` : '';
+    return `<div style="position:relative;background:${s.bg};border:2px solid ${s.border};border-left:6px solid ${s.color};border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:5px;min-width:0;${julyCursor}${julyRing}" ${julyClickAttr}>
+      ${bigBoardJulyMode ? `<div style="position:absolute;top:8px;right:8px;font-size:11px;opacity:0.5;">✥ tap to assign</div>` : ''}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
         <div style="font-family:var(--font-data);font-size:20px;font-weight:700;color:${t.textPrimary};line-height:1;word-break:break-all;">${ch.designator}</div>
         <div style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:${s.bg};color:${s.color};border:1px solid ${s.border};white-space:nowrap;flex-shrink:0;">${s.label}</div>
@@ -9549,13 +9695,39 @@ function renderBigBoard() {
       ${inc ? `<div style="font-size:15px;color:${s.color};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🚨 ${escHtml(inc.name)}</div>` : ''}
       <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;">
         ${ch.agency && ch.agency!=='—' ? `<span style="font-family:var(--font-data);font-size:13px;color:${t.textDim};background:${t.bgPanel};padding:2px 7px;border-radius:2px;border:1px solid ${t.border};">${ch.agency}</span>` : ''}
+        ${ch.troAssignment ? `<span style="font-family:var(--font-data);font-size:13px;color:${t.accent};background:${t.bgPanel};padding:2px 7px;border-radius:2px;border:1px solid ${t.border};">${ch.troAssignment}</span>` : ''}
       </div>
       ${ch.notes ? `<div style="font-size:13px;color:${t.textDim};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">💬 ${ch.notes}</div>` : ''}
       ${ch.warning ? `<div style="margin-top:6px;background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.4);border-radius:4px;padding:6px 9px;display:flex;gap:6px;align-items:flex-start;">
         <span style="font-size:14px;flex-shrink:0;">⚠</span>
         <span style="font-size:11.5px;color:#ff9800;font-weight:600;line-height:1.35;white-space:normal;">${escHtml(ch.warning)}</span>
       </div>` : ''}
+      ${isQuickAssignOpen ? quickAssignPanel(ch, t, SC) : ''}
     </div>`;
+  }
+
+  // ── July 4th Mode: inline quick-assign panel rendered inside an expanded tile ──
+  function quickAssignPanel(ch, t, SC) {
+    const statusBtn = (key, label) => {
+      const s = SC[key];
+      const isCurrentStatus = ch.status === key;
+      return `<button onclick="event.stopPropagation();bigBoardQuickSetStatus('${ch.id}','${key}')" style="font-family:var(--font-data);font-size:13px;font-weight:700;padding:8px 10px;border-radius:5px;background:${isCurrentStatus ? s.color : t.bgDeep};color:${isCurrentStatus ? '#000' : s.color};border:1px solid ${s.color};cursor:pointer;flex:1;">${label}</button>`;
+    };
+    return `
+      <div onclick="event.stopPropagation()" style="margin-top:10px;padding-top:10px;border-top:1px solid ${t.border};display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:6px;">
+          ${statusBtn('available', 'AVAILABLE')}
+          ${statusBtn('active', 'IN USE')}
+          ${statusBtn('reserved', 'RESERVED')}
+        </div>
+        <input id="bbqa-input-${ch.id}" type="text" placeholder="In use for / event name…" value="${escHtml(ch.activeFor || '')}"
+          style="font-family:var(--font-data);font-size:14px;padding:8px 10px;border-radius:5px;border:1px solid ${t.border};background:${t.bgDeep};color:${t.textPrimary};width:100%;box-sizing:border-box;"
+          onkeydown="if(event.key==='Enter'){event.stopPropagation();bigBoardQuickSaveActiveFor('${ch.id}');}" onclick="event.stopPropagation()">
+        <div style="display:flex;gap:6px;">
+          <button onclick="event.stopPropagation();bigBoardQuickSaveActiveFor('${ch.id}')" style="flex:1;font-family:var(--font-data);font-size:13px;font-weight:700;padding:8px;border-radius:5px;background:${t.accent};color:#fff;border:none;cursor:pointer;">✓ Save</button>
+          <button onclick="event.stopPropagation();bigBoardQuickAssignId=null;renderBigBoard();" style="font-family:var(--font-data);font-size:13px;padding:8px 14px;border-radius:5px;background:transparent;color:${t.textDim};border:1px solid ${t.border};cursor:pointer;">Close</button>
+        </div>
+      </div>`;
   }
 
   function section(key, list) {
@@ -9583,7 +9755,9 @@ function renderBigBoard() {
       </div>
     </div>`).join('');
 
-  const sectionsHTML = ['active','reserved','available'].map(k => section(k, groups[k])).join('');
+  const sectionsHTML = bigBoardLayout === 'tro'
+    ? renderTroLayout(filteredChannels, t, SC, tile)
+    : ['active','reserved','available'].map(k => section(k, groups[k])).join('');
 
   const container = document.getElementById('bigBoardContent');
   container.style.background = t.bgDeep;
@@ -9611,7 +9785,28 @@ function renderBigBoard() {
         <div style="font-size:13px;color:${t.textDim};margin-top:3px;">${hasActiveFilters ? `${filteredChannels.length} of ${channels.length} channels (filtered)` : `${channels.length} channels`} · ${utcDate}</div>
       </div>
       <div style="display:flex;flex:1;align-items:center;">${summaryStrip}</div>
-      <button onclick="toggleBigBoardFilterBar()" id="bbFilterToggleBtn" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:${hasActiveFilters ? t.accent : 'transparent'};color:${hasActiveFilters ? '#fff' : t.textSecondary};border:1px solid ${hasActiveFilters ? t.accent : t.border};border-radius:4px;padding:7px 14px;cursor:pointer;flex-shrink:0;margin-left:16px;white-space:nowrap;">
+
+      <!-- Layout toggle: Status grouping vs TRO zone grouping -->
+      <div style="display:flex;border:1px solid ${t.border};border-radius:4px;overflow:hidden;flex-shrink:0;margin-left:16px;">
+        <button onclick="setBigBoardLayout('status')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='status'?t.accent:'transparent'};color:${bigBoardLayout==='status'?'#fff':t.textSecondary};border:none;padding:7px 12px;cursor:pointer;white-space:nowrap;">By Status</button>
+        <button onclick="setBigBoardLayout('tro')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='tro'?t.accent:'transparent'};color:${bigBoardLayout==='tro'?'#fff':t.textSecondary};border:none;padding:7px 12px;cursor:pointer;white-space:nowrap;">By TRO Zone</button>
+      </div>
+
+      <!-- Sort dropdown -->
+      <select onchange="setBigBoardSort(this.value)" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${t.bgCard};color:${t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 10px;cursor:pointer;flex-shrink:0;margin-left:10px;">
+        <option value="designator" ${bigBoardSort==='designator'?'selected':''}>Sort: Designator</option>
+        <option value="freq"       ${bigBoardSort==='freq'?'selected':''}>Sort: Frequency</option>
+        <option value="function"   ${bigBoardSort==='function'?'selected':''}>Sort: Function</option>
+        <option value="tro"        ${bigBoardSort==='tro'?'selected':''}>Sort: TRO Zone</option>
+        <option value="recent"     ${bigBoardSort==='recent'?'selected':''}>Sort: Recently Updated</option>
+      </select>
+
+      <!-- July 4th Mode — rapid tap-to-assign -->
+      ${currentUser?.role !== 'viewer' ? `<button onclick="toggleJulyMode()" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardJulyMode ? '#ff6d00' : 'transparent'};color:${bigBoardJulyMode ? '#fff' : '#ff6d00'};border:1px solid #ff6d00;border-radius:4px;padding:7px 12px;cursor:pointer;flex-shrink:0;margin-left:10px;white-space:nowrap;">
+        🎆 ${bigBoardJulyMode ? 'July 4th Mode: ON' : 'July 4th Mode'}
+      </button>` : ''}
+
+      <button onclick="toggleBigBoardFilterBar()" id="bbFilterToggleBtn" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:${hasActiveFilters ? t.accent : 'transparent'};color:${hasActiveFilters ? '#fff' : t.textSecondary};border:1px solid ${hasActiveFilters ? t.accent : t.border};border-radius:4px;padding:7px 14px;cursor:pointer;flex-shrink:0;margin-left:10px;white-space:nowrap;">
         ${bigBoardFilterBarOpen ? '▴' : '▾'} Filter${hasActiveFilters ? ` (${bigBoardActiveFilters.size + bigBoardStatusFilters.size})` : ''}
       </button>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-left:20px;border-left:1px solid ${t.border};flex-shrink:0;">
@@ -9670,16 +9865,13 @@ function closeBigBoard() {
   clearInterval(bigBoardInterval);
   clearInterval(window._bbClockInterval);
   bigBoardInterval = null;
+  bigBoardQuickAssignId = null; // never leave a popover open across a close/reopen cycle
   const overlay = document.getElementById('bigBoardOverlay');
   overlay.style.display = 'none';
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 }
 
 // ── TRO Operational Dashboard — single-glance available-channel-by-zone view ──
-const TRO_ZONES = [
-  'COUNTYWIDE UHF', 'COUNTYWIDE VHF', 'SOUTH', 'CENTRAL', 'SGV', 'NORTH',
-  'LARTCS UHF', 'LARTCS VHF', 'LARTCS 800',
-];
 
 let troDashboardInterval = null;
 let troDashboardNotices  = [];
@@ -17215,7 +17407,7 @@ async function applyIncidentChannelStatus(incidentStatus, chIds, incidentName) {
   }
   await loadChannels();
   renderChannels();
-  if (document.getElementById('bigBoardOverlay')?.style.display !== 'none') renderBigBoard();
+  if (document.getElementById('bigBoardOverlay')?.style.display !== 'none' && !bigBoardQuickAssignId) renderBigBoard();
 }
 
 // ── Per-entry timestamped notes log for incidents (same pattern as Trigger Lookup / Inventory) ──
