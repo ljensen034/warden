@@ -3709,6 +3709,15 @@
       <div style="text-align:center;margin-top:12px;">
         <button onclick="sendPasswordReset()" style="background:none;border:none;color:var(--text-dim);font-size:14px;font-family:var(--font-data);cursor:pointer;text-decoration:underline;">Forgot password?</button>
       </div>
+      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;text-align:center;">
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px;">No account? Access read-only view.</div>
+        <button onclick="doViewerLogin()" id="viewerLoginBtn" style="width:100%;padding:11px;background:transparent;border:1px solid var(--border-lit);border-radius:var(--radius);color:var(--text-secondary);font-size:15px;font-family:var(--font-ui);cursor:pointer;transition:var(--transition);"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';"
+          onmouseout="this.style.borderColor='var(--border-lit)';this.style.color='var(--text-secondary)';">
+          👁 Continue as Viewer
+        </button>
+        <div id="viewerLoginError" style="font-size:13px;color:var(--status-active);margin-top:8px;display:none;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -5226,6 +5235,35 @@
             </div>
           </div>
           <div id="presenceListAdmin" style="padding:12px 18px;font-size:14px;color:var(--text-secondary);">Loading…</div>
+        </div>
+
+        <!-- Viewer Account configuration -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
+          <div style="padding:12px 18px;border-bottom:1px solid var(--border);">
+            <div style="font-family:var(--font-data);font-size:13px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">👁 View-Only Access</div>
+            <div style="font-size:13px;color:var(--text-dim);margin-top:4px;">When configured, anyone can click "Continue as Viewer" on the login screen and get read-only access to all modules except Admin — no personal account needed.</div>
+          </div>
+          <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;">
+            <div style="background:rgba(30,136,229,0.08);border:1px solid rgba(30,136,229,0.2);border-radius:4px;padding:10px 14px;font-size:13px;color:var(--text-secondary);line-height:1.6;">
+              <strong style="color:var(--accent);">Setup:</strong> Create a dedicated viewer account in <strong>Supabase → Authentication → Users</strong> with the role <code style="background:var(--bg-deep);padding:1px 4px;border-radius:2px;">viewer</code>. Enter its email and password below. WARDEN auto-signs in as that account when "Continue as Viewer" is clicked — the credentials are stored locally on this device only.
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="form-label">Viewer Account Email</label>
+                <input class="form-input" id="viewerAcctEmail" type="email" placeholder="viewer@agency.gov" style="font-family:var(--font-data);">
+              </div>
+              <div class="form-field">
+                <label class="form-label">Viewer Account Password</label>
+                <input class="form-input" id="viewerAcctPass" type="password" placeholder="Password for that account">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn-primary" style="font-size:14px;" onclick="saveViewerAccountConfig()">Save Viewer Config</button>
+              <button class="btn-secondary" style="font-size:14px;" onclick="testViewerLogin()">Test Login</button>
+              <button class="btn-secondary" style="font-size:14px;color:var(--status-active);" onclick="clearViewerAccountConfig()">Clear</button>
+              <span id="viewerConfigStatus" style="font-size:13px;color:var(--text-dim);font-family:var(--font-data);"></span>
+            </div>
+          </div>
         </div>
 
         <!-- System Notices management -->
@@ -11884,6 +11922,8 @@ async function renderAdminSystem() {
   await loadSysLog();
   // Load system notices
   await renderAdminNotices();
+  // Pre-populate viewer config form
+  loadViewerConfigUI();
 
   // Notification summary
   const notifEl = document.getElementById('adminNotifSummary');
@@ -14694,7 +14734,156 @@ function dismissLowAvailBanner() {
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
-async function sendPasswordReset() {
+async // ─────────────────────────────────────────────
+// VIEWER (GUEST) LOGIN
+// Signs in as a pre-configured viewer account — no user-visible credentials.
+// Admins configure this once in Admin → System → View-Only Access.
+// Credentials stored in localStorage on the admin's device; the viewer
+// account itself is a real Supabase auth user with role=viewer.
+// ─────────────────────────────────────────────
+const VIEWER_CREDS_KEY = 'warden_viewer_creds';
+
+function getViewerCreds() {
+  try {
+    const raw = localStorage.getItem(VIEWER_CREDS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+async function doViewerLogin() {
+  const btn = document.getElementById('viewerLoginBtn');
+  const errEl = document.getElementById('viewerLoginError');
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+  const creds = getViewerCreds();
+  if (!creds?.email || !creds?.pass) {
+    if (errEl) {
+      errEl.textContent = '⚠ Viewer access is not configured for this agency. Contact your admin.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  if (btn) { btn.textContent = '⏳ Signing in…'; btn.disabled = true; }
+
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: creds.email, password: creds.pass,
+    });
+
+    if (error) {
+      if (errEl) {
+        errEl.textContent = '⚠ Viewer access is temporarily unavailable. Contact your admin.';
+        errEl.style.display = 'block';
+      }
+      if (btn) { btn.textContent = '👁 Continue as Viewer'; btn.disabled = false; }
+      return;
+    }
+
+    const { data: profile } = await sb.from('profiles').select('*').eq('id', data.user.id).single();
+    if (!profile || profile.active === false) {
+      await sb.auth.signOut();
+      if (errEl) {
+        errEl.textContent = '⚠ Viewer account is not set up correctly. Contact your admin.';
+        errEl.style.display = 'block';
+      }
+      if (btn) { btn.textContent = '👁 Continue as Viewer'; btn.disabled = false; }
+      return;
+    }
+
+    // Force read-only regardless of whatever role the viewer account has
+    currentUser = {
+      id:               data.user.id,
+      email:            data.user.email,
+      name:             profile.name || 'Viewer',
+      role:             'viewer',
+      roleLabel:        'View Only',
+      color:            '#888888',
+      active:           true,
+      superAdmin:       false,
+      agencyId:         profile.agency_id || null,
+      canFreq:          true,
+      canVehicles:      true,
+      canEquipment:     true,
+      canAdmin:         false,
+      canUas:           true,
+      canPersonnel:     true,
+      canPersonnelEdit: false,
+      canViewResources: true,
+      viewMode:         'viewer',
+    };
+
+    postLoginRouter();
+  } catch(e) {
+    if (errEl) {
+      errEl.textContent = '⚠ Viewer login failed. Try again.';
+      errEl.style.display = 'block';
+    }
+    if (btn) { btn.textContent = '👁 Continue as Viewer'; btn.disabled = false; }
+  }
+}
+
+// ── Admin: save/test/clear viewer credentials ──
+function saveViewerAccountConfig() {
+  const email = document.getElementById('viewerAcctEmail')?.value.trim();
+  const pass  = document.getElementById('viewerAcctPass')?.value;
+  const status = document.getElementById('viewerConfigStatus');
+  if (!email || !pass) {
+    if (status) { status.textContent = '⚠ Both email and password are required.'; status.style.color='var(--status-active)'; }
+    return;
+  }
+  try {
+    localStorage.setItem(VIEWER_CREDS_KEY, JSON.stringify({ email, pass }));
+    if (status) { status.textContent = '✓ Saved to this device'; status.style.color='var(--status-available)'; }
+    // Clear password field for security
+    const passEl = document.getElementById('viewerAcctPass');
+    if (passEl) passEl.value = '';
+  } catch(e) {
+    if (status) { status.textContent = '⚠ Could not save.'; status.style.color='var(--status-active)'; }
+  }
+}
+
+async function testViewerLogin() {
+  const status = document.getElementById('viewerConfigStatus');
+  const creds = getViewerCreds();
+  if (!creds?.email) {
+    if (status) { status.textContent = '⚠ No credentials saved yet.'; status.style.color='var(--status-active)'; }
+    return;
+  }
+  if (status) { status.textContent = 'Testing…'; status.style.color='var(--text-dim)'; }
+  const { data, error } = await sb.auth.signInWithPassword({ email: creds.email, password: creds.pass });
+  if (error || !data?.user) {
+    if (status) { status.textContent = '✗ Login failed — check credentials.'; status.style.color='var(--status-active)'; }
+  } else {
+    // Sign back out immediately — this was just a test
+    await sb.auth.signOut();
+    if (status) { status.textContent = '✓ Viewer login works correctly.'; status.style.color='var(--status-available)'; }
+  }
+}
+
+function clearViewerAccountConfig() {
+  if (!confirm('Remove the viewer account configuration from this device?')) return;
+  localStorage.removeItem(VIEWER_CREDS_KEY);
+  const emailEl = document.getElementById('viewerAcctEmail');
+  const passEl  = document.getElementById('viewerAcctPass');
+  const status  = document.getElementById('viewerConfigStatus');
+  if (emailEl) emailEl.value = '';
+  if (passEl)  passEl.value  = '';
+  if (status)  { status.textContent = 'Cleared.'; status.style.color='var(--text-dim)'; }
+}
+
+// Pre-populate the config form when the System tab opens
+function loadViewerConfigUI() {
+  const creds = getViewerCreds();
+  const emailEl = document.getElementById('viewerAcctEmail');
+  const status  = document.getElementById('viewerConfigStatus');
+  if (emailEl && creds?.email) {
+    emailEl.value = creds.email;
+    if (status) { status.textContent = '✓ Configured'; status.style.color='var(--status-available)'; }
+  }
+}
+
+function sendPasswordReset() {
   const email = document.getElementById('loginUser').value.trim().toLowerCase();
   if (!email) {
     alert('Enter your email address first, then click Forgot Password.');
