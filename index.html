@@ -14734,7 +14734,8 @@ function dismissLowAvailBanner() {
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
-async // ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
 // VIEWER (GUEST) LOGIN
 // Signs in as a pre-configured viewer account — no user-visible credentials.
 // Admins configure this once in Admin → System → View-Only Access.
@@ -14883,7 +14884,7 @@ function loadViewerConfigUI() {
   }
 }
 
-function sendPasswordReset() {
+async function sendPasswordReset() {
   const email = document.getElementById('loginUser').value.trim().toLowerCase();
   if (!email) {
     alert('Enter your email address first, then click Forgot Password.');
