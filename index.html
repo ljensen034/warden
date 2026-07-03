@@ -9150,28 +9150,20 @@ function closeUserAdmin() {
 }
 
 async function loadAllProfiles() {
+  // profiles now includes last_sign_in_at, written by a Supabase trigger on
+  // auth.users — readable with the anon key unlike auth.admin.listUsers().
   const { data, error } = await sb.from('profiles').select('*').order('created_at');
   if (!error && data) {
+    // Still try the admin API for emails if available (service-role context only)
     try {
       const { data: { users } } = await sb.auth.admin.listUsers();
       if (users) {
         const authMap = {};
-        users.forEach(u => {
-          authMap[u.id] = {
-            email:            u.email,
-            last_sign_in_at:  u.last_sign_in_at || null,
-            auth_created_at:  u.created_at      || null,
-          };
-        });
-        allProfiles = data.map(p => ({
-          ...p,
-          email:           authMap[p.id]?.email           || p.email           || '—',
-          last_sign_in_at: authMap[p.id]?.last_sign_in_at || null,
-          auth_created_at: authMap[p.id]?.auth_created_at || null,
-        }));
+        users.forEach(u => { authMap[u.id] = u.email; });
+        allProfiles = data.map(p => ({ ...p, email: authMap[p.id] || p.email || '—' }));
         return;
       }
-    } catch(e) { /* admin API not available in browser — falls through gracefully */ }
+    } catch(e) { /* admin API not available in browser — that's expected */ }
     allProfiles = data.map(p => ({ ...p, email: p.email || '—' }));
   }
 }
@@ -14607,21 +14599,15 @@ async function init() {
 
   setDbStatus('loading');
   const hasSession = await checkExistingSession();
-  await loadChannels();
-  await loadTalkgroups();
-  await loadTriggers();
-  await loadTriggerLookups();
-  await loadInventory();
-  await loadIncidents();
-  await loadCommPlanReqs();
-  await loadInternalChannelRequests();
-  snapshotChannels();
-  await loadActivityLog();
-  subscribeRealtime();
-  loadMorningReportSettings();
-  checkLowAvailability();
-  applyScheduledReservations();
-  checkOverdueResources();
+
+  // If the user has an active session, postLoginRouter() has already called
+  // loadAllData() and showLandingPage() — nothing left to do here.
+  // Running the loads below again caused a brief flash of the overview page
+  // before the landing screen re-asserted itself.
+  if (hasSession) return;
+
+  // No session — user needs to log in. Data loading and realtime subscriptions
+  // happen in postLoginRouter() after successful authentication.
 }
 
 // ─────────────────────────────────────────────
@@ -17698,8 +17684,15 @@ async function postLoginRouter() {
     await loadUserAgency();
     await loadAllData();
     await loadLowAvailSettings();
+    await loadActivityLog();
+    snapshotChannels();
+    subscribeRealtime();
     checkSystemNotices();
     initPresence();
+    loadMorningReportSettings();
+    checkLowAvailability();
+    applyScheduledReservations();
+    checkOverdueResources();
     showLandingPage();
     updateIcrBadge();
     checkPendingRequestsPopup();
