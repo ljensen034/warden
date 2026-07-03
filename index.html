@@ -4176,7 +4176,7 @@
     <!-- Toolbar -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <input class="search-input" type="text" id="searchBox" placeholder="Search channel / frequency / assignment…" oninput="renderChannels()" title="Press / to focus search from anywhere · N for a new channel · Esc to close any window">
+        <input class="search-input" type="text" id="searchBox" placeholder="Search channel / frequency / assignment…" oninput="renderChannels();logSearchDebounced('Channel Plan',this.value)" title="Press / to focus search from anywhere · N for a new channel · Esc to close any window">
         <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
         <button class="filter-btn" data-filter="available" onclick="setFilter('available', this)">
           <span class="filter-dot available"></span>Available
@@ -4490,7 +4490,7 @@
       <div id="tr-registry-panel">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input class="search-input" id="triggerSearch" type="text" placeholder="Search ID, serial, assignment, system ID…" oninput="renderTriggers()" style="width:260px;">
+            <input class="search-input" id="triggerSearch" type="text" placeholder="Search ID, serial, assignment, system ID…" oninput="renderTriggers();logSearchDebounced('Trigger Lookup',this.value)" style="width:260px;">
             <select class="form-select" id="triggerBandFilter" onchange="renderTriggers()" style="width:120px;font-size:14px;padding:5px 8px;">
               <option value="all">All Bands</option>
             </select>
@@ -4554,7 +4554,7 @@
       <div id="inv-list-panel">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input class="search-input" id="invSearch" type="text" placeholder="Search serial, model, unit, system ID…" oninput="renderInventory()" style="width:230px;">
+            <input class="search-input" id="invSearch" type="text" placeholder="Search serial, model, unit, system ID…" oninput="renderInventory();logSearchDebounced('Inventory',this.value)" style="width:230px;">
             <select class="form-select" id="invStatusFilter" onchange="renderInventory()" style="width:155px;font-size:14px;padding:5px 8px;">
               <option value="all">All Statuses</option>
               <option value="in-stock">In Stock</option>
@@ -5283,7 +5283,8 @@
               <input class="search-input" id="syslogSearch" type="text" placeholder="Search log…" oninput="renderSysLog()" style="width:180px;font-size:14px;">
               <select class="form-select" id="syslogCategory" onchange="renderSysLog()" style="width:150px;font-size:14px;padding:5px 8px;">
                 <option value="all">All Categories</option>
-                <option value="auth">Auth</option>
+                <option value="auth">Auth / Sessions</option>
+                <option value="nav">Page Visits</option>
                 <option value="channel">Channels</option>
                 <option value="reservation">Reservations</option>
                 <option value="talkgroup">Talkgroups</option>
@@ -5294,7 +5295,9 @@
                 <option value="incident">Incidents</option>
                 <option value="conflict">Conflicts</option>
                 <option value="risk">RF Risk</option>
+                <option value="rid">RID Manager</option>
                 <option value="system">System</option>
+                <option value="admin">Admin</option>
               </select>
               <select class="form-select" id="syslogDateFilter" onchange="renderSysLog()" style="width:120px;font-size:14px;padding:5px 8px;">
                 <option value="all">All Time</option>
@@ -9011,6 +9014,7 @@ async function doLogin() {
   };
 
   postLoginRouter();
+  logEvent('auth', 'Sign In', `${currentUser.name} signed in (${currentUser.roleLabel})`, { user: currentUser.name, role: currentUser.role, email: currentUser.email });
 }
 
 // ── SIGN OUT ──
@@ -9704,12 +9708,128 @@ function toggleBigBoardFilterBar() {
 }
 
 function openBigBoard() {
-  renderBigBoard();
-  const overlay = document.getElementById('bigBoardOverlay');
-  overlay.style.display = 'flex';
-  if (overlay.requestFullscreen) overlay.requestFullscreen().catch(() => {});
+  logEvent('nav', 'Big Board Opened', `${currentUser?.name||'Unknown'} opened Big Board`, { user: currentUser?.name });
 
-  // Auto-refresh every 30s
+  const win = window.open('', 'warden_bigboard',
+    'width=1280,height=800,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes'
+  );
+  if (!win) {
+    // Pop-up was blocked — fall back to the original fullscreen overlay
+    renderBigBoard();
+    const overlay = document.getElementById('bigBoardOverlay');
+    overlay.style.display = 'flex';
+    if (overlay.requestFullscreen) overlay.requestFullscreen().catch(() => {});
+    _startBigBoardTimers();
+    return;
+  }
+
+  // Write a self-contained Big Board page into the new window
+  _writeBigBoardWindow(win);
+}
+
+function _writeBigBoardWindow(win) {
+  const theme = document.documentElement.getAttribute('data-theme') || 'night';
+  const themeVars = getComputedStyle(document.documentElement).cssText;
+
+  // Serialise current channel data as JSON
+  const channelData = JSON.stringify(channels);
+  const agencyName  = getAgencyDisplayName ? getAgencyDisplayName() : 'WARDEN';
+  const julyMode    = bigBoardJulyMode;
+
+  // Get the Big Board CSS from the current page
+  const bbStyles = [...document.styleSheets].reduce((acc, ss) => {
+    try { return acc + [...ss.cssRules].map(r => r.cssText).join('\n'); } catch(e) { return acc; }
+  }, '');
+
+  win.document.write(`<!DOCTYPE html>
+<html data-theme="${theme}">
+<head>
+<meta charset="utf-8">
+<title>Big Board — ${agencyName}</title>
+<style>
+:root { ${themeVars} }
+body { margin:0; background:var(--bg-deep,#0d1117); color:var(--text-primary,#e8eaf6); font-family:system-ui,sans-serif; }
+.bb-header { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; background:var(--bg-panel,#161b22); border-bottom:1px solid var(--border,#30363d); }
+.bb-title  { font-size:18px; font-weight:700; letter-spacing:0.06em; }
+.bb-clock  { font-family:monospace; font-size:20px; }
+.bb-grid   { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; padding:16px; }
+.bb-tile   { border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:6px; }
+.bb-desig  { font-size:18px; font-weight:700; letter-spacing:0.06em; }
+.bb-freq   { font-size:13px; opacity:0.7; font-family:monospace; }
+.bb-for    { font-size:14px; font-weight:600; }
+.bb-status { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:2px 7px; border-radius:2px; display:inline-block; margin-top:4px; }
+.st-available { background:rgba(0,229,170,0.15); color:#00e5aa; }
+.st-active    { background:rgba(255,82,82,0.15);  color:#ff5252; }
+.st-reserved  { background:rgba(255,196,0,0.15);  color:#ffc400; }
+#countdown { font-family:monospace; font-size:13px; opacity:0.5; }
+</style>
+</head>
+<body>
+<div class="bb-header">
+  <div class="bb-title">📻 ${agencyName} — BIG BOARD</div>
+  <div id="bbClock" class="bb-clock"></div>
+  <div id="countdown">Auto-refresh in <span id="bbSecs">30</span>s</div>
+</div>
+<div id="bbGrid" class="bb-grid"></div>
+<scr\ipt>
+const channels = ${channelData};
+const statusLabels = { available:'Available', active:'In Use', reserved:'Reserved' };
+
+function render() {
+  const grid = document.getElementById('bbGrid');
+  const sorted = [...channels].sort((a,b)=>(a.designator||'').localeCompare(b.designator||''));
+  grid.innerHTML = sorted.map(ch => {
+    const colorMap = { available:'#00e5aa', active:'#ff5252', reserved:'#ffc400' };
+    const bgMap    = { available:'rgba(0,229,170,0.06)', active:'rgba(255,82,82,0.08)', reserved:'rgba(255,196,0,0.06)' };
+    const color = colorMap[ch.status] || '#888';
+    const bg    = bgMap[ch.status] || 'rgba(255,255,255,0.04)';
+    return \`<div class="bb-tile" style="background:\${bg};border:2px solid \${color}22;border-left:5px solid \${color};">
+      <div class="bb-desig" style="color:\${color};">\${ch.designator||'—'}</div>
+      <div class="bb-freq">\${ch.freq||'—'} MHz\${ch.tone?' · '+ch.tone:''}</div>
+      \${ch.activeFor ? \`<div class="bb-for">\${ch.activeFor}</div>\` : ''}
+      \${ch.troAssignment ? \`<div style="font-size:11px;opacity:0.6;">\${ch.troAssignment}</div>\` : ''}
+      <span class="bb-status st-\${ch.status}">\${statusLabels[ch.status]||ch.status}</span>
+    </div>\`;
+  }).join('');
+}
+
+function clock() {
+  const el = document.getElementById('bbClock');
+  if (!el) return;
+  el.textContent = new Date().toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) + ' PT';
+}
+
+let secs = 30;
+function tick() {
+  secs--;
+  const el = document.getElementById('bbSecs');
+  if (el) el.textContent = secs;
+  if (secs <= 0) { secs = 30; window.opener?.channels && Object.assign(channels, window.opener.channels); render(); }
+}
+
+render();
+clock();
+setInterval(clock, 1000);
+setInterval(tick, 1000);
+
+// Live sync — update immediately when parent page's channels change
+setInterval(() => {
+  if (window.opener && !window.opener.closed && window.opener.channels) {
+    const fresh = JSON.stringify(window.opener.channels);
+    if (fresh !== JSON.stringify(channels)) {
+      channels.length = 0;
+      window.opener.channels.forEach(c => channels.push(c));
+      render();
+      secs = 30;
+    }
+  }
+}, 3000);
+<\/script>
+</body></html>`);
+  win.document.close();
+}
+
+function _startBigBoardTimers() {
   bigBoardCountdown = 30;
   clearInterval(bigBoardInterval);
   bigBoardInterval = setInterval(() => {
@@ -9718,14 +9838,9 @@ function openBigBoard() {
     if (el) el.textContent = bigBoardCountdown;
     if (bigBoardCountdown <= 0) {
       bigBoardCountdown = 30;
-      // Don't yank a popover out from under someone mid-edit — skip this
-      // refresh cycle if a quick-assign panel is currently open, the realtime
-      // subscription will already be keeping the underlying data fresh.
       if (!bigBoardQuickAssignId) renderBigBoard();
     }
   }, 1000);
-
-  // Live clock inside big board
   clearInterval(window._bbClockInterval);
   window._bbClockInterval = setInterval(updateBigBoardClock, 1000);
   updateBigBoardClock();
@@ -11216,6 +11331,28 @@ function switchMainTab(tab) {
   if (tab === 'uas')         renderUasTab();
   if (tab === 'personnel')   renderPersonnelTab();
   if (tab === 'rid')         renderRidManager();
+
+  // Log page visits so admins can see usage patterns in the System Log
+  const PAGE_LABELS = {
+    overview: 'Overview', channels: 'Channel Plan', talkgroups: 'Talkgroups',
+    schedule: 'Schedule', rfanalyzer: 'RF Deconflicter', triggers: 'Trigger Lookup',
+    inventory: 'Radio Inventory', incidents: 'Incidents', commreq: 'Comm Plan Requests',
+    resources: 'Resources', admin: 'Admin', uas: 'UAS Manager',
+    personnel: 'Personnel', rid: 'RID Manager',
+  };
+  if (currentUser && PAGE_LABELS[tab]) {
+    logEvent('nav', 'Page Visit', PAGE_LABELS[tab], { tab, user: currentUser.name });
+  }
+}
+
+// ── Debounced search logging ──
+const _searchLogTimers = {};
+function logSearchDebounced(module, query) {
+  if (!currentUser || !query || query.length < 2) return;
+  clearTimeout(_searchLogTimers[module]);
+  _searchLogTimers[module] = setTimeout(() => {
+    logEvent('nav', 'Search', `${module}: "${query}"`, { module, query, user: currentUser.name });
+  }, 800);
 }
 
 // ── Grouped nav dropdown interaction ──
@@ -11764,6 +11901,7 @@ const SYSLOG_PAGE = 100;
 
 const SYSLOG_CATEGORY_STYLE = {
   auth:        { bg:'rgba(0,230,118,0.12)',  color:'var(--status-available)', label:'AUTH'        },
+  nav:         { bg:'rgba(30,136,229,0.08)', color:'#64b5f6',                 label:'NAV'         },
   channel:     { bg:'rgba(30,136,229,0.12)', color:'var(--accent)',           label:'CHANNEL'     },
   reservation: { bg:'rgba(255,196,0,0.12)',  color:'var(--status-reserved)',  label:'RESERVATION' },
   talkgroup:   { bg:'rgba(206,147,216,0.12)',color:'var(--status-interop)',   label:'TALKGROUP'   },
@@ -11774,6 +11912,8 @@ const SYSLOG_CATEGORY_STYLE = {
   inventory:   { bg:'rgba(156,39,176,0.12)', color:'#ce93d8',                 label:'INVENTORY'   },
   incident:    { bg:'rgba(255,82,82,0.12)',  color:'var(--status-active)',    label:'INCIDENT'    },
   conflict:    { bg:'rgba(255,82,82,0.12)',  color:'var(--status-active)',    label:'CONFLICT'    },
+  rid:         { bg:'rgba(0,229,170,0.10)',  color:'var(--status-available)', label:'RID'         },
+  admin:       { bg:'rgba(255,82,82,0.10)',  color:'#ef9a9a',                 label:'ADMIN'       },
   system:      { bg:'rgba(120,120,120,0.12)',color:'var(--text-dim)',         label:'SYSTEM'      },
 };
 
@@ -12699,7 +12839,7 @@ function printScheduleDay() {
     <tbody>${rows}</tbody>
   </table>
   <div style="margin-top:16px;font-size:11px;color:#888;">Total: ${todays.length} reservation${todays.length!==1?'s':''} · ${agencyName} WARDEN</div>
-  <script>window.onload = () => window.print();<\/script>
+  <scr\ipt>window.onload = () => window.print();<\/scr\ipt>
   </body></html>`;
 
   const win = window.open('', '_blank');
@@ -16419,7 +16559,7 @@ function exportPersonnelPDF() {
     <thead><tr><th>Name</th><th>Team</th><th>Role / Title</th><th>Contact</th><th>Cert #</th><th>Cert Expires</th><th>Status</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
-  <script>window.onload = () => window.print();<\/script>
+  <scr\ipt>window.onload = () => window.print();<\/scr\ipt>
   </body></html>`;
 
   const win = window.open('', '_blank');
@@ -18247,6 +18387,10 @@ function openIncidentForm(id) {
   incidentEditingId = id || null;
   const errEl = document.getElementById('inc-error');
   if (errEl) errEl.textContent = '';
+  if (id) {
+    const inc = incidents.find(x => String(x.id) === String(id));
+    if (inc) logEvent('incident', 'Incident Opened', `${currentUser?.name||'Unknown'} opened incident: ${inc.name}`, { user: currentUser?.name, incident: inc.name });
+  }
 
   // Populate channel selector
   const chSel = document.getElementById('inc-channels');
@@ -20517,6 +20661,7 @@ if ('serviceWorker' in navigator) {
           <button class="btn-primary" style="padding:7px 14px;flex-shrink:0;margin-bottom:1px;" onclick="saveTriggerNote()">Post</button>
         </div>
       </div>
+    </div>
     <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;">
       <div id="triggerModalAdminBtns" style="display:none;gap:8px;display:flex;">
         <button class="btn-secondary" style="font-size:14px;" onclick="openTriggerEditForm(triggerViewingId)">✏ Edit Record</button>
