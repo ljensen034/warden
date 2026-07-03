@@ -3933,7 +3933,7 @@
 </nav>
 
 <!-- TOPBAR -->
-<header class="topbar">
+<header class="topbar" style="display:none;">
   <div class="topbar-logo" onclick="goHome()" title="Return to module home" style="cursor:pointer;">
     <span>📡</span>
     WARDEN
@@ -4055,7 +4055,7 @@
 </div>
 
 <!-- MAIN LAYOUT -->
-<div class="layout">
+<div class="layout" style="display:none;">
 
   <!-- MAIN PANEL -->
   <div class="main-panel">
@@ -8878,13 +8878,8 @@ async function doLogout() {
   document.getElementById('mobileMenu')?.classList.remove('open');
   closeMobileSheet();
   document.getElementById('loginScreen').classList.remove('hidden');
-  // Also hide landing page and ensure app layout is visible for next login
   const landing = document.getElementById('landingScreen');
   if (landing) landing.style.display = 'none';
-  const layout = document.querySelector('.layout');
-  if (layout) layout.style.display = '';
-  const topbar = document.querySelector('header.topbar');
-  if (topbar) topbar.style.display = '';
 }
 
 // ── POST-LOGIN UI UPDATE ──
@@ -9471,11 +9466,13 @@ function toggleJulyMode() {
 }
 
 function toggleBigBoardQuickAssign(id) {
-  bigBoardQuickAssignId = bigBoardQuickAssignId === id ? null : id;
+  // Normalise to string — ch.id from Supabase may be an integer but the
+  // onclick attr passes it as a string, so strict === would always fail.
+  const sid = String(id);
+  bigBoardQuickAssignId = bigBoardQuickAssignId === sid ? null : sid;
   renderBigBoard();
-  // Focus the input once it's rendered, so dispatchers can start typing immediately
-  if (bigBoardQuickAssignId === id) {
-    setTimeout(() => document.getElementById(`bbqa-input-${id}`)?.focus(), 30);
+  if (bigBoardQuickAssignId === sid) {
+    setTimeout(() => document.getElementById(`bbqa-input-${sid}`)?.focus(), 30);
   }
 }
 
@@ -9484,7 +9481,7 @@ function toggleBigBoardQuickAssign(id) {
 // available" behavior, otherwise just flips status and re-renders in place.
 async function bigBoardQuickSetStatus(id, status) {
   if (currentUser?.role === 'viewer') return;
-  const ch = channels.find(c => c.id === id);
+  const ch = channels.find(c => String(c.id) === String(id));
   if (!ch) return;
   const old = ch.status;
   const who = currentUser ? currentUser.name : 'Unknown';
@@ -9509,7 +9506,7 @@ async function bigBoardQuickSetStatus(id, status) {
 // a channel is tied up for mid-incident without re-clicking a status button.
 async function bigBoardQuickSaveActiveFor(id) {
   if (currentUser?.role === 'viewer') return;
-  const ch = channels.find(c => c.id === id);
+  const ch = channels.find(c => String(c.id) === String(id));
   if (!ch) return;
   const input = document.getElementById(`bbqa-input-${id}`);
   const value = input ? input.value.trim() : '';
@@ -9681,7 +9678,7 @@ function renderBigBoard() {
   function tile(ch) {
     const s = SC[ch.status] || SC.available;
     const inc = chToIncident[String(ch.id)];
-    const isQuickAssignOpen = bigBoardJulyMode && bigBoardQuickAssignId === ch.id;
+    const isQuickAssignOpen = bigBoardJulyMode && bigBoardQuickAssignId === String(ch.id);
     const julyClickAttr = bigBoardJulyMode ? `onclick="toggleBigBoardQuickAssign('${ch.id}')"` : '';
     const julyCursor = bigBoardJulyMode ? 'cursor:pointer;' : '';
     const julyRing = isQuickAssignOpen ? `box-shadow:0 0 0 3px ${t.accent};` : '';
@@ -17197,8 +17194,24 @@ async function closeIncidentConfirm(id) {
   const newStatus = inc.status === 'closed' ? 'active' : 'closed';
   const { error } = await sb.from('incidents').update({ status: newStatus, updated_by: currentUser?.name||'Unknown', updated_at: new Date().toISOString() }).eq('id', id);
   if (error) { alert(error.message); return; }
+  // Release channels when closing an incident
+  if (newStatus === 'closed') await releaseIncidentChannels(inc);
   logEvent('incident', `Incident ${newStatus === 'closed' ? 'Closed' : 'Reopened'}`, inc.name, { incident: inc.name, number: inc.number });
   await loadIncidents(); renderIncidents();
+}
+
+async function deleteIncident(id) {
+  if (!id) return;
+  const inc = incidents.find(x => String(x.id) === String(id));
+  if (!inc) return;
+  if (!confirm(`Permanently delete incident "${inc.name}"? This cannot be undone.\n\nChannels assigned to this incident will be marked Available.`)) return;
+  await releaseIncidentChannels(inc);
+  const { error } = await sb.from('incidents').delete().eq('id', id);
+  if (error) { alert('Error deleting incident: ' + error.message); return; }
+  logEvent('incident', 'Incident Deleted', inc.name, { incident: inc.name, number: inc.number });
+  closeIncidentModal();
+  await loadIncidents();
+  renderIncidents();
 }
 
 function openIncidentDetail(id) {
@@ -17274,6 +17287,8 @@ function openIncidentForm(id) {
   if (exportBtn) exportBtn.style.display = id ? 'inline-flex' : 'none';
   const recommendBtn = document.getElementById('inc-recommend-btn');
   if (recommendBtn) recommendBtn.style.display = id ? 'inline-flex' : 'none';
+  const deleteBtn = document.getElementById('inc-delete-btn');
+  if (deleteBtn) deleteBtn.style.display = id ? 'inline-flex' : 'none';
 
   document.getElementById('incidentModal').classList.add('open');
 }
@@ -17422,10 +17437,17 @@ async function saveIncident() {
   };
 
   if (incidentEditingId) {
+    const existingInc = incidents.find(x => String(x.id) === String(incidentEditingId));
+    const prevChIds = (existingInc?.channel_ids || []).map(String);
     const { error } = await sb.from('incidents').update(row).eq('id', incidentEditingId);
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
     logEvent('incident', 'Incident Updated', `${name} — ${chIds.length} channels, ${tgIds.length} talkgroups`, { incident: name, number: row.number });
-    await applyIncidentChannelStatus(newStatus, chIds, name);
+    // Release channels that were removed from this incident
+    const removedChIds = prevChIds.filter(id => !chIds.map(String).includes(id));
+    if (removedChIds.length) await releaseIncidentChannels(existingInc, removedChIds);
+    // Release all channels if incident is being closed
+    if (newStatus === 'closed' && chIds.length) await releaseIncidentChannels({ ...existingInc, channel_ids: chIds, name });
+    else await applyIncidentChannelStatus(newStatus, chIds, name);
     closeIncidentModal();
     await loadIncidents();
     renderIncidents();
@@ -17440,6 +17462,36 @@ async function saveIncident() {
     if (inserted?.id) { openIncidentForm(inserted.id); return; }
     closeIncidentModal();
   }
+}
+
+// Release any channels that were assigned to this incident back to Available.
+// Called when an incident closes, is deleted, or channels are removed from it.
+// Only releases channels whose active_for still matches this incident — this
+// avoids accidentally releasing a channel a dispatcher has already re-assigned.
+async function releaseIncidentChannels(inc, specificIds) {
+  const who = currentUser?.name || 'Unknown';
+  const idsToRelease = specificIds || (inc.channel_ids || []).map(String);
+  if (!idsToRelease.length) return;
+
+  for (const id of idsToRelease) {
+    const ch = channels.find(c => String(c.id) === String(id));
+    if (!ch) continue;
+    // Only release if still in use and still tied to this incident
+    if (ch.status === 'available') continue;
+    if (ch.activeFor && inc.name && ch.activeFor !== inc.name) continue;
+
+    const { error } = await sb.from('channels').update({
+      status: 'available', active_for: null, agency: '—',
+      updated_by: who, updated_at: new Date().toISOString(),
+    }).eq('id', id);
+    if (!error) {
+      logEvent('channel', 'Status Change', `${ch.designator} → Available (incident closed/removed)`,
+        { channelId: id, designator: ch.designator, oldStatus: ch.status, newStatus: 'available' });
+    }
+  }
+  await loadChannels();
+  renderChannels();
+  if (document.getElementById('bigBoardOverlay')?.style.display !== 'none' && !bigBoardQuickAssignId) renderBigBoard();
 }
 
 // When a channel is assigned to an active/standby incident, its actual status
@@ -19925,10 +19977,11 @@ if ('serviceWorker' in navigator) {
     <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;">
       <div id="inc-error" style="font-size:14px;color:var(--status-active);font-family:var(--font-data);flex:1;"></div>
       <div style="display:flex;gap:8px;margin-left:auto;">
-        <button class="btn-secondary" id="inc-export-btn" style="display:none;" onclick="exportIncidentPDF()">⬇ Export PDF</button>
+        <button class="btn-danger"    id="inc-delete-btn"    style="display:none;" onclick="deleteIncident(incidentEditingId)">Delete Incident</button>
+        <button class="btn-secondary" id="inc-export-btn"    style="display:none;" onclick="exportIncidentPDF()">⬇ Export PDF</button>
         <button class="btn-secondary" id="inc-recommend-btn" style="display:none;" onclick="openRecommendChannels('incident', incidentEditingId)">🎯 Recommend Channels</button>
         <button class="btn-secondary" onclick="closeIncidentModal()">Cancel</button>
-        <button class="btn-primary" onclick="saveIncident()">Save Incident</button>
+        <button class="btn-primary"   onclick="saveIncident()">Save Incident</button>
       </div>
     </div>
   </div>
