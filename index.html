@@ -4112,6 +4112,9 @@
           <div class="nav-group-item" id="navitem-inventory" onclick="closeAllNavGroups();switchMainTab('inventory')">
             <span class="nav-item-icon">📦</span>Inventory
           </div>
+          <div class="nav-group-item" id="navitem-rid" onclick="closeAllNavGroups();switchMainTab('rid')">
+            <span class="nav-item-icon">🆔</span>RID Manager
+          </div>
         </div>
       </div>
 
@@ -4129,6 +4132,7 @@
       <span id="mvtab-commreq" style="display:none;"></span>
       <span id="mvtab-triggers" style="display:none;"></span>
       <span id="mvtab-inventory" style="display:none;"></span>
+      <span id="mvtab-rid" style="display:none;"></span>
     </div>
 
     <!-- ── OVERVIEW VIEW ── -->
@@ -4598,6 +4602,40 @@
       </div>
     </div>
 
+    <!-- ── RID MANAGER VIEW ── -->
+    <div id="view-rid" style="display:none;">
+      <div class="tab-page-header">
+        <div>
+          <div class="tab-page-title">RID Manager</div>
+          <div class="tab-page-subtitle">Radio ID range tracking — committed, held, and free IDs across all configured ranges</div>
+        </div>
+      </div>
+
+      <!-- Summary strip -->
+      <div id="ridSummaryStrip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
+
+      <!-- Filters -->
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+        <input class="search-input" id="ridSearch" type="text" placeholder="Search ID, assignment, serial, unit…" oninput="renderRidManager()" style="width:260px;">
+        <select class="form-select" id="ridRangeFilter" onchange="renderRidManager()" style="width:200px;font-size:14px;padding:5px 8px;">
+          <option value="all">All Ranges</option>
+        </select>
+        <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+          <button id="rid-filter-all"       onclick="setRidFilter('all')"       style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:var(--accent);color:#fff;cursor:pointer;">All</button>
+          <button id="rid-filter-free"      onclick="setRidFilter('free')"      style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;">Free</button>
+          <button id="rid-filter-held"      onclick="setRidFilter('held')"      style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;">Held</button>
+          <button id="rid-filter-committed" onclick="setRidFilter('committed')" style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;">Committed</button>
+        </div>
+        <button class="btn-secondary" onclick="copyFreeRidsToClipboard()" style="font-size:13px;">📋 Copy Free IDs</button>
+      </div>
+
+      <!-- Table header -->
+      <div style="display:grid;grid-template-columns:110px 1fr 140px 150px 120px 80px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--border);">
+        <span>Radio ID</span><span>Assignment / Unit</span><span>Serial #</span><span>Model / Band</span><span>Range</span><span>Status</span>
+      </div>
+      <div id="ridGrid" style="max-height:calc(100vh - 320px);overflow-y:auto;"></div>
+    </div>
+
     <!-- ── UAS MANAGER VIEW ── -->
     <div id="view-uas" style="display:none;">
       <div class="tab-page-header">
@@ -4892,6 +4930,7 @@
         <button class="admin-sub-tab"        id="astab-talkgroups" onclick="switchAdminTab('talkgroups')">🔢 Talkgroups</button>
         <button class="admin-sub-tab"        id="astab-users"      onclick="switchAdminTab('users')">👥 Users</button>
         <button class="admin-sub-tab"        id="astab-radioconf"  onclick="switchAdminTab('radioconf')">📻 Radio Config</button>
+        <button class="admin-sub-tab"        id="astab-radioIds"   onclick="switchAdminTab('radioIds')">🆔 Radio IDs</button>
         <button class="admin-sub-tab"        id="astab-import"     onclick="switchAdminTab('import')">📥 Import</button>
         <button class="admin-sub-tab"        id="astab-system"     onclick="switchAdminTab('system')">⚙ System</button>
       </div>
@@ -5062,6 +5101,18 @@
           </div>
           <div id="toneTableGrid" style="max-height:340px;overflow-y:auto;padding:10px 16px;"></div>
         </div>
+      </div>
+
+      <!-- Radio ID Ranges admin panel -->
+      <div id="admin-radioIds-panel" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="font-size:15px;color:var(--text-secondary);">Define the numeric ranges of Radio IDs managed by this agency. The RID Manager module uses these ranges to show which IDs are free, held, or committed.</div>
+          <button class="btn-primary" style="font-size:14px;flex-shrink:0;margin-left:16px;" onclick="openRidRangeForm(null)">+ Add Range</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 110px 110px 120px 80px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--border);">
+          <span>Range Name</span><span>Start ID</span><span>End ID</span><span>Count</span><span></span>
+        </div>
+        <div id="adminRidRangeList" style="max-height:400px;overflow-y:auto;"></div>
       </div>
 
       <!-- CSV Import panel -->
@@ -11038,7 +11089,7 @@ function switchMainTab(tab) {
   }
 
   activeMainTab = tab;
-  ['overview','channels','talkgroups','schedule','rfanalyzer','triggers','inventory','incidents','commreq','resources','admin','uas','personnel'].forEach(t => {
+  ['overview','channels','talkgroups','schedule','rfanalyzer','triggers','inventory','incidents','commreq','resources','admin','uas','personnel','rid'].forEach(t => {
     document.getElementById(`mvtab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`navitem-${t}`)?.classList.toggle('active', t === tab);
     const v = document.getElementById(`view-${t}`);
@@ -11063,6 +11114,7 @@ function switchMainTab(tab) {
   if (tab === 'admin')       renderAdminView();
   if (tab === 'uas')         renderUasTab();
   if (tab === 'personnel')   renderPersonnelTab();
+  if (tab === 'rid')         renderRidManager();
 }
 
 // ── Grouped nav dropdown interaction ──
@@ -11208,7 +11260,7 @@ let activeAdminTab = 'channels';
 
 function switchAdminTab(tab) {
   activeAdminTab = tab;
-  ['channels','talkgroups','users','radioconf','import','system'].forEach(t => {
+  ['channels','talkgroups','users','radioconf','radioIds','import','system'].forEach(t => {
     const btn = document.getElementById(`astab-${t}`);
     const panel = document.getElementById(`admin-${t}-panel`);
     if (btn)   btn.classList.toggle('active', t === tab);
@@ -11218,6 +11270,7 @@ function switchAdminTab(tab) {
   if (tab === 'talkgroups') renderAdminTalkgroups();
   if (tab === 'users')      renderAdminUsers();
   if (tab === 'radioconf')  renderAdminRadioConfig();
+  if (tab === 'radioIds')   renderAdminRidRanges();
   if (tab === 'import')     renderAdminImport();
   if (tab === 'system')     renderAdminSystem();
 }
@@ -16239,6 +16292,263 @@ async function deleteTeam(id) {
   renderPersonnelRoster();
 }
 
+// ═══════════════════════════════════════════════
+// RID MANAGER — Radio ID Range Tracking
+// ═══════════════════════════════════════════════
+let ridRanges       = [];       // rows from rid_ranges table
+let ridFilter       = 'all';    // 'all' | 'free' | 'held' | 'committed'
+let ridRangeEditingId = null;
+
+// ── Data loading ──
+async function loadRidRanges() {
+  try {
+    const { data, error } = await sb.from('rid_ranges')
+      .select('*').order('start_id', { ascending: true });
+    if (error) { console.warn('loadRidRanges:', error.message); return; }
+    ridRanges = data || [];
+  } catch(e) {}
+}
+
+// ── Classify a single numeric ID against triggers + inventory ──
+// Returns { state: 'committed'|'held'|'free', trigger, radio }
+function classifyRid(numericId) {
+  const idStr = String(numericId);
+  // Look in radio_ids (trigger table) — mdc_id field
+  const trigger = triggers.find(t => String(t.mdc_id) === idStr);
+  if (!trigger) return { state: 'free', trigger: null, radio: null };
+  // In radio_ids — check if it has an assignment or serial (committed) or not (held)
+  const hasAssignment = trigger.assignment && trigger.assignment.trim();
+  const hasSerial     = trigger.serial_number && trigger.serial_number.trim();
+  // Also look for a linked radio in inventory
+  const radio = inventory.find(r => String(r.radio_id || '').trim() === idStr ||
+                                     String(r.radio_id || '').trim() === trigger.mdc_id);
+  const committed = hasAssignment || hasSerial || radio;
+  return { state: committed ? 'committed' : 'held', trigger, radio };
+}
+
+// ── Status colors/labels ──
+const RID_STATE = {
+  free:      { label: 'Free',      color: 'var(--status-available)', bg: 'rgba(0,229,170,0.1)', border: 'rgba(0,229,170,0.25)' },
+  held:      { label: 'Held',      color: 'var(--status-reserved)',  bg: 'rgba(255,179,0,0.1)',  border: 'rgba(255,179,0,0.25)' },
+  committed: { label: 'Committed', color: 'var(--status-active)',    bg: 'rgba(255,82,82,0.08)', border: 'rgba(255,82,82,0.25)' },
+};
+
+// ── Filter toggle ──
+function setRidFilter(f) {
+  ridFilter = f;
+  ['all','free','held','committed'].forEach(k => {
+    const btn = document.getElementById(`rid-filter-${k}`);
+    if (!btn) return;
+    const active = k === f;
+    btn.style.background = active ? 'var(--accent)' : 'transparent';
+    btn.style.color      = active ? '#fff' : 'var(--text-dim)';
+  });
+  renderRidManager();
+}
+
+// ── Copy free IDs to clipboard ──
+function copyFreeRidsToClipboard() {
+  const freeIds = [];
+  for (const range of ridRanges) {
+    for (let id = range.start_id; id <= range.end_id; id++) {
+      const { state } = classifyRid(id);
+      if (state === 'free') freeIds.push(id);
+    }
+  }
+  if (!freeIds.length) { alert('No free IDs found in configured ranges.'); return; }
+  navigator.clipboard?.writeText(freeIds.join(', '))
+    .then(() => pushNotification('available', `📋 ${freeIds.length} free Radio IDs copied to clipboard`))
+    .catch(() => alert(`Free IDs:\n${freeIds.join(', ')}`));
+}
+
+// ── Main render ──
+function renderRidManager() {
+  const grid   = document.getElementById('ridGrid');
+  const strip  = document.getElementById('ridSummaryStrip');
+  const search = (document.getElementById('ridSearch')?.value || '').toLowerCase();
+  const rangeF = document.getElementById('ridRangeFilter')?.value || 'all';
+  if (!grid) return;
+
+  // Populate range filter dropdown
+  const rangeEl = document.getElementById('ridRangeFilter');
+  if (rangeEl) {
+    const existing = [...rangeEl.options].map(o => o.value);
+    ridRanges.forEach(r => {
+      if (!existing.includes(String(r.id))) {
+        const o = document.createElement('option');
+        o.value = r.id; o.textContent = `${r.name} (${r.start_id}–${r.end_id})`;
+        rangeEl.appendChild(o);
+      }
+    });
+  }
+
+  if (!ridRanges.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--text-dim);">
+      <div style="font-size:28px;margin-bottom:10px;">🆔</div>
+      <div style="font-size:15px;color:var(--text-secondary);">No RID ranges configured yet</div>
+      <div style="font-size:14px;margin-top:4px;">Go to <strong>Admin → Radio IDs</strong> to add a range</div>
+    </div>`;
+    return;
+  }
+
+  // Build the flat list of all IDs across all ranges
+  const rows = [];
+  for (const range of ridRanges) {
+    if (rangeF !== 'all' && String(range.id) !== String(rangeF)) continue;
+    for (let id = range.start_id; id <= range.end_id; id++) {
+      const { state, trigger, radio } = classifyRid(id);
+      if (ridFilter !== 'all' && state !== ridFilter) continue;
+      const idStr = String(id);
+      const assignment = trigger?.assignment || radio?.assigned_unit || '';
+      const serial     = trigger?.serial_number || radio?.serial_number || '';
+      const model      = trigger?.radio_model || radio?.radio_model || '';
+      const band       = trigger?.radio_band  || radio?.radio_band  || '';
+      if (search) {
+        const hay = `${idStr} ${assignment} ${serial} ${model} ${band}`.toLowerCase();
+        if (!hay.includes(search)) continue;
+      }
+      rows.push({ id, idStr, state, trigger, radio, range, assignment, serial, model, band });
+    }
+  }
+
+  // Summary strip counts (across all ranges regardless of current filter)
+  let totFree = 0, totHeld = 0, totCommitted = 0;
+  for (const range of ridRanges) {
+    for (let id = range.start_id; id <= range.end_id; id++) {
+      const { state } = classifyRid(id);
+      if (state === 'free') totFree++;
+      else if (state === 'held') totHeld++;
+      else totCommitted++;
+    }
+  }
+  const total = totFree + totHeld + totCommitted;
+  if (strip) {
+    strip.innerHTML = [
+      { label: 'Total IDs', count: total, color: 'var(--text-secondary)' },
+      { label: 'Free',      count: totFree,      color: RID_STATE.free.color },
+      { label: 'Held',      count: totHeld,      color: RID_STATE.held.color },
+      { label: 'Committed', count: totCommitted,  color: RID_STATE.committed.color },
+    ].map(s => `<div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-data);font-size:13px;padding:4px 12px;border-radius:var(--radius);background:var(--bg-card);border:1px solid var(--border);">
+      <span style="font-size:16px;font-weight:700;color:${s.color};">${s.count}</span>
+      <span style="color:var(--text-dim);">${s.label}</span>
+    </div>`).join('');
+  }
+
+  if (!rows.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--text-dim);font-size:14px;">No Radio IDs match the current filter</div>`;
+    return;
+  }
+
+  grid.innerHTML = rows.map(r => {
+    const s = RID_STATE[r.state];
+    const openTrigger = r.trigger ? `onclick="openTriggerModal(${r.trigger.id})"` : '';
+    return `<div style="display:grid;grid-template-columns:110px 1fr 140px 150px 120px 80px;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);transition:background 0.1s;${r.trigger || r.radio ? 'cursor:pointer;' : ''}" ${openTrigger} onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+      <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);">${r.idStr}</div>
+      <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:var(--text-secondary);">${escHtml(r.assignment || '—')}</div>
+      <div style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.serial || '—')}</div>
+      <div style="font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.model || '—')}${r.band ? ' · ' + escHtml(r.band) : ''}</div>
+      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.range.name)}</div>
+      <div><span style="font-family:var(--font-data);font-size:11px;font-weight:700;padding:2px 7px;border-radius:2px;background:${s.bg};color:${s.color};border:1px solid ${s.border};white-space:nowrap;">${s.label}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ── ADMIN: RID Ranges ──
+function renderAdminRidRanges() {
+  const el = document.getElementById('adminRidRangeList');
+  if (!el) return;
+  if (!ridRanges.length) {
+    el.innerHTML = '<div style="padding:16px 12px;color:var(--text-dim);font-size:14px;">No ranges yet — click + Add Range to create one.</div>';
+    return;
+  }
+  el.innerHTML = ridRanges.map(r => {
+    const count = r.end_id - r.start_id + 1;
+    return `<div style="display:grid;grid-template-columns:1fr 110px 110px 120px 80px;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-size:15px;font-weight:600;color:var(--text-primary);">${escHtml(r.name)}</div>
+        ${r.description ? `<div style="font-size:12px;color:var(--text-dim);">${escHtml(r.description)}</div>` : ''}
+      </div>
+      <div style="font-family:var(--font-data);font-size:14px;color:var(--text-secondary);">${r.start_id}</div>
+      <div style="font-family:var(--font-data);font-size:14px;color:var(--text-secondary);">${r.end_id}</div>
+      <div style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);">${count.toLocaleString()} IDs</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="openRidRangeForm('${r.id}')">Edit</button>
+        <button class="btn-danger"    style="font-size:13px;padding:3px 10px;" onclick="deleteRidRange('${r.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openRidRangeForm(id) {
+  ridRangeEditingId = id || null;
+  if (id) {
+    const r = ridRanges.find(x => String(x.id) === String(id));
+    if (!r) return;
+    document.getElementById('ridRangeModalTitle').textContent = 'Edit Range';
+    document.getElementById('rr-name').value        = r.name        || '';
+    document.getElementById('rr-start').value       = r.start_id    || '';
+    document.getElementById('rr-end').value         = r.end_id      || '';
+    document.getElementById('rr-description').value = r.description || '';
+  } else {
+    document.getElementById('ridRangeModalTitle').textContent = 'Add Range';
+    ['rr-name','rr-start','rr-end','rr-description'].forEach(fid => document.getElementById(fid).value = '');
+  }
+  document.getElementById('ridRangeModal').classList.add('open');
+}
+
+function closeRidRangeForm() {
+  document.getElementById('ridRangeModal').classList.remove('open');
+  ridRangeEditingId = null;
+}
+
+async function saveRidRange() {
+  const name  = document.getElementById('rr-name').value.trim();
+  const start = parseInt(document.getElementById('rr-start').value);
+  const end   = parseInt(document.getElementById('rr-end').value);
+  const desc  = document.getElementById('rr-description').value.trim();
+  const errEl = document.getElementById('rr-error');
+  errEl.textContent = '';
+
+  if (!name)            { errEl.textContent = 'Name is required.'; return; }
+  if (isNaN(start))     { errEl.textContent = 'Start ID must be a number.'; return; }
+  if (isNaN(end))       { errEl.textContent = 'End ID must be a number.'; return; }
+  if (end < start)      { errEl.textContent = 'End ID must be ≥ Start ID.'; return; }
+  if (end - start > 99999) { errEl.textContent = 'Range too large (max 100,000 IDs).'; return; }
+
+  const row = {
+    name, start_id: start, end_id: end, description: desc || null,
+    updated_by: currentUser?.name || 'Unknown', updated_at: new Date().toISOString(),
+    agency_id: agencyId(),
+  };
+
+  if (ridRangeEditingId) {
+    const { error } = await sb.from('rid_ranges').update(row).eq('id', ridRangeEditingId);
+    if (error) { errEl.textContent = 'Error: ' + error.message; return; }
+    logEvent('admin', 'RID Range Updated', `${name} (${start}–${end})`);
+  } else {
+    const { error } = await sb.from('rid_ranges').insert(row);
+    if (error) { errEl.textContent = 'Error: ' + error.message; return; }
+    logEvent('admin', 'RID Range Added', `${name} (${start}–${end})`);
+  }
+
+  await loadRidRanges();
+  closeRidRangeForm();
+  renderAdminRidRanges();
+  // Refresh the RID manager view if open
+  if (activeMainTab === 'rid') renderRidManager();
+}
+
+async function deleteRidRange(id) {
+  const r = ridRanges.find(x => String(x.id) === String(id));
+  if (!r || !confirm(`Delete range "${r.name}" (${r.start_id}–${r.end_id})?\nThis only deletes the range definition — radio ID records in the trigger lookup are not affected.`)) return;
+  const { error } = await sb.from('rid_ranges').delete().eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  logEvent('admin', 'RID Range Deleted', `${r.name} (${r.start_id}–${r.end_id})`);
+  await loadRidRanges();
+  renderAdminRidRanges();
+  if (activeMainTab === 'rid') renderRidManager();
+}
+
 function switchInventoryTab(tab) {
   ['list','custody','log'].forEach(t => {
     document.getElementById(`invtab-${t}`)?.classList.toggle('active', t === tab);
@@ -17821,6 +18131,7 @@ async function loadAllData() {
     loadPersonnelTeams(),
     loadPersonnelRoster(),
     loadResources(),
+    loadRidRanges(),
   ]);
 }
 
@@ -19875,7 +20186,7 @@ if ('serviceWorker' in navigator) {
 
 <!-- ── INCIDENT FORM MODAL ── -->
 <div class="modal-overlay" id="incidentModal">
-  <div class="modal" style="max-width:680px;max-height:88vh;display:flex;flex-direction:column;">
+  <div class="modal" style="max-width:820px;max-height:88vh;display:flex;flex-direction:column;">
     <div class="modal-header" style="flex-shrink:0;">
       <div class="modal-title" id="incModalTitle">New Incident</div>
       <button class="modal-close" onclick="closeIncidentModal()">✕</button>
@@ -19978,12 +20289,14 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
     </div>
-    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;">
-      <div id="inc-error" style="font-size:14px;color:var(--status-active);font-family:var(--font-data);flex:1;"></div>
-      <div style="display:flex;gap:8px;margin-left:auto;">
-        <button class="btn-danger"    id="inc-delete-btn"    style="display:none;" onclick="deleteIncident(incidentEditingId)">Delete Incident</button>
-        <button class="btn-secondary" id="inc-export-btn"    style="display:none;" onclick="exportIncidentPDF()">⬇ Export PDF</button>
-        <button class="btn-secondary" id="inc-recommend-btn" style="display:none;" onclick="openRecommendChannels('incident', incidentEditingId)">🎯 Recommend Channels</button>
+    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-danger"    id="inc-delete-btn"    style="display:none;" onclick="deleteIncident(incidentEditingId)">🗑 Delete</button>
+        <button class="btn-secondary" id="inc-export-btn"    style="display:none;" onclick="exportIncidentPDF()">⬇ PDF</button>
+        <button class="btn-secondary" id="inc-recommend-btn" style="display:none;" onclick="openRecommendChannels('incident', incidentEditingId)">🎯 Recommend</button>
+        <div id="inc-error" style="font-size:13px;color:var(--status-active);font-family:var(--font-data);"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn-secondary" onclick="closeIncidentModal()">Cancel</button>
         <button class="btn-primary"   onclick="saveIncident()">Save Incident</button>
       </div>
@@ -20405,6 +20718,45 @@ if ('serviceWorker' in navigator) {
         <button class="btn-secondary" onclick="closeTeamForm()">Cancel</button>
         <button class="btn-primary" onclick="saveTeam()">Save Team</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── RID RANGE MODAL ── -->
+<div class="modal-overlay" id="ridRangeModal">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title" id="ridRangeModalTitle">Add Range</div>
+      <button class="modal-close" onclick="closeRidRangeForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row single">
+        <div class="form-field">
+          <label class="form-label">Range Name *</label>
+          <input class="form-input" id="rr-name" placeholder="e.g. Main Allocation, LARICS Block A">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Start ID *</label>
+          <input class="form-input" id="rr-start" type="number" min="0" placeholder="e.g. 1901000" style="font-family:var(--font-data);">
+        </div>
+        <div class="form-field">
+          <label class="form-label">End ID *</label>
+          <input class="form-input" id="rr-end" type="number" min="0" placeholder="e.g. 1908000" style="font-family:var(--font-data);">
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-field">
+          <label class="form-label">Description <span style="font-weight:400;color:var(--text-dim);">optional</span></label>
+          <input class="form-input" id="rr-description" placeholder="Purpose, source, notes…">
+        </div>
+      </div>
+      <div id="rr-error" style="font-size:13px;color:var(--status-active);font-family:var(--font-data);margin-top:4px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeRidRangeForm()">Cancel</button>
+      <button class="btn-primary"   onclick="saveRidRange()">Save Range</button>
     </div>
   </div>
 </div>
