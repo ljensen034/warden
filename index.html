@@ -7750,12 +7750,10 @@ function openSidePanelForChannel(id, tab) {
 
 async function releaseChannel(id) {
   const ch = channels.find(c => c.id === id);
+  if (!ch) return;
   const old = ch.status;
   const who = currentUser ? currentUser.name : 'Unknown';
   const { error } = await sb.from('channels').update({
-    // Function/Purpose (e.g. Command, Tactical) describes what the channel IS
-    // and survives a release — only what it was tied up FOR (active_for) and
-    // who's using it (agency) get cleared, since those are deployment-specific.
     status: 'available', active_for: null, agency: '—', updated_by: who, updated_at: new Date().toISOString()
   }).eq('id', id);
   if (error) { alert('Error releasing channel: ' + error.message); return; }
@@ -7765,7 +7763,13 @@ async function releaseChannel(id) {
   });
   logEvent('channel', 'Status Change', `${ch.designator} → Available`, { channelId: id, designator: ch.designator, oldStatus: old, newStatus: 'available' });
   logActivity(`<span class="log-ch">${ch.designator}</span> released by ${who} — ${statusLabels[old]} → Available`);
-  if (activeMainTab === 'admin') { await loadChannels(); renderAdminChannels(); }
+  // Always reload and re-render so every view (channel plan, overview, big board)
+  // reflects the release immediately rather than waiting for the realtime subscription.
+  await loadChannels();
+  renderChannels();
+  if (activeMainTab === 'admin') renderAdminChannels();
+  if (document.getElementById('bigBoardOverlay')?.style.display !== 'none' && !bigBoardQuickAssignId) renderBigBoard();
+  closeChannelDetailModal();
 }
 
 function quickDeploy(id) {
