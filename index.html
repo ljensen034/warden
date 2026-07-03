@@ -2686,7 +2686,7 @@
   .inv-cond-chip.poor { color:var(--status-active); border-color:rgba(255,82,82,0.4); }
   .inv-row {
     display: grid;
-    grid-template-columns: 28px 120px 1fr 130px 100px 120px 90px 70px;
+    grid-template-columns: 28px 120px 1fr 130px 120px 90px 70px 160px;
     align-items: center; gap: 8px; padding: 9px 12px;
     background: var(--bg-card); border: 1px solid transparent;
     border-radius: var(--radius); margin-bottom: 3px;
@@ -2696,7 +2696,7 @@
   .inv-row.retired { opacity: 0.55; }
   .inv-grid-header {
     display: grid;
-    grid-template-columns: 28px 120px 1fr 130px 100px 120px 90px 70px;
+    grid-template-columns: 28px 120px 1fr 130px 120px 90px 70px 160px;
     gap: 8px; padding: 4px 12px 8px;
     font-family: var(--font-data); font-size: 12px;
     color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em;
@@ -4479,9 +4479,18 @@
 
       <!-- Registry panel -->
       <div id="tr-registry-panel">
-        <div style="display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input class="search-input" id="triggerSearch" type="text" placeholder="Search ID, serial, LARICS, model…" oninput="renderTriggers()" style="width:260px;">
+            <input class="search-input" id="triggerSearch" type="text" placeholder="Search ID, serial, assignment, system ID…" oninput="renderTriggers()" style="width:260px;">
+            <select class="form-select" id="triggerBandFilter" onchange="renderTriggers()" style="width:120px;font-size:14px;padding:5px 8px;">
+              <option value="all">All Bands</option>
+            </select>
+            <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text-secondary);cursor:pointer;">
+              <input type="checkbox" id="triggerUnassignedOnly" onchange="renderTriggers()" style="accent-color:var(--accent);">
+              Unassigned only
+            </label>
+          </div>
+          <div style="display:flex;gap:8px;">
             <button class="btn-secondary" style="font-size:14px;" onclick="exportTriggersCSV()">⬇ Export CSV</button>
             <button class="btn-secondary" style="font-size:14px;" onclick="openTriggerImport()">⬆ Import CSV</button>
             <button class="btn-primary" id="triggerAddBtn" style="display:none;" onclick="openTriggerEditForm(null)">+ Add Radio ID</button>
@@ -4536,8 +4545,8 @@
       <div id="inv-list-panel">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input class="search-input" id="invSearch" type="text" placeholder="Search serial, model, unit, person…" oninput="renderInventory()" style="width:260px;">
-            <select class="form-select" id="invStatusFilter" onchange="renderInventory()" style="width:160px;font-size:14px;padding:5px 8px;">
+            <input class="search-input" id="invSearch" type="text" placeholder="Search serial, model, unit, system ID…" oninput="renderInventory()" style="width:230px;">
+            <select class="form-select" id="invStatusFilter" onchange="renderInventory()" style="width:155px;font-size:14px;padding:5px 8px;">
               <option value="all">All Statuses</option>
               <option value="in-stock">In Stock</option>
               <option value="assigned">Assigned to Unit</option>
@@ -4545,21 +4554,42 @@
               <option value="out-of-service">Out of Service</option>
               <option value="retired">Retired</option>
             </select>
-            <select class="form-select" id="invModelFilter" onchange="renderInventory()" style="width:150px;font-size:14px;padding:5px 8px;">
+            <select class="form-select" id="invModelFilter" onchange="renderInventory()" style="width:140px;font-size:14px;padding:5px 8px;">
               <option value="all">All Models</option>
+            </select>
+            <select class="form-select" id="invBandFilter" onchange="renderInventory()" style="width:120px;font-size:14px;padding:5px 8px;">
+              <option value="all">All Bands</option>
             </select>
           </div>
           <div style="display:flex;gap:8px;">
+            <button class="btn-secondary" id="invBulkToggleBtn" style="font-size:14px;" onclick="toggleInventoryBulkMode()">☐ Select</button>
             <button class="btn-secondary" id="invExportBtn" style="font-size:14px;" onclick="exportInventoryCSV()">⬇ CSV</button>
             <button class="btn-primary"   id="invAddBtn"    style="font-size:14px;" onclick="openInventoryForm(null)">+ Add Radio</button>
           </div>
+        </div>
+
+        <!-- Bulk action bar -->
+        <div id="invBulkBar" style="display:none;background:var(--accent-glow);border:1px solid var(--accent);border-radius:var(--radius);padding:8px 14px;margin-bottom:10px;gap:10px;align-items:center;">
+          <span id="invBulkCount" style="font-family:var(--font-data);font-size:14px;color:var(--accent);font-weight:700;">0 selected</span>
+          <span style="color:var(--border-lit);">|</span>
+          <span style="font-size:14px;color:var(--text-dim);">Set status:</span>
+          <select class="form-select" id="invBulkStatus" style="width:160px;font-size:13px;padding:4px 8px;">
+            <option value="">— Choose status —</option>
+            <option value="in-stock">In Stock</option>
+            <option value="assigned">Assigned to Unit</option>
+            <option value="signed-out">Assigned to Person</option>
+            <option value="out-of-service">Out of Service</option>
+            <option value="retired">Retired</option>
+          </select>
+          <button class="btn-primary" style="font-size:13px;padding:4px 12px;" onclick="applyBulkStatusChange()">Apply</button>
+          <button class="btn-secondary" style="font-size:13px;padding:4px 10px;margin-left:auto;" onclick="toggleInventoryBulkMode()">Cancel</button>
         </div>
 
         <!-- Summary strip -->
         <div id="invSummaryStrip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
 
         <div class="inv-grid-header">
-          <span></span><span>Serial Number</span><span>Model / Band</span><span>Status</span><span>Condition</span><span>Assigned To</span><span>Location</span><span>MDC ID</span>
+          <span></span><span>Serial Number</span><span>Model / Band</span><span>Status</span><span>Unit</span><span>Person / Agency</span><span>MDC ID</span><span>System IDs</span>
         </div>
         <div id="inventoryGrid"></div>
         <div id="inventoryEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
@@ -4627,6 +4657,7 @@
           <button id="rid-filter-committed" onclick="setRidFilter('committed')" style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;">Committed</button>
         </div>
         <button class="btn-secondary" onclick="copyFreeRidsToClipboard()" style="font-size:13px;">📋 Copy Free IDs</button>
+        <button class="btn-secondary" onclick="exportFreeRidsCsv()" style="font-size:13px;">⬇ Export Free IDs CSV</button>
       </div>
 
       <!-- Table header -->
@@ -4978,7 +5009,7 @@
           <div style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">User Accounts</div>
           <button class="btn-primary" style="font-size:14px;padding:5px 14px;" onclick="openAdminUserForm(null)">+ Add User</button>
         </div>
-        <div id="adminUserList" style="max-height:440px;overflow-y:auto;margin-bottom:16px;"></div>
+        <div id="adminUserList" style="max-height:calc(100vh - 280px);overflow-y:auto;margin-bottom:16px;"></div>
 
         <!-- Inline user form inside admin panel -->
         <div id="adminUserFormSection" style="display:none;background:var(--bg-deep);border:1px solid var(--border);border-radius:8px;padding:18px 20px;">
@@ -5993,6 +6024,22 @@ function subscribeRealtime() {
       if (activeMainTab === 'resources') renderResources();
     })
     .subscribe(status => onRealtimeStatus('resources', status));
+
+  sb.channel('trigger-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'radio_ids' }, async () => {
+      await loadTriggers();
+      if (activeMainTab === 'triggers') renderTriggers();
+      if (activeMainTab === 'rid')      renderRidManager();
+    })
+    .subscribe(status => onRealtimeStatus('triggers', status));
+
+  sb.channel('inventory-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'radio_inventory' }, async () => {
+      await loadInventory();
+      if (activeMainTab === 'inventory') renderInventory();
+      if (activeMainTab === 'rid')       renderRidManager();
+    })
+    .subscribe(status => onRealtimeStatus('inventory', status));
 
   sb.channel('commreq-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'comm_plan_requests' }, async () => {
@@ -7605,7 +7652,7 @@ function bulkExportICS205() {
 function openBulkEditModal() {
   if (!bulkSelectedChannels.size) return;
   // Reset all fields to unchecked / empty
-  ['status', 'activefor', 'agency'].forEach(f => {
+  ['status', 'activefor', 'agency', 'function', 'tro'].forEach(f => {
     const cb = document.getElementById(`bulkEdit-${f}-enabled`);
     const field = document.getElementById(`bulkEdit-${f}-field`);
     if (cb) cb.checked = false;
@@ -7613,7 +7660,16 @@ function openBulkEditModal() {
   });
   document.querySelectorAll('input[name="bulkEditStatus"]').forEach(r => r.checked = false);
   document.getElementById('bulkEdit-activefor').value = '';
-  document.getElementById('bulkEdit-agency').value = '';
+  document.getElementById('bulkEdit-agency').value    = '';
+  document.getElementById('bulkEdit-tro').value       = '';
+
+  // Populate function dropdown from the agency's configured list
+  const funcSel = document.getElementById('bulkEdit-function');
+  if (funcSel) {
+    funcSel.innerHTML = '<option value="">— Select function —</option>' +
+      channelFunctions.map(f => `<option value="${escHtml(f)}">${escHtml(f)}</option>`).join('');
+  }
+
   document.getElementById('bulkEditCount').textContent = bulkSelectedChannels.size;
   document.getElementById('bulkEditModal').classList.add('open');
 }
@@ -7623,20 +7679,24 @@ function closeBulkEditModal() {
 }
 
 async function confirmBulkEdit() {
-  const statusEnabled   = document.getElementById('bulkEdit-status-enabled').checked;
+  const statusEnabled    = document.getElementById('bulkEdit-status-enabled').checked;
   const activeForEnabled = document.getElementById('bulkEdit-activefor-enabled').checked;
-  const agencyEnabled   = document.getElementById('bulkEdit-agency-enabled').checked;
+  const agencyEnabled    = document.getElementById('bulkEdit-agency-enabled').checked;
+  const functionEnabled  = document.getElementById('bulkEdit-function-enabled').checked;
+  const troEnabled       = document.getElementById('bulkEdit-tro-enabled').checked;
 
-  if (!statusEnabled && !activeForEnabled && !agencyEnabled) {
+  if (!statusEnabled && !activeForEnabled && !agencyEnabled && !functionEnabled && !troEnabled) {
     alert('Check at least one field to apply.');
     return;
   }
 
-  const statusVal   = document.querySelector('input[name="bulkEditStatus"]:checked')?.value;
+  const statusVal    = document.querySelector('input[name="bulkEditStatus"]:checked')?.value;
   if (statusEnabled && !statusVal) { alert('Select a status to apply.'); return; }
 
   const activeForVal = document.getElementById('bulkEdit-activefor').value.trim();
   const agencyVal    = document.getElementById('bulkEdit-agency').value.trim();
+  const functionVal  = document.getElementById('bulkEdit-function').value;
+  const troVal       = document.getElementById('bulkEdit-tro').value;
   const who = currentUser?.name || 'Unknown';
   const ids = [...bulkSelectedChannels];
   const now = new Date().toISOString();
@@ -7644,7 +7704,9 @@ async function confirmBulkEdit() {
   const summary = [];
   if (statusEnabled)   summary.push(`status → ${statusLabels[statusVal]}`);
   if (activeForEnabled) summary.push(`event → "${activeForVal || 'cleared'}"`);
+  if (functionEnabled) summary.push(`function → "${functionVal || 'cleared'}"`);
   if (agencyEnabled)   summary.push(`agency → "${agencyVal || 'cleared'}"`);
+  if (troEnabled)      summary.push(`TRO → "${troVal || 'cleared'}"`);
 
   if (!confirm(`Apply to ${ids.length} channel(s):\n${summary.join('\n')}?`)) return;
 
@@ -7652,11 +7714,12 @@ async function confirmBulkEdit() {
     const patch = { updated_by: who, updated_at: now };
     if (statusEnabled) {
       patch.status = statusVal;
-      // Clear active_for when setting back to available
       if (statusVal === 'available') { patch.active_for = null; patch.agency = '—'; }
     }
-    if (activeForEnabled) patch.active_for = activeForVal || null;
-    if (agencyEnabled)    patch.agency     = agencyVal    || '—';
+    if (activeForEnabled) patch.active_for   = activeForVal || null;
+    if (agencyEnabled)    patch.agency        = agencyVal    || '—';
+    if (functionEnabled)  patch.function      = functionVal  || '—';
+    if (troEnabled)       patch.tro_assignment = troVal      || null;
     await sb.from('channels').update(patch).eq('id', id);
   }
 
@@ -14948,7 +15011,9 @@ function switchTriggerTab(tab) {
 }
 
 function renderTriggers() {
-  const query   = (document.getElementById('triggerSearch')?.value || '').toLowerCase();
+  const query      = (document.getElementById('triggerSearch')?.value || '').toLowerCase();
+  const bandFilt   = document.getElementById('triggerBandFilter')?.value || 'all';
+  const unassigned = document.getElementById('triggerUnassignedOnly')?.checked || false;
   const grid    = document.getElementById('triggerGrid');
   const empty   = document.getElementById('triggerEmpty');
   const addBtn  = document.getElementById('triggerAddBtn');
@@ -14957,11 +15022,31 @@ function renderTriggers() {
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'comms';
   if (addBtn) addBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
-  const filtered = triggers.filter(t => !query ||
-    [t.mdc_id, t.assignment, t.serial_number, t.radio_model, t.radio_band,
+  // Populate band filter
+  const bandSel = document.getElementById('triggerBandFilter');
+  if (bandSel && bandSel.options.length <= 1) {
+    const bands = [...new Set(triggers.map(t => t.radio_band).filter(Boolean))].sort();
+    bands.forEach(b => { const o = document.createElement('option'); o.value = b; o.textContent = b; bandSel.appendChild(o); });
+  }
+
+  // Pre-build a serial-number collision map for conflict badges
+  const serialCount = {};
+  const sysIdCount  = {};
+  triggers.forEach(t => {
+    if (t.serial_number) serialCount[t.serial_number.toLowerCase()] = (serialCount[t.serial_number.toLowerCase()]||0)+1;
+    ['larics_id','ici_id','cwirs_id','cris_id'].forEach(k => {
+      if (t[k]) sysIdCount[t[k].toLowerCase()] = (sysIdCount[t[k].toLowerCase()]||0)+1;
+    });
+  });
+
+  const filtered = triggers.filter(t => {
+    if (bandFilt !== 'all' && t.radio_band !== bandFilt) return false;
+    if (unassigned && (t.assignment || t.serial_number)) return false;
+    if (!query) return true;
+    return [t.mdc_id, t.assignment, t.serial_number, t.radio_model, t.radio_band,
      t.larics_id, t.ici_id, t.cwirs_id, t.cris_id]
-      .some(f => (f||'').toLowerCase().includes(query))
-  );
+      .some(f => (f||'').toLowerCase().includes(query));
+  });
 
   if (!filtered.length) {
     grid.innerHTML = '';
@@ -14970,15 +15055,27 @@ function renderTriggers() {
   }
   if (empty) empty.style.display = 'none';
 
-  grid.innerHTML = filtered.map(t => `
-    <div class="trigger-row" onclick="openTriggerModal('${t.id}')">
-      <div class="trigger-id">${escHtml(t.mdc_id)}</div>
-      <div style="font-size:14px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(t.assignment||'—')}</div>
+  // Find linked inventory radio for each trigger to show cross-link badge
+  const invByTriggerId = {};
+  inventory.forEach(r => { if (r.radio_id) invByTriggerId[String(r.radio_id)] = r; });
+
+  grid.innerHTML = filtered.map(t => {
+    const hasSerialConflict = t.serial_number && (serialCount[t.serial_number.toLowerCase()]||0) > 1;
+    const hasSysIdConflict  = ['larics_id','ici_id','cwirs_id','cris_id'].some(k => t[k] && (sysIdCount[t[k].toLowerCase()]||0) > 1);
+    const conflictBadge = (hasSerialConflict || hasSysIdConflict)
+      ? `<span title="Duplicate ID detected — click to review" style="font-size:11px;color:var(--status-active);font-family:var(--font-data);margin-left:4px;">⚠ DUP</span>` : '';
+    const linkedRadio = invByTriggerId[String(t.id)];
+    const invBadge = linkedRadio
+      ? `<span title="Linked to inventory: ${linkedRadio.serial_number||'?'}" style="font-size:11px;color:var(--accent);font-family:var(--font-data);margin-left:4px;">📦</span>` : '';
+    return `<div class="trigger-row" onclick="openTriggerModal('${t.id}')">
+      <div class="trigger-id">${escHtml(t.mdc_id)}${conflictBadge}</div>
+      <div style="font-size:14px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(t.assignment||'—')}${invBadge}</div>
       <div style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(t.serial_number||'—')}</div>
       <div style="font-size:13px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(t.radio_model||'—')}</div>
       <div style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(t.larics_id||'—')}</div>
       <div style="font-size:13px;color:var(--text-dim);">${escHtml(t.radio_band||'—')}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // Jump to Admin → Import → Radio IDs card, where the actual import logic lives
@@ -15082,6 +15179,28 @@ async function openTriggerModal(id) {
 
   await renderTriggerNotes(id);
   document.getElementById('triggerNewNote').value = '';
+
+  // Cross-link to linked inventory radio if one exists
+  const linkedRadio = inventory.find(r => String(r.radio_id) === String(id));
+  const invLinkSection = document.getElementById('triggerInvLink');
+  if (invLinkSection) {
+    if (linkedRadio) {
+      invLinkSection.innerHTML = `<div style="background:rgba(156,39,176,0.06);border:1px solid rgba(156,39,176,0.2);border-radius:4px;padding:10px 14px;margin-top:8px;cursor:pointer;" onclick="closeTriggerModal();openInventoryModal('${linkedRadio.id}')">
+        <div style="font-family:var(--font-data);font-size:12px;color:#9c27b0;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">📦 Linked Inventory Radio</div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <span style="font-family:var(--font-data);font-size:18px;font-weight:700;color:#9c27b0;">${escHtml(linkedRadio.serial_number||'—')}</span>
+          <span style="font-size:14px;color:var(--text-secondary);">${escHtml(linkedRadio.radio_model||'—')} · ${escHtml(linkedRadio.radio_band||'—')}</span>
+          <span class="inv-status-chip ${linkedRadio.status}" style="font-size:12px;">${INV_STATUS_LABELS[linkedRadio.status]||linkedRadio.status}</span>
+          <span style="font-size:12px;color:#9c27b0;font-family:var(--font-data);">Click to open →</span>
+        </div>
+      </div>`;
+      invLinkSection.style.display = 'block';
+    } else {
+      invLinkSection.innerHTML = '';
+      invLinkSection.style.display = 'none';
+    }
+  }
+
   document.getElementById('triggerModal').classList.add('open');
   await logTriggerEvent('LOOKUP', t.mdc_id, `MDC ${t.mdc_id} — ${t.assignment||'unknown'} — viewed by ${currentUser?.name||'Unknown'}`);
 }
@@ -15138,8 +15257,16 @@ async function saveTriggerNote() {
 
 function copyLaricsToOthers() {
   const val = document.getElementById('te-larics').value.trim();
+  if (!val) return;
   ['te-ici','te-cwirs'].forEach(id => { const el = document.getElementById(id); if (el) { el.value = val; el.style.borderColor = 'var(--accent)'; } });
   checkTriggerDuplicates();
+  const btn = document.querySelector('[onclick="copyLaricsToOthers()"]');
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    btn.style.cssText += ';background:rgba(0,229,170,0.15);border-color:var(--status-available);color:var(--status-available)';
+    setTimeout(() => { btn.textContent = orig; btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; }, 1500);
+  }
 }
 
 async function checkTriggerDuplicates() {
@@ -15246,6 +15373,9 @@ async function saveTriggerRecord() {
 
   if (triggerEditingId) {
     const prev = triggers.find(x => String(x.id) === String(triggerEditingId));
+    // Conflict check for system IDs
+    const conflicts = checkSystemIdConflicts(row, null, triggerEditingId);
+    if (conflicts.length && !confirmSystemIdOverride(conflicts)) return;
     const { error } = await sb.from('radio_ids').update(row).eq('id', triggerEditingId);
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
     // Log changed fields
@@ -15261,6 +15391,11 @@ async function saveTriggerRecord() {
     }
     await logTriggerEvent('EDIT', mdcId, `MDC ${mdcId} updated: ${changed.join(', ')||'record saved'}`);
   } else {
+    // MDC ID uniqueness check for new records
+    const mdcConflict = checkMdcIdConflict(mdcId, null);
+    if (mdcConflict && !confirmSystemIdOverride([mdcConflict])) return;
+    const conflicts = checkSystemIdConflicts(row, null, null);
+    if (conflicts.length && !confirmSystemIdOverride(conflicts)) return;
     const { error } = await sb.from('radio_ids').insert(row);
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
     await logTriggerEvent('ADD', mdcId, `MDC ${mdcId} added — ${row.assignment||'no assignment'} — ${row.serial_number||'no serial'}`);
@@ -16365,8 +16500,8 @@ function copyFreeRidsToClipboard() {
   }
   if (!freeIds.length) { alert('No free IDs found in configured ranges.'); return; }
   navigator.clipboard?.writeText(freeIds.join(', '))
-    .then(() => pushNotification('available', `📋 ${freeIds.length} free Radio IDs copied to clipboard`))
-    .catch(() => alert(`Free IDs:\n${freeIds.join(', ')}`));
+    .then(() => pushNotification('available', `📋 ${freeIds.length} free Radio ID${freeIds.length!==1?'s':''} copied to clipboard`))
+    .catch(() => alert(`Free IDs (${freeIds.length}):\n${freeIds.join(', ')}`));
 }
 
 // ── Main render ──
@@ -16377,17 +16512,12 @@ function renderRidManager() {
   const rangeF = document.getElementById('ridRangeFilter')?.value || 'all';
   if (!grid) return;
 
-  // Populate range filter dropdown
+  // Repopulate range filter dropdown cleanly (avoid duplicates by rebuilding each render)
   const rangeEl = document.getElementById('ridRangeFilter');
   if (rangeEl) {
-    const existing = [...rangeEl.options].map(o => o.value);
-    ridRanges.forEach(r => {
-      if (!existing.includes(String(r.id))) {
-        const o = document.createElement('option');
-        o.value = r.id; o.textContent = `${r.name} (${r.start_id}–${r.end_id})`;
-        rangeEl.appendChild(o);
-      }
-    });
+    const cur = rangeEl.value;
+    rangeEl.innerHTML = '<option value="all">All Ranges</option>' +
+      ridRanges.map(r => `<option value="${r.id}"${String(r.id)===String(cur)?' selected':''}>${escHtml(r.name)} (${r.start_id}–${r.end_id})</option>`).join('');
   }
 
   if (!ridRanges.length) {
@@ -16399,7 +16529,61 @@ function renderRidManager() {
     return;
   }
 
-  // Build the flat list of all IDs across all ranges
+  // Compute per-range stats and grand totals
+  let totFree = 0, totHeld = 0, totCommitted = 0;
+  const rangeStats = {};
+  for (const range of ridRanges) {
+    let rFree=0,rHeld=0,rCommitted=0;
+    for (let id = range.start_id; id <= range.end_id; id++) {
+      const { state } = classifyRid(id);
+      if (state==='free') { rFree++; totFree++; }
+      else if (state==='held') { rHeld++; totHeld++; }
+      else { rCommitted++; totCommitted++; }
+    }
+    rangeStats[range.id] = { free:rFree, held:rHeld, committed:rCommitted, total:rFree+rHeld+rCommitted };
+  }
+  const total = totFree + totHeld + totCommitted;
+
+  // Summary strip
+  if (strip) {
+    const utilPct = total ? Math.round((totCommitted/total)*100) : 0;
+    strip.innerHTML = [
+      { label:'Total IDs', count:total, color:'var(--text-secondary)' },
+      { label:'Free',      count:totFree,      color:RID_STATE.free.color },
+      { label:'Held',      count:totHeld,      color:RID_STATE.held.color },
+      { label:'Committed', count:totCommitted,  color:RID_STATE.committed.color },
+    ].map(s => `<div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-data);font-size:13px;padding:4px 12px;border-radius:var(--radius);background:var(--bg-card);border:1px solid var(--border);">
+      <span style="font-size:16px;font-weight:700;color:${s.color};">${s.count}</span>
+      <span style="color:var(--text-dim);">${s.label}</span>
+    </div>`).join('') +
+    `<div style="display:inline-flex;align-items:center;gap:8px;font-family:var(--font-data);font-size:13px;padding:4px 12px;border-radius:var(--radius);background:var(--bg-card);border:1px solid var(--border);">
+      <span style="color:var(--text-dim);">Utilization:</span>
+      <span style="font-size:14px;font-weight:700;color:${utilPct>80?'var(--status-active)':utilPct>60?'var(--status-reserved)':'var(--status-available)'};">${utilPct}%</span>
+    </div>`;
+  }
+
+  // Per-range utilization bars (shown above the grid)
+  const showingRange = rangeF !== 'all' ? ridRanges.find(r=>String(r.id)===String(rangeF)) : null;
+  const utilBarsHTML = (rangeF === 'all' ? ridRanges : (showingRange ? [showingRange] : [])).map(range => {
+    const s = rangeStats[range.id] || {};
+    const pctC = s.total ? Math.round((s.committed/s.total)*100) : 0;
+    const pctH = s.total ? Math.round((s.held/s.total)*100) : 0;
+    return `<div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">
+        <span style="font-family:var(--font-data);font-size:13px;font-weight:600;color:var(--text-primary);">${escHtml(range.name)}</span>
+        <span style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);">${s.committed} committed · ${s.held} held · ${s.free} free / ${s.total} total</span>
+      </div>
+      <div style="height:6px;background:var(--bg-deep);border-radius:3px;overflow:hidden;display:flex;">
+        <div style="width:${pctC}%;background:${RID_STATE.committed.color};transition:width 0.3s;"></div>
+        <div style="width:${pctH}%;background:${RID_STATE.held.color};transition:width 0.3s;"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Build the flat list — with pagination for large ranges
+  const PAGE_SIZE = 500;
+  const ridPageEl = document.getElementById('ridPage');
+  const ridPage = parseInt(ridPageEl?.value || '0');
   const rows = [];
   for (const range of ridRanges) {
     if (rangeF !== 'all' && String(range.id) !== String(rangeF)) continue;
@@ -16419,46 +16603,76 @@ function renderRidManager() {
     }
   }
 
-  // Summary strip counts (across all ranges regardless of current filter)
-  let totFree = 0, totHeld = 0, totCommitted = 0;
-  for (const range of ridRanges) {
-    for (let id = range.start_id; id <= range.end_id; id++) {
-      const { state } = classifyRid(id);
-      if (state === 'free') totFree++;
-      else if (state === 'held') totHeld++;
-      else totCommitted++;
-    }
-  }
-  const total = totFree + totHeld + totCommitted;
-  if (strip) {
-    strip.innerHTML = [
-      { label: 'Total IDs', count: total, color: 'var(--text-secondary)' },
-      { label: 'Free',      count: totFree,      color: RID_STATE.free.color },
-      { label: 'Held',      count: totHeld,      color: RID_STATE.held.color },
-      { label: 'Committed', count: totCommitted,  color: RID_STATE.committed.color },
-    ].map(s => `<div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-data);font-size:13px;padding:4px 12px;border-radius:var(--radius);background:var(--bg-card);border:1px solid var(--border);">
-      <span style="font-size:16px;font-weight:700;color:${s.color};">${s.count}</span>
-      <span style="color:var(--text-dim);">${s.label}</span>
-    </div>`).join('');
-  }
-
   if (!rows.length) {
-    grid.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--text-dim);font-size:14px;">No Radio IDs match the current filter</div>`;
+    grid.innerHTML = utilBarsHTML + `<div style="text-align:center;padding:48px 24px;color:var(--text-dim);font-size:14px;">No Radio IDs match the current filter</div>`;
     return;
   }
 
-  grid.innerHTML = rows.map(r => {
-    const s = RID_STATE[r.state];
-    const openTrigger = r.trigger ? `onclick="openTriggerModal(${r.trigger.id})"` : '';
-    return `<div style="display:grid;grid-template-columns:110px 1fr 140px 150px 120px 80px;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);transition:background 0.1s;${r.trigger || r.radio ? 'cursor:pointer;' : ''}" ${openTrigger} onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
-      <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);">${r.idStr}</div>
-      <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:var(--text-secondary);">${escHtml(r.assignment || '—')}</div>
-      <div style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.serial || '—')}</div>
-      <div style="font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.model || '—')}${r.band ? ' · ' + escHtml(r.band) : ''}</div>
-      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.range.name)}</div>
-      <div><span style="font-family:var(--font-data);font-size:11px;font-weight:700;padding:2px 7px;border-radius:2px;background:${s.bg};color:${s.color};border:1px solid ${s.border};white-space:nowrap;">${s.label}</span></div>
-    </div>`;
-  }).join('');
+  const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+  const page = Math.min(ridPage, totalPages - 1);
+  const pageRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const paginationHTML = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-top:1px solid var(--border);margin-top:4px;">
+      <span style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);">Showing ${page*PAGE_SIZE+1}–${Math.min((page+1)*PAGE_SIZE,rows.length)} of ${rows.length}</span>
+      <div style="display:flex;gap:6px;">
+        ${page>0?`<button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="document.getElementById('ridPage').value=${page-1};renderRidManager()">← Prev</button>`:''}
+        <span style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);padding:3px 8px;">Page ${page+1} / ${totalPages}</span>
+        ${page<totalPages-1?`<button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="document.getElementById('ridPage').value=${page+1};renderRidManager()">Next →</button>`:''}
+      </div>
+    </div>` : '';
+
+  grid.innerHTML = utilBarsHTML +
+    `<input type="hidden" id="ridPage" value="${page}">` +
+    pageRows.map(r => {
+      const s = RID_STATE[r.state];
+      // Clicking a committed/held row: open trigger if exists, else inventory, else offer to assign
+      let clickHandler = '';
+      if (r.trigger) clickHandler = `onclick="openTriggerModal(${r.trigger.id})"`;
+      else if (r.radio) clickHandler = `onclick="openInventoryModal('${r.radio.id}')"`;
+      else if (r.state === 'free') clickHandler = `onclick="ridAssignToInventory('${r.idStr}')"`;
+      return `<div style="display:grid;grid-template-columns:110px 1fr 140px 150px 120px 80px;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);transition:background 0.1s;${clickHandler?'cursor:pointer;':''}" ${clickHandler} onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+        <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);">${r.idStr}</div>
+        <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:var(--text-secondary);">${escHtml(r.assignment||'—')}</div>
+        <div style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.serial||'—')}</div>
+        <div style="font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.model||'—')}${r.band?' · '+escHtml(r.band):''}</div>
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.range.name)}</div>
+        <div><span style="font-family:var(--font-data);font-size:11px;font-weight:700;padding:2px 7px;border-radius:2px;background:${s.bg};color:${s.color};border:1px solid ${s.border};white-space:nowrap;">${s.label}</span></div>
+      </div>`;
+    }).join('') + paginationHTML;
+}
+
+// Open inventory form pre-populated with a free RID so it can be committed quickly
+function ridAssignToInventory(numericId) {
+  if (!confirm(`Open "Add Radio" form pre-populated with ID ${numericId}?\nYou can fill in the rest of the radio details there.`)) return;
+  switchMainTab('inventory');
+  setTimeout(() => {
+    switchInventoryTab('list');
+    openInventoryForm(null).then(() => {
+      // Pre-fill LARICS ID (most common system for LACoFD) with the selected ID
+      const larics = document.getElementById('ie-larics');
+      if (larics) { larics.value = numericId; checkInventorySystemIdDuplicates(); }
+    });
+  }, 100);
+}
+
+// Export free IDs as CSV with range and neighbor context
+function exportFreeRidsCsv() {
+  const rows = [['Radio ID','Range','Range Start','Range End']];
+  for (const range of ridRanges) {
+    for (let id = range.start_id; id <= range.end_id; id++) {
+      const { state } = classifyRid(id);
+      if (state === 'free') rows.push([id, range.name, range.start_id, range.end_id]);
+    }
+  }
+  if (rows.length <= 1) { alert('No free IDs found.'); return; }
+  const csv = rows.map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'),{
+    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
+    download: `free-radio-ids-${new Date().toLocaleDateString('en-CA')}.csv`
+  });
+  a.click();
+  logEvent('rid', 'Free IDs Exported', `${rows.length-1} free IDs exported to CSV`);
 }
 
 // ── ADMIN: RID Ranges ──
@@ -16571,6 +16785,7 @@ function renderInventory() {
   const query       = (document.getElementById('invSearch')?.value || '').toLowerCase();
   const statusFilt  = document.getElementById('invStatusFilter')?.value || 'all';
   const modelFilt   = document.getElementById('invModelFilter')?.value  || 'all';
+  const bandFilt    = document.getElementById('invBandFilter')?.value   || 'all';
   const grid        = document.getElementById('inventoryGrid');
   const empty       = document.getElementById('inventoryEmpty');
   if (!grid) return;
@@ -16584,12 +16799,23 @@ function renderInventory() {
       modelSel.appendChild(o);
     });
   }
+  // Populate band filter
+  const bandSel = document.getElementById('invBandFilter');
+  if (bandSel && bandSel.options.length <= 1) {
+    const bands = [...new Set(inventory.map(r => r.radio_band).filter(Boolean))].sort();
+    bands.forEach(b => {
+      const o = document.createElement('option'); o.value = b; o.textContent = b;
+      bandSel.appendChild(o);
+    });
+  }
 
   const filtered = inventory.filter(r => {
     if (statusFilt !== 'all' && r.status !== statusFilt) return false;
     if (modelFilt  !== 'all' && r.radio_model !== modelFilt) return false;
+    if (bandFilt   !== 'all' && r.radio_band  !== bandFilt)  return false;
     if (query) return [r.serial_number, r.radio_model, r.radio_band, r.assigned_unit,
-      r.assigned_person, r.agency, r.firmware_version, r.mdc_id_ref]
+      r.assigned_person, r.agency, r.mdc_id_ref,
+      r.larics_id, r.ici_id, r.cwirs_id, r.cris_id]
       .some(f => (f||'').toLowerCase().includes(query));
     return true;
   });
@@ -16622,7 +16848,21 @@ function renderInventory() {
     return r.mdc_id_ref || '—';
   };
 
-  grid.innerHTML = filtered.map(r => `
+  grid.innerHTML = filtered.map(r => {
+    const trigger = r.radio_id ? triggers.find(t => String(t.id) === String(r.radio_id)) : null;
+    // Prefer values stored directly on the radio; fall back to linked trigger
+    const larics = r.larics_id || trigger?.larics_id || '';
+    const ici    = r.ici_id    || trigger?.ici_id    || '';
+    const cwirs  = r.cwirs_id  || trigger?.cwirs_id  || '';
+    const cris   = r.cris_id   || trigger?.cris_id   || '';
+    const sysIds = [
+      larics ? `<span title="LARICS">L:${escHtml(larics)}</span>` : '',
+      ici    ? `<span title="ICI">I:${escHtml(ici)}</span>`       : '',
+      cwirs  ? `<span title="CWIRS">CW:${escHtml(cwirs)}</span>`  : '',
+      cris   ? `<span title="CRIS">CR:${escHtml(cris)}</span>`    : '',
+    ].filter(Boolean).join(' ');
+
+    return `
     <div class="inv-row${r.status==='retired'?' retired':''}" onclick="openInventoryModal('${r.id}')">
       <div style="width:4px;height:32px;border-radius:2px;background:${invStatusColor(r.status)};flex-shrink:0;"></div>
       <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(r.serial_number||'')}">${escHtml(r.serial_number||'—')}${r.control_top_replaced?' <span style="color:var(--accent);" title="Control Top Replaced">⟲</span>':''}</div>
@@ -16631,11 +16871,12 @@ function renderInventory() {
         <div style="font-size:12px;color:var(--text-dim);font-family:var(--font-data);">${escHtml(r.radio_band||'—')}</div>
       </div>
       <div><span class="inv-status-chip ${r.status}">${INV_STATUS_LABELS[r.status]||r.status}</span></div>
-      <div><span class="inv-cond-chip ${r.condition||'good'}">${r.condition||'—'}</span></div>
-      <div style="font-size:13px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_unit||r.assigned_person||'—')}</div>
-      <div style="font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.agency||'—')}</div>
+      <div style="font-size:13px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_unit||'—')}</div>
+      <div style="font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_person||r.agency||'—')}</div>
       <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--accent);">${getMDC(r)}</div>
-    </div>`).join('');
+      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);display:flex;flex-direction:column;gap:2px;overflow:hidden;">${sysIds || '<span style="color:var(--border);">—</span>'}</div>
+    </div>`;
+  }).join('');
 }
 
 function invStatusColor(status) {
@@ -16659,13 +16900,30 @@ async function openInventoryModal(id) {
 
   // Find linked trigger record
   const trigger = r.radio_id ? triggers.find(t => String(t.id) === String(r.radio_id)) : null;
+  // Prefer values on the inventory row; fall back to trigger
+  const sysLarics = r.larics_id || trigger?.larics_id || '';
+  const sysIci    = r.ici_id    || trigger?.ici_id    || '';
+  const sysCwirs  = r.cwirs_id  || trigger?.cwirs_id  || '';
+  const sysCris   = r.cris_id   || trigger?.cris_id   || '';
+  const hasSysIds = sysLarics || sysIci || sysCwirs || sysCris;
+
+  const sysIdBlock = hasSysIds ? `
+    <div style="background:var(--bg-deep);border:1px solid var(--border);border-radius:4px;padding:10px 14px;margin-top:8px;">
+      <div style="font-family:var(--font-data);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">🆔 System IDs</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
+        ${sysLarics ? `<div><div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">LARICS</div><div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${escHtml(sysLarics)}</div></div>` : ''}
+        ${sysIci    ? `<div><div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">ICI</div><div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${escHtml(sysIci)}</div></div>` : ''}
+        ${sysCwirs  ? `<div><div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">CWIRS</div><div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${escHtml(sysCwirs)}</div></div>` : ''}
+        ${sysCris   ? `<div><div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">CRIS</div><div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${escHtml(sysCris)}</div></div>` : ''}
+      </div>
+    </div>` : '';
+
   const mdcBlock = trigger ? `
     <div style="background:rgba(30,136,229,0.06);border:1px solid rgba(30,136,229,0.2);border-radius:4px;padding:10px 14px;margin-top:8px;cursor:pointer;" onclick="closeInventoryModal();openTriggerModal('${trigger.id}')">
       <div style="font-family:var(--font-data);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">🔗 Linked Trigger Record</div>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
         <span style="font-family:var(--font-data);font-size:22px;font-weight:700;color:var(--accent);">${trigger.mdc_id}</span>
         <span style="font-size:14px;color:var(--text-secondary);">${trigger.assignment||'—'}</span>
-        ${trigger.larics_id?`<span style="font-size:13px;color:var(--text-dim);">LARICS: ${trigger.larics_id}</span>`:''}
         <span style="font-size:12px;color:var(--accent);font-family:var(--font-data);">Click to open →</span>
       </div>
     </div>` : '';
@@ -16677,7 +16935,6 @@ async function openInventoryModal(id) {
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
       <div style="font-family:var(--font-data);font-size:24px;font-weight:700;color:var(--text-primary);">${escHtml(r.serial_number||'—')}</div>
       <span class="inv-status-chip ${r.status}">${INV_STATUS_LABELS[r.status]||r.status}</span>
-      <span class="inv-cond-chip ${r.condition||'good'}">${r.condition||'—'}</span>
       ${r.control_top_replaced ? `<span style="font-family:var(--font-data);font-size:12px;padding:2px 8px;border-radius:2px;background:rgba(30,136,229,0.12);color:var(--accent);border:1px solid rgba(30,136,229,0.3);">⟲ CONTROL TOP REPLACED</span>` : ''}
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:10px;">
@@ -16686,11 +16943,10 @@ async function openInventoryModal(id) {
       ${field('Agency',        r.agency)}
       ${field('Assigned Unit', r.assigned_unit)}
       ${field('Assigned Person', r.assigned_person)}
-      ${field('Firmware',      r.firmware_version)}
       ${field('Purchase Date', fmtDate(r.purchase_date))}
-      ${field('Last PM',       fmtDate(r.last_pm_date))}
     </div>
     ${r.notes ? `<div style="font-size:14px;color:var(--text-secondary);padding:10px 12px;background:var(--bg-deep);border-radius:var(--radius);line-height:1.6;margin-bottom:8px;">${escHtml(r.notes)}</div>` : ''}
+    ${sysIdBlock}
     ${mdcBlock}`;
 
   await loadCustodyForRadio(id);
@@ -16735,27 +16991,25 @@ async function saveInventoryNote() {
 function openStatusChangeModal() {
   const r = inventory.find(x => String(x.id) === String(currentInvId));
   if (!r) return;
-  document.getElementById('invStatusCurrent').textContent = `Current: ${INV_STATUS_LABELS[r.status]||r.status} · Condition: ${r.condition||'—'}`;
-  document.getElementById('isc-status').value    = r.status;
-  document.getElementById('isc-condition').value = r.condition || 'good';
-  document.getElementById('isc-unit').value      = r.assigned_unit   || '';
-  document.getElementById('isc-person').value    = r.assigned_person || '';
-  document.getElementById('isc-notes').value     = '';
+  document.getElementById('invStatusCurrent').textContent = `Current: ${INV_STATUS_LABELS[r.status]||r.status}`;
+  document.getElementById('isc-status').value  = r.status;
+  document.getElementById('isc-unit').value    = r.assigned_unit   || '';
+  document.getElementById('isc-person').value  = r.assigned_person || '';
+  document.getElementById('isc-notes').value   = '';
   document.getElementById('invStatusModal').classList.add('open');
 }
 
 async function saveStatusChange() {
   const r = inventory.find(x => String(x.id) === String(currentInvId));
   if (!r) return;
-  const newStatus    = document.getElementById('isc-status').value;
-  const newCondition = document.getElementById('isc-condition').value;
-  const unit         = document.getElementById('isc-unit').value.trim();
-  const person       = document.getElementById('isc-person').value.trim();
-  const notes        = document.getElementById('isc-notes').value.trim();
-  const who          = currentUser?.name || 'Unknown';
+  const newStatus = document.getElementById('isc-status').value;
+  const unit      = document.getElementById('isc-unit').value.trim();
+  const person    = document.getElementById('isc-person').value.trim();
+  const notes     = document.getElementById('isc-notes').value.trim();
+  const who       = currentUser?.name || 'Unknown';
 
   const { error } = await sb.from('radio_inventory').update({
-    status: newStatus, condition: newCondition,
+    status: newStatus,
     assigned_unit: unit || null, assigned_person: person || null,
     updated_by: who, updated_at: new Date().toISOString()
   }).eq('id', currentInvId);
@@ -16814,13 +17068,10 @@ async function openInventoryForm(id) {
     document.getElementById('invEditTitle').textContent = `Edit — ${r.serial_number}`;
     document.getElementById('ie-serial').value        = r.serial_number    || '';
     document.getElementById('ie-status').value        = r.status           || 'in-stock';
-    document.getElementById('ie-condition').value     = r.condition        || 'good';
     document.getElementById('ie-unit').value          = r.assigned_unit    || '';
     document.getElementById('ie-person').value        = r.assigned_person  || '';
-    document.getElementById('ie-firmware').value      = r.firmware_version || '';
     document.getElementById('ie-agency').value        = r.agency           || '';
     document.getElementById('ie-purchase-date').value = r.purchase_date    || '';
-    document.getElementById('ie-pm-date').value       = r.last_pm_date     || '';
     document.getElementById('ie-notes').value         = r.notes            || '';
     document.getElementById('ie-control-top').checked = r.control_top_replaced || false;
     // System IDs: prefer values stored on the inventory row; fall back to linked trigger
@@ -16837,19 +17088,17 @@ async function openInventoryForm(id) {
     }, 0);
   } else {
     document.getElementById('invEditTitle').textContent = 'Add Radio';
-    ['ie-serial','ie-firmware','ie-agency','ie-unit','ie-person','ie-notes',
+    ['ie-serial','ie-agency','ie-unit','ie-person','ie-notes',
      'ie-larics','ie-ici','ie-cwirs','ie-cris'].forEach(fid => {
       const el = document.getElementById(fid); if (el) el.value = '';
     });
     ['ie-larics-warn','ie-ici-warn','ie-cwirs-warn','ie-cris-warn'].forEach(wid => {
       const el = document.getElementById(wid); if (el) el.textContent = '';
     });
+    document.getElementById('ie-status').value        = 'in-stock';
+    document.getElementById('ie-purchase-date').value = '';
     if (modelSel) modelSel.value = '';
     if (bandSel)  bandSel.value  = '';
-    document.getElementById('ie-status').value        = 'in-stock';
-    document.getElementById('ie-condition').value     = 'good';
-    document.getElementById('ie-purchase-date').value = '';
-    document.getElementById('ie-pm-date').value       = '';
     document.getElementById('ie-control-top').checked = false;
     if (mdcSel) mdcSel.value = '';
   }
@@ -16921,6 +17170,171 @@ function checkInventorySystemIdDuplicates() {
   });
 }
 
+// ── UNIQUE ID CONFLICT ENFORCEMENT ──
+// Checks whether any of the system IDs being saved on a radio are already
+// committed to a different radio in inventory or trigger lookup. Returns a
+// list of conflict descriptions. The caller decides whether to block or
+// allow an override.
+function checkSystemIdConflicts(payload, excludeInventoryId, excludeTriggerId) {
+  const conflicts = [];
+  const checks = [
+    { key: 'larics_id', label: 'LARICS ID', dbCol: 'larics_id', trigCol: 'larics_id' },
+    { key: 'ici_id',    label: 'ICI ID',    dbCol: 'ici_id',    trigCol: 'ici_id'    },
+    { key: 'cwirs_id',  label: 'CWIRS ID',  dbCol: 'cwirs_id',  trigCol: 'cwirs_id'  },
+    { key: 'cris_id',   label: 'CRIS ID',   dbCol: 'cris_id',   trigCol: 'cris_id'  },
+  ];
+
+  checks.forEach(({ key, label, dbCol, trigCol }) => {
+    const val = (payload[key] || '').trim().toLowerCase();
+    if (!val) return;
+
+    // Check inventory
+    const invDup = inventory.find(r =>
+      String(r.id) !== String(excludeInventoryId) &&
+      (r[dbCol] || '').trim().toLowerCase() === val
+    );
+    if (invDup) {
+      conflicts.push(`${label} "${payload[key]}" is already assigned to serial ${invDup.serial_number || '(no serial)'}${invDup.assigned_unit ? ' — ' + invDup.assigned_unit : ''}`);
+      return;
+    }
+
+    // Check trigger lookup
+    const trigDup = triggers.find(t =>
+      String(t.id) !== String(excludeTriggerId) &&
+      (t[trigCol] || '').trim().toLowerCase() === val
+    );
+    if (trigDup) {
+      conflicts.push(`${label} "${payload[key]}" is already in Trigger Lookup — MDC ${trigDup.mdc_id}${trigDup.assignment ? ' (' + trigDup.assignment + ')' : ''}`);
+    }
+  });
+
+  return conflicts;
+}
+
+// Same check for MDC ID (mdc_id in trigger lookup / radio_id link in inventory)
+function checkMdcIdConflict(mdcId, excludeTriggerId) {
+  const norm = (mdcId || '').trim().toUpperCase();
+  if (!norm) return null;
+  const dup = triggers.find(t =>
+    String(t.id) !== String(excludeTriggerId) &&
+    (t.mdc_id || '').trim().toUpperCase() === norm
+  );
+  return dup ? `MDC ID "${norm}" is already in use — assigned to ${dup.assignment || '(unassigned)'}` : null;
+}
+
+// Presents the conflict list and asks the user to confirm override.
+// Returns true if the user acknowledges and wants to proceed anyway.
+function confirmSystemIdOverride(conflicts) {
+  const msg = [
+    '⚠ DUPLICATE ID CONFLICT',
+    '',
+    'The following IDs are already assigned to another radio:',
+    '',
+    ...conflicts.map(c => '  • ' + c),
+    '',
+    'Assigning the same system ID to multiple radios can cause operational',
+    'confusion and dispatch errors.',
+    '',
+    'Override and save anyway?',
+  ].join('\n');
+  return confirm(msg);
+}
+
+// ── INVENTORY BULK MODE ──
+let invBulkMode = false;
+let invBulkSelected = new Set(); // inventory row ids
+
+function toggleInventoryBulkMode() {
+  invBulkMode = !invBulkMode;
+  invBulkSelected.clear();
+  const bar = document.getElementById('invBulkBar');
+  const btn = document.getElementById('invBulkToggleBtn');
+  if (bar) bar.style.display = invBulkMode ? 'flex' : 'none';
+  if (btn) btn.textContent = invBulkMode ? '✕ Cancel' : '☐ Select';
+  renderInventory();
+}
+
+function toggleBulkSelect(id, el) {
+  event?.stopPropagation();
+  if (invBulkSelected.has(id)) invBulkSelected.delete(id);
+  else invBulkSelected.add(id);
+  const count = document.getElementById('invBulkCount');
+  if (count) count.textContent = `${invBulkSelected.size} selected`;
+  if (el) el.checked = invBulkSelected.has(id);
+}
+
+async function applyBulkStatusChange() {
+  const newStatus = document.getElementById('invBulkStatus')?.value;
+  if (!newStatus) { alert('Choose a status first.'); return; }
+  if (!invBulkSelected.size) { alert('No radios selected.'); return; }
+  if (!confirm(`Set ${invBulkSelected.size} radio(s) to "${INV_STATUS_LABELS[newStatus]}"?`)) return;
+
+  const who = currentUser?.name || 'Unknown';
+  const now = new Date().toISOString();
+  let errors = 0;
+  for (const id of invBulkSelected) {
+    const r = inventory.find(x => String(x.id) === String(id));
+    const { error } = await sb.from('radio_inventory').update({
+      status: newStatus, updated_by: who, updated_at: now,
+    }).eq('id', id);
+    if (error) { errors++; continue; }
+    if (r) await logCustodyEvent(id, 'STATUS_CHANGE', `Bulk status change → ${INV_STATUS_LABELS[newStatus]} by ${who}`);
+  }
+
+  if (errors) alert(`${errors} update(s) failed.`);
+  else pushNotification('available', `✓ ${invBulkSelected.size} radio(s) set to ${INV_STATUS_LABELS[newStatus]}`);
+  await loadInventory();
+  toggleInventoryBulkMode();
+  logEvent('inventory', 'Bulk Status Change', `${invBulkSelected.size} radios → ${INV_STATUS_LABELS[newStatus]}`);
+}
+
+// ── SIGN-OUT SLIP ──
+function printSignOutSlip(id) {
+  const r = inventory.find(x => String(x.id) === String(id));
+  if (!r) return;
+  const trigger = r.radio_id ? triggers.find(t => String(t.id) === String(r.radio_id)) : null;
+  const agency  = currentAgency?.name || 'Agency';
+  const now = new Date().toLocaleString('en-US', { timeZone:'America/Los_Angeles', dateStyle:'full', timeStyle:'short' });
+  const sysIds = [
+    r.larics_id || trigger?.larics_id ? `LARICS: ${r.larics_id || trigger?.larics_id}` : '',
+    r.ici_id    || trigger?.ici_id    ? `ICI: ${r.ici_id || trigger?.ici_id}` : '',
+    r.cwirs_id  || trigger?.cwirs_id  ? `CWIRS: ${r.cwirs_id || trigger?.cwirs_id}` : '',
+    r.cris_id   || trigger?.cris_id   ? `CRIS: ${r.cris_id || trigger?.cris_id}` : '',
+  ].filter(Boolean).join(' · ');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Radio Sign-Out Slip</title>
+    <style>body{font-family:Arial,sans-serif;padding:40px;max-width:680px;margin:0 auto;}
+    h2{border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:20px;}
+    .field{display:flex;margin-bottom:12px;border-bottom:1px solid #ccc;padding-bottom:8px;}
+    .label{font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#555;width:160px;flex-shrink:0;padding-top:4px;}
+    .value{font-size:16px;font-weight:600;flex:1;}
+    .sig{height:50px;border-bottom:1px solid #000;margin-bottom:4px;}
+    .footer{margin-top:40px;font-size:12px;color:#888;text-align:center;}
+    @media print{button{display:none;}}</style></head><body>
+    <div style="text-align:center;margin-bottom:20px;font-size:12px;color:#555;">${escHtml(agency)} — Radio Assignment Record</div>
+    <h2>Radio Sign-Out Slip</h2>
+    <div class="field"><div class="label">Date / Time</div><div class="value">${now} PT</div></div>
+    <div class="field"><div class="label">Serial Number</div><div class="value" style="font-family:monospace;font-size:20px;">${escHtml(r.serial_number||'—')}</div></div>
+    <div class="field"><div class="label">Radio Model</div><div class="value">${escHtml(r.radio_model||'—')} · ${escHtml(r.radio_band||'—')}</div></div>
+    ${trigger ? `<div class="field"><div class="label">MDC ID</div><div class="value" style="font-family:monospace;font-size:20px;letter-spacing:0.15em;">${escHtml(trigger.mdc_id||'—')}</div></div>` : ''}
+    ${sysIds ? `<div class="field"><div class="label">System IDs</div><div class="value" style="font-size:14px;">${escHtml(sysIds)}</div></div>` : ''}
+    <div class="field"><div class="label">Assigned To</div><div class="value">${escHtml(r.assigned_unit||'—')}</div></div>
+    <div class="field"><div class="label">Person</div><div class="value">${escHtml(r.assigned_person||'—')}</div></div>
+    <div style="margin-top:40px;">
+      <div class="label" style="margin-bottom:8px;">Received By (Print Name)</div>
+      <div class="sig"></div>
+      <div class="label" style="margin-top:20px;margin-bottom:8px;">Signature</div>
+      <div class="sig"></div>
+      <div class="label" style="margin-top:20px;margin-bottom:8px;">Badge / ID #</div>
+      <div class="sig"></div>
+    </div>
+    <div class="footer">WARDEN · ${escHtml(agency)} · Printed ${now} PT</div>
+    <script>window.print();</script>
+    </body></html>`);
+  win.document.close();
+}
+
 function checkInventorySerial() {
   const val   = document.getElementById('ie-serial').value.trim();
   const warn  = document.getElementById('ie-serial-warn');
@@ -16949,13 +17363,10 @@ async function saveInventoryRecord() {
     radio_model:      document.getElementById('ie-model').value      || null,
     radio_band:       document.getElementById('ie-band').value       || null,
     status:           document.getElementById('ie-status').value     || 'in-stock',
-    condition:        document.getElementById('ie-condition').value  || 'good',
     assigned_unit:    document.getElementById('ie-unit').value.trim()   || null,
     assigned_person:  document.getElementById('ie-person').value.trim() || null,
-    firmware_version: document.getElementById('ie-firmware').value.trim() || null,
     agency:           document.getElementById('ie-agency').value.trim()   || null,
     purchase_date:    document.getElementById('ie-purchase-date').value   || null,
-    last_pm_date:     document.getElementById('ie-pm-date').value         || null,
     notes:            document.getElementById('ie-notes').value.trim()    || null,
     radio_id:         linkedTriggerId,
     larics_id:        larics,
@@ -16970,14 +17381,18 @@ async function saveInventoryRecord() {
 
   if (inventoryEditingId) {
     const prev = inventory.find(x => String(x.id) === String(inventoryEditingId));
+    // Conflict check — block if system IDs collide with another radio unless overridden
+    const conflicts = checkSystemIdConflicts(row, inventoryEditingId, linkedTriggerId);
+    if (conflicts.length && !confirmSystemIdOverride(conflicts)) return;
+
     const { error } = await sb.from('radio_inventory').update(row).eq('id', inventoryEditingId);
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
     // Diff log
     const changed = [];
     if (prev) {
       [['serial_number','Serial'],['radio_model','Model'],['radio_band','Band'],
-       ['status','Status'],['condition','Condition'],['assigned_unit','Unit'],
-       ['assigned_person','Person'],['firmware_version','Firmware'],['agency','Agency'],
+       ['status','Status'],['assigned_unit','Unit'],
+       ['assigned_person','Person'],['agency','Agency'],
        ['control_top_replaced','Ctrl Top']
       ].forEach(([key,label]) => {
         if (String(prev[key]||'') !== String(row[key]||''))
@@ -16987,6 +17402,8 @@ async function saveInventoryRecord() {
     await logCustodyEvent(inventoryEditingId, 'EDIT', `Record edited: ${changed.join(', ')||'saved'}`);
     await logInventoryEvent('EDIT', serial, changed.join(', ')||'record saved');
   } else {
+    const conflicts = checkSystemIdConflicts(row, null, linkedTriggerId);
+    if (conflicts.length && !confirmSystemIdOverride(conflicts)) return;
     const { data: inserted, error } = await sb.from('radio_inventory').insert(row).select('id').single();
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
     const newId = inserted?.id;
@@ -17141,17 +17558,18 @@ function renderInventoryLog() {
 
 function exportInventoryCSV() {
   if (!inventory.length) { alert('No inventory data to export.'); return; }
-  const header = ['Serial Number','Model','Band','Status','Condition','Assigned Unit','Assigned Person','Agency','Firmware','Purchase Date','Last PM','MDC ID','Control Top Replaced','Notes'];
+  const header = ['Serial Number','Model','Band','Status','Assigned Unit','Assigned Person','Agency','Purchase Date','MDC ID','LARICS ID','ICI ID','CWIRS ID','CRIS ID','Control Top Replaced','Notes'];
   const getMDC = r => {
     const t = r.radio_id ? triggers.find(x => String(x.id) === String(r.radio_id)) : null;
     return t?.mdc_id || r.mdc_id_ref || '';
   };
   const rows = inventory.map(r => [
     r.serial_number||'', r.radio_model||'', r.radio_band||'',
-    INV_STATUS_LABELS[r.status]||r.status, r.condition||'',
+    INV_STATUS_LABELS[r.status]||r.status,
     r.assigned_unit||'', r.assigned_person||'', r.agency||'',
-    r.firmware_version||'', r.purchase_date||'', r.last_pm_date||'',
-    getMDC(r), r.control_top_replaced ? 'Yes' : 'No', r.notes||''
+    r.purchase_date||'',
+    getMDC(r), r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
+    r.control_top_replaced ? 'Yes' : 'No', r.notes||''
   ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
   const csv = [header.join(','),...rows].join('\n');
   const a = Object.assign(document.createElement('a'),{href:'data:text/csv;charset=utf-8,'+encodeURIComponent(csv),download:`radio-inventory-${new Date().toLocaleDateString('en-CA')}.csv`});
@@ -17159,7 +17577,7 @@ function exportInventoryCSV() {
 }
 
 function exportCustodyCSV() {
-  if (!custodyCache.length) { alert('Load the chain of custody first.'); return; }
+  if (!currentInvId) { alert('Open a radio record first.'); return; }
   const header = ['Timestamp (PT)','Serial Number','Action','Detail','Actor'];
   const rows = custodyCache.map(r => [
     new Date(r.created_at).toLocaleString('en-US',{timeZone:'America/Los_Angeles'}),
@@ -17367,7 +17785,7 @@ const CSV_TEMPLATES = {
   },
   inventory: {
     filename: 'radio-inventory-template.csv',
-    headers: ['serial_number','radio_model','radio_band','status','condition','assigned_unit','assigned_person','agency','firmware_version','purchase_date','last_pm_date','notes'],
+    headers: ['serial_number','radio_model','radio_band','status','assigned_unit','assigned_person','agency','purchase_date','notes'],
     sample: ['ABC123456','APX8000','VHF','in-stock','good','Station 7','','LAFD','R26.00.00','2023-01-15','2024-06-01','Primary portable'],
     note: '# status: in-stock | assigned | signed-out (Assigned to Person) | out-of-service | retired | condition: new | good | fair | poor | dates: YYYY-MM-DD',
   },
@@ -17483,10 +17901,9 @@ async function importCSV(type) {
       const row = {
         serial_number: r.serial_number, radio_model: r.radio_model || null,
         radio_band: r.radio_band || null, status: r.status || 'in-stock',
-        condition: r.condition || 'good', assigned_unit: r.assigned_unit || null,
+        assigned_unit: r.assigned_unit || null,
         assigned_person: r.assigned_person || null, agency: r.agency || null,
-        firmware_version: r.firmware_version || null,
-        purchase_date: r.purchase_date || null, last_pm_date: r.last_pm_date || null,
+        purchase_date: r.purchase_date || null,
         notes: r.notes || null,
         updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
         agency_id: agencyId(),
@@ -19894,9 +20311,13 @@ if ('serviceWorker' in navigator) {
       <div id="triggerDetailSection">
         <!-- Filled dynamically -->
       </div>
-      <!-- Notes section -->
-      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
-        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Notes Log</div>
+      <div id="triggerInvLink" style="display:none;"></div>
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:10px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.tr-nc').textContent=n.style.display===''?'▴':'▾';">
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Notes Log</div>
+          <span class="tr-nc" style="color:var(--text-dim);font-size:12px;">▴</span>
+        </div>
+        <div>
         <div id="triggerNotesLog" style="max-height:220px;overflow-y:auto;margin-bottom:12px;background:var(--bg-deep);border-radius:var(--radius);"></div>
         <!-- Add note — shown to all authenticated users -->
         <div style="display:flex;gap:8px;align-items:flex-end;">
@@ -20102,6 +20523,7 @@ if ('serviceWorker' in navigator) {
       <div id="invModalAdminBtns" style="display:flex;gap:8px;">
         <button class="btn-secondary" style="font-size:14px;" onclick="openInventoryForm(this.dataset.invId || currentInvId)" data-inv-id-holder>✏ Edit</button>
         <button class="btn-secondary" style="font-size:14px;" onclick="openStatusChangeModal()">⇄ Change Status</button>
+        <button class="btn-secondary" style="font-size:14px;" onclick="printSignOutSlip(currentInvId)">🖨 Sign-Out Slip</button>
         <button class="btn-danger"    style="font-size:14px;" onclick="deleteInventoryRecord()">✕ Delete</button>
       </div>
       <button class="btn-secondary" style="margin-left:auto;" onclick="closeInventoryModal()">Close</button>
@@ -20118,7 +20540,7 @@ if ('serviceWorker' in navigator) {
     </div>
     <div class="modal-body">
       <div id="invStatusCurrent" style="font-size:14px;color:var(--text-dim);margin-bottom:12px;font-family:var(--font-data);"></div>
-      <div class="form-row">
+      <div class="form-row single">
         <div class="form-field">
           <label class="form-label">New Status *</label>
           <select class="form-select" id="isc-status">
@@ -20127,15 +20549,6 @@ if ('serviceWorker' in navigator) {
             <option value="signed-out">Assigned to Person</option>
             <option value="out-of-service">Out of Service</option>
             <option value="retired">Retired</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label class="form-label">Condition</label>
-          <select class="form-select" id="isc-condition">
-            <option value="new">New</option>
-            <option value="good">Good</option>
-            <option value="fair">Fair</option>
-            <option value="poor">Poor</option>
           </select>
         </div>
       </div>
@@ -20240,7 +20653,7 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
 
-      <div class="form-row">
+      <div class="form-row single">
         <div class="form-field">
           <label class="form-label">Status</label>
           <select class="form-select" id="ie-status">
@@ -20249,15 +20662,6 @@ if ('serviceWorker' in navigator) {
             <option value="signed-out">Assigned to Person</option>
             <option value="out-of-service">Out of Service</option>
             <option value="retired">Retired</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label class="form-label">Condition</label>
-          <select class="form-select" id="ie-condition">
-            <option value="new">New</option>
-            <option value="good" selected>Good</option>
-            <option value="fair">Fair</option>
-            <option value="poor">Poor</option>
           </select>
         </div>
       </div>
@@ -20277,17 +20681,6 @@ if ('serviceWorker' in navigator) {
         <div class="form-field">
           <label class="form-label">Purchase / Issue Date</label>
           <input class="form-input" id="ie-purchase-date" type="date">
-        </div>
-        <div class="form-field">
-          <label class="form-label">Last PM Date</label>
-          <input class="form-input" id="ie-pm-date" type="date">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-field">
-          <label class="form-label">Firmware Version</label>
-          <input class="form-input" id="ie-firmware" placeholder="e.g. R26.00.00">
         </div>
         <div class="form-field">
           <label class="form-label">Agency / Owner</label>
@@ -20974,14 +21367,51 @@ if ('serviceWorker' in navigator) {
       </div>
 
       <!-- Agency field -->
-      <div style="padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="margin-bottom:12px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
           <input type="checkbox" id="bulkEdit-agency-enabled" onchange="document.getElementById('bulkEdit-agency-field').style.opacity=this.checked?'1':'0.4';document.getElementById('bulkEdit-agency-field').style.pointerEvents=this.checked?'':'none';" style="width:16px;height:16px;accent-color:var(--accent);">
-          <span style="font-family:var(--font-data);font-size:13px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Agency</span>
+          <span style="font-family:var(--font-data);font-size:13px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Department / Agency</span>
         </label>
         <div id="bulkEdit-agency-field" style="opacity:0.4;pointer-events:none;">
           <input class="form-input" type="text" id="bulkEdit-agency" placeholder="e.g. LACoFD, LASD, LAPD" style="width:100%;box-sizing:border-box;">
           <div style="font-size:12px;color:var(--text-dim);margin-top:6px;">Leave blank to clear agency on all selected channels.</div>
+        </div>
+      </div>
+
+      <!-- Function / Purpose field -->
+      <div style="margin-bottom:12px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
+        <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
+          <input type="checkbox" id="bulkEdit-function-enabled" onchange="document.getElementById('bulkEdit-function-field').style.opacity=this.checked?'1':'0.4';document.getElementById('bulkEdit-function-field').style.pointerEvents=this.checked?'':'none';" style="width:16px;height:16px;accent-color:var(--accent);">
+          <span style="font-family:var(--font-data);font-size:13px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Function / Purpose</span>
+        </label>
+        <div id="bulkEdit-function-field" style="opacity:0.4;pointer-events:none;">
+          <select class="form-select" id="bulkEdit-function" style="width:100%;box-sizing:border-box;">
+            <option value="">— Select function —</option>
+          </select>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:6px;">Applies the selected function to all chosen channels.</div>
+        </div>
+      </div>
+
+      <!-- TRO Assignment field -->
+      <div style="padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
+        <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
+          <input type="checkbox" id="bulkEdit-tro-enabled" onchange="document.getElementById('bulkEdit-tro-field').style.opacity=this.checked?'1':'0.4';document.getElementById('bulkEdit-tro-field').style.pointerEvents=this.checked?'':'none';" style="width:16px;height:16px;accent-color:var(--accent);">
+          <span style="font-family:var(--font-data);font-size:13px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">TRO Assignment</span>
+        </label>
+        <div id="bulkEdit-tro-field" style="opacity:0.4;pointer-events:none;">
+          <select class="form-select" id="bulkEdit-tro" style="width:100%;box-sizing:border-box;">
+            <option value="">— None / Clear —</option>
+            <option value="SOUTH">SOUTH</option>
+            <option value="CENTRAL">CENTRAL</option>
+            <option value="SGV">SGV</option>
+            <option value="NORTH">NORTH</option>
+            <option value="COUNTYWIDE UHF">COUNTYWIDE UHF</option>
+            <option value="COUNTYWIDE VHF">COUNTYWIDE VHF</option>
+            <option value="LARTCS UHF">LARTCS UHF</option>
+            <option value="LARTCS VHF">LARTCS VHF</option>
+            <option value="LARTCS 800">LARTCS 800</option>
+          </select>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:6px;">Select "— None / Clear —" to remove the TRO assignment from all selected channels.</div>
         </div>
       </div>
 
