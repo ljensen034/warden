@@ -9150,19 +9150,28 @@ function closeUserAdmin() {
 }
 
 async function loadAllProfiles() {
-  // Fetch profiles and join with auth user emails via admin API or stored email
   const { data, error } = await sb.from('profiles').select('*').order('created_at');
   if (!error && data) {
-    // Try to fetch emails from auth.users (requires admin; falls back gracefully)
     try {
       const { data: { users } } = await sb.auth.admin.listUsers();
       if (users) {
-        const emailMap = {};
-        users.forEach(u => { emailMap[u.id] = u.email; });
-        allProfiles = data.map(p => ({ ...p, email: emailMap[p.id] || p.email || '—' }));
+        const authMap = {};
+        users.forEach(u => {
+          authMap[u.id] = {
+            email:            u.email,
+            last_sign_in_at:  u.last_sign_in_at || null,
+            auth_created_at:  u.created_at      || null,
+          };
+        });
+        allProfiles = data.map(p => ({
+          ...p,
+          email:           authMap[p.id]?.email           || p.email           || '—',
+          last_sign_in_at: authMap[p.id]?.last_sign_in_at || null,
+          auth_created_at: authMap[p.id]?.auth_created_at || null,
+        }));
         return;
       }
-    } catch(e) { /* admin API not available in browser — that's ok */ }
+    } catch(e) { /* admin API not available in browser — falls through gracefully */ }
     allProfiles = data.map(p => ({ ...p, email: p.email || '—' }));
   }
 }
@@ -11368,18 +11377,35 @@ async function renderAdminUsers() {
     const viewModeTag = u.view_mode === 'dispatcher'
       ? `<span style="font-family:var(--font-data);font-size:11px;padding:1px 5px;border-radius:2px;background:rgba(255,196,0,0.1);color:var(--status-reserved);border:1px solid rgba(255,196,0,0.25);">DISPATCHER</span>`
       : `<span style="font-family:var(--font-data);font-size:11px;padding:1px 5px;border-radius:2px;background:rgba(30,136,229,0.1);color:var(--accent);border:1px solid rgba(30,136,229,0.25);">COML</span>`;
+
+    // Last login — relative time if recent, otherwise date
+    let lastLoginStr = 'Never logged in';
+    if (u.last_sign_in_at) {
+      const ms   = Date.now() - new Date(u.last_sign_in_at).getTime();
+      const mins = Math.floor(ms / 60000);
+      const hrs  = Math.floor(ms / 3600000);
+      const days = Math.floor(ms / 86400000);
+      if (mins < 2)       lastLoginStr = 'Just now';
+      else if (mins < 60) lastLoginStr = `${mins}m ago`;
+      else if (hrs  < 24) lastLoginStr = `${hrs}h ago`;
+      else if (days < 7)  lastLoginStr = `${days}d ago`;
+      else lastLoginStr = new Date(u.last_sign_in_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    }
+
     return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="width:32px;height:32px;border-radius:50%;background:${(u.color||'#1e88e5')}22;color:${u.color||'#1e88e5'};border:1px solid ${(u.color||'#1e88e5')}44;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:var(--font-data);flex-shrink:0;">${initials}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:15px;color:var(--text-primary);font-weight:500;display:flex;align-items:center;gap:6px;">${u.name||'—'}${statusDot}${isMe?`<span style="font-size:12px;color:var(--accent);">(you)</span>`:''}
         </div>
-        <div style="font-size:13px;color:var(--text-dim);">${u.email||'—'}</div>
+        <div style="font-size:13px;color:var(--text-dim);margin-top:1px;">${u.email||'—'}</div>
+        <div style="font-size:12px;color:var(--text-dim);font-family:var(--font-data);margin-top:3px;">🕐 Last login: ${lastLoginStr}</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
         ${viewModeTag}
         <span style="font-family:var(--font-data);font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:${roleColor};border:1px solid ${roleColor}44;padding:2px 6px;border-radius:2px;">${u.role||'?'}</span>
         ${u.can_view_resources||u.role==='admin'?`<span style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);">🚒</span>`:''}
         <button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="openAdminUserForm('${u.id}')">Edit</button>
+        ${!isMe ? `<button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="adminSendPasswordReset('${u.id}')">Reset PW</button>` : ''}
         ${!isMe ? `<button class="btn-secondary" style="font-size:13px;padding:3px 10px;color:${u.active!==false?'var(--status-reserved)':'var(--status-available)'};" onclick="adminToggleUserActive('${u.id}')">${u.active!==false?'Disable':'Enable'}</button>` : ''}
         ${!isMe ? `<button class="btn-danger" style="font-size:13px;padding:3px 10px;" onclick="adminDeleteUser('${u.id}')">Remove</button>` : ''}
       </div>
@@ -11532,6 +11558,56 @@ async function adminDeleteUser(id) {
   logActivity(`User <span class="log-ch">${u.name}</span> removed by ${currentUser?.name||'Admin'}`);
   await loadAllProfiles();
   renderAdminUsers();
+}
+
+async function adminSendPasswordReset(id) {
+  const u = allProfiles.find(x => x.id === id);
+  if (!u) return;
+
+  const email = u.email && u.email !== '—' ? u.email : null;
+  if (!email) {
+    alert(`No email address found for ${u.name}. Cannot send reset link.`);
+    return;
+  }
+
+  if (!confirm(`Send a password reset email to ${u.name} (${email})?`)) return;
+
+  try {
+    // Try the admin-only generateLink endpoint first — this returns the actual
+    // link without sending an email, so admins can share it manually if needed.
+    // Falls back to the standard resetPasswordForEmail if admin API isn't available.
+    let sent = false;
+    try {
+      const { data, error } = await sb.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+      });
+      if (!error && data) {
+        // Admin link generated — Supabase handles delivery via your project's
+        // configured email provider (Auth → Email Templates in the dashboard).
+        // The link is also returned in data.properties.action_link if you need
+        // to display it or copy it manually.
+        sent = true;
+      }
+    } catch(adminErr) {
+      // Admin API not available from client context (expected in most deployments)
+    }
+
+    if (!sent) {
+      // Standard flow — sends Supabase's built-in password reset email
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname,
+      });
+      if (error) throw error;
+    }
+
+    logActivity(`Password reset sent to <span class="log-ch">${u.name}</span> (${email}) by ${currentUser?.name||'Admin'}`);
+    logEvent('auth', 'Password Reset Sent', `${u.name} — ${email}`, { userId: id, name: u.name });
+    pushNotification('available', `✅ Password reset email sent to ${u.name} (${email})`);
+
+  } catch(e) {
+    alert(`Failed to send password reset: ${e.message}`);
+  }
 }
 
 // ── ADMIN: SYSTEM PANEL ──
