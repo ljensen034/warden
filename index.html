@@ -16309,21 +16309,29 @@ async function loadRidRanges() {
   } catch(e) {}
 }
 
-// ── Classify a single numeric ID against triggers + inventory ──
+// Classify a single numeric ID against triggers + inventory.
 // Returns { state: 'committed'|'held'|'free', trigger, radio }
+// Checks both the trigger lookup (mdc_id) and inventory system ID columns
+// (larics_id, ici_id, cwirs_id, cris_id) so a radio is correctly shown as
+// committed even when accessed by a system ID rather than its MDC ID.
 function classifyRid(numericId) {
   const idStr = String(numericId);
-  // Look in radio_ids (trigger table) — mdc_id field
+  // 1. Look in radio_ids (trigger table) — mdc_id field
   const trigger = triggers.find(t => String(t.mdc_id) === idStr);
-  if (!trigger) return { state: 'free', trigger: null, radio: null };
-  // In radio_ids — check if it has an assignment or serial (committed) or not (held)
-  const hasAssignment = trigger.assignment && trigger.assignment.trim();
-  const hasSerial     = trigger.serial_number && trigger.serial_number.trim();
-  // Also look for a linked radio in inventory
-  const radio = inventory.find(r => String(r.radio_id || '').trim() === idStr ||
-                                     String(r.radio_id || '').trim() === trigger.mdc_id);
+  // 2. Look in inventory by radio_id FK or by any system ID column
+  const radio = inventory.find(r =>
+    String(r.radio_id  || '').trim() === idStr ||
+    String(r.larics_id || '').trim() === idStr ||
+    String(r.ici_id    || '').trim() === idStr ||
+    String(r.cwirs_id  || '').trim() === idStr ||
+    String(r.cris_id   || '').trim() === idStr ||
+    (trigger && String(r.radio_id || '') === String(trigger.id))
+  );
+  if (!trigger && !radio) return { state: 'free', trigger: null, radio: null };
+  const hasAssignment = trigger?.assignment && trigger.assignment.trim();
+  const hasSerial     = trigger?.serial_number && trigger.serial_number.trim();
   const committed = hasAssignment || hasSerial || radio;
-  return { state: committed ? 'committed' : 'held', trigger, radio };
+  return { state: committed ? 'committed' : 'held', trigger: trigger || null, radio: radio || null };
 }
 
 // ── Status colors/labels ──
@@ -16815,6 +16823,12 @@ async function openInventoryForm(id) {
     document.getElementById('ie-pm-date').value       = r.last_pm_date     || '';
     document.getElementById('ie-notes').value         = r.notes            || '';
     document.getElementById('ie-control-top').checked = r.control_top_replaced || false;
+    // System IDs: prefer values stored on the inventory row; fall back to linked trigger
+    const linkedTrigger = r.radio_id ? triggers.find(t => String(t.id) === String(r.radio_id)) : null;
+    document.getElementById('ie-larics').value = r.larics_id || linkedTrigger?.larics_id || '';
+    document.getElementById('ie-ici').value    = r.ici_id    || linkedTrigger?.ici_id    || '';
+    document.getElementById('ie-cwirs').value  = r.cwirs_id  || linkedTrigger?.cwirs_id  || '';
+    document.getElementById('ie-cris').value   = r.cris_id   || linkedTrigger?.cris_id   || '';
     // Set dropdowns AFTER populating their options
     setTimeout(() => {
       if (r.radio_model && modelSel) modelSel.value = r.radio_model;
@@ -16823,8 +16837,12 @@ async function openInventoryForm(id) {
     }, 0);
   } else {
     document.getElementById('invEditTitle').textContent = 'Add Radio';
-    ['ie-serial','ie-firmware','ie-agency','ie-unit','ie-person','ie-notes'].forEach(fid => {
+    ['ie-serial','ie-firmware','ie-agency','ie-unit','ie-person','ie-notes',
+     'ie-larics','ie-ici','ie-cwirs','ie-cris'].forEach(fid => {
       const el = document.getElementById(fid); if (el) el.value = '';
+    });
+    ['ie-larics-warn','ie-ici-warn','ie-cwirs-warn','ie-cris-warn'].forEach(wid => {
+      const el = document.getElementById(wid); if (el) el.textContent = '';
     });
     if (modelSel) modelSel.value = '';
     if (bandSel)  bandSel.value  = '';
@@ -16844,6 +16862,65 @@ function closeInventoryForm() {
   inventoryEditingId = null;
 }
 
+// Auto-populate system IDs when a trigger record is linked via the dropdown
+function onInventoryTriggerChange(triggerId) {
+  if (!triggerId) {
+    // Clear system ID fields when trigger is de-linked — dispatcher can re-enter manually
+    ['ie-larics','ie-ici','ie-cwirs','ie-cris'].forEach(fid => {
+      const el = document.getElementById(fid); if (el) el.value = '';
+    });
+    return;
+  }
+  const t = triggers.find(x => String(x.id) === String(triggerId));
+  if (!t) return;
+  // Only populate if the field is currently empty — don't overwrite values
+  // the dispatcher has already entered
+  if (t.larics_id && !document.getElementById('ie-larics').value) document.getElementById('ie-larics').value = t.larics_id;
+  if (t.ici_id    && !document.getElementById('ie-ici').value)    document.getElementById('ie-ici').value    = t.ici_id;
+  if (t.cwirs_id  && !document.getElementById('ie-cwirs').value)  document.getElementById('ie-cwirs').value  = t.cwirs_id;
+  if (t.cris_id   && !document.getElementById('ie-cris').value)   document.getElementById('ie-cris').value   = t.cris_id;
+  checkInventorySystemIdDuplicates();
+}
+
+// Copy LARICS ID to the other three system ID fields
+function copyIelaricsToOthers() {
+  const val = document.getElementById('ie-larics')?.value.trim();
+  if (!val) return;
+  ['ie-ici','ie-cwirs','ie-cris'].forEach(fid => {
+    const el = document.getElementById(fid);
+    if (el) { el.value = val; el.style.borderColor = 'var(--accent)'; }
+  });
+  checkInventorySystemIdDuplicates();
+}
+
+// Duplicate check across all radios in inventory for system IDs
+function checkInventorySystemIdDuplicates() {
+  const checks = [
+    { field: 'ie-larics', dbCol: 'larics_id', warn: 'ie-larics-warn', label: 'LARICS' },
+    { field: 'ie-ici',    dbCol: 'ici_id',    warn: 'ie-ici-warn',    label: 'ICI' },
+    { field: 'ie-cwirs',  dbCol: 'cwirs_id',  warn: 'ie-cwirs-warn',  label: 'CWIRS' },
+    { field: 'ie-cris',   dbCol: 'cris_id',   warn: 'ie-cris-warn',   label: 'CRIS' },
+  ];
+  checks.forEach(({ field, dbCol, warn, label }) => {
+    const val  = document.getElementById(field)?.value.trim();
+    const warnEl = document.getElementById(warn);
+    if (!val || !warnEl) { if (warnEl) warnEl.textContent = ''; return; }
+    // Check for duplicate in inventory
+    const dupInv = inventory.find(r =>
+      String(r.id) !== String(inventoryEditingId) &&
+      (r[dbCol] || '').trim().toLowerCase() === val.toLowerCase()
+    );
+    // Check for duplicate in trigger lookup
+    const dupTrig = triggers.find(t => {
+      const linked = inventoryEditingId ? inventory.find(x => String(x.id) === String(inventoryEditingId))?.radio_id : null;
+      return String(t.id) !== String(linked) && (t[dbCol === 'larics_id' ? 'larics_id' : dbCol] || '').trim().toLowerCase() === val.toLowerCase();
+    });
+    if (dupInv) warnEl.innerHTML = `⚠ DUPLICATE — already on <strong>${dupInv.serial_number || 'another radio'}</strong>`;
+    else if (dupTrig) warnEl.innerHTML = `⚠ DUPLICATE in Trigger Lookup — MDC ${dupTrig.mdc_id || '?'} (${dupTrig.assignment || 'unassigned'})`;
+    else warnEl.textContent = '';
+  });
+}
+
 function checkInventorySerial() {
   const val   = document.getElementById('ie-serial').value.trim();
   const warn  = document.getElementById('ie-serial-warn');
@@ -16861,6 +16938,12 @@ async function saveInventoryRecord() {
   if (dup) { errEl.textContent = '⚠ Duplicate serial number. Each radio must have a unique serial.'; return; }
 
   const who = currentUser?.name || 'Unknown';
+  const linkedTriggerId = document.getElementById('ie-radio-id').value || null;
+  const larics = document.getElementById('ie-larics').value.trim() || null;
+  const ici    = document.getElementById('ie-ici').value.trim()    || null;
+  const cwirs  = document.getElementById('ie-cwirs').value.trim()  || null;
+  const cris   = document.getElementById('ie-cris').value.trim()   || null;
+
   const row = {
     serial_number:    serial,
     radio_model:      document.getElementById('ie-model').value      || null,
@@ -16874,7 +16957,11 @@ async function saveInventoryRecord() {
     purchase_date:    document.getElementById('ie-purchase-date').value   || null,
     last_pm_date:     document.getElementById('ie-pm-date').value         || null,
     notes:            document.getElementById('ie-notes').value.trim()    || null,
-    radio_id:         document.getElementById('ie-radio-id').value        || null,
+    radio_id:         linkedTriggerId,
+    larics_id:        larics,
+    ici_id:           ici,
+    cwirs_id:         cwirs,
+    cris_id:          cris,
     control_top_replaced: document.getElementById('ie-control-top').checked,
     updated_by:       who,
     updated_at:       new Date().toISOString(),
@@ -16907,9 +16994,25 @@ async function saveInventoryRecord() {
     await logInventoryEvent('ADD', serial, `Added — model: ${row.radio_model||'—'} · status: ${INV_STATUS_LABELS[row.status]}`);
   }
 
+  // Sync system IDs back to the linked trigger record so Trigger Lookup and
+  // RID Manager always reflect the inventory's authoritative system ID values.
+  if (linkedTriggerId && (larics || ici || cwirs || cris)) {
+    const triggerPatch = {};
+    if (larics !== undefined) triggerPatch.larics_id = larics;
+    if (ici    !== undefined) triggerPatch.ici_id    = ici;
+    if (cwirs  !== undefined) triggerPatch.cwirs_id  = cwirs;
+    if (cris   !== undefined) triggerPatch.cris_id   = cris;
+    triggerPatch.updated_by = who;
+    triggerPatch.updated_at = new Date().toISOString();
+    const { error: trigErr } = await sb.from('radio_ids').update(triggerPatch).eq('id', linkedTriggerId);
+    if (trigErr) console.warn('Warning: could not sync system IDs to trigger record:', trigErr.message);
+    else await loadTriggers(); // keep triggers array fresh for RID Manager
+  }
+
   await loadInventory();
   closeInventoryForm();
   renderInventory();
+  if (activeMainTab === 'rid') renderRidManager();
 }
 
 async function deleteInventoryRecord() {
@@ -20077,10 +20180,48 @@ if ('serviceWorker' in navigator) {
           <div id="ie-serial-warn" style="font-size:13px;color:var(--status-active);min-height:14px;margin-top:2px;font-family:var(--font-data);"></div>
         </div>
         <div class="form-field">
-          <label class="form-label">Link to MDC / Trigger ID <span style="font-weight:400;color:var(--text-dim);">optional</span></label>
-          <select class="form-select" id="ie-radio-id">
+          <label class="form-label">Link to MDC / Trigger Record <span style="font-weight:400;color:var(--text-dim);">optional</span></label>
+          <select class="form-select" id="ie-radio-id" onchange="onInventoryTriggerChange(this.value)">
             <option value="">— Link to trigger record —</option>
           </select>
+        </div>
+      </div>
+
+      <!-- System IDs — editable directly on the radio, synced to/from the trigger record -->
+      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--bg-deep);margin-bottom:6px;">
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+          🆔 System IDs
+          <span style="font-size:11px;color:var(--text-dim);text-transform:none;letter-spacing:0;">Editing these also updates the linked trigger record</span>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">
+              LARICS ID
+              <button onclick="copyIelaricsToOthers()" title="Copy to ICI, CWIRS, CRIS"
+                style="background:rgba(30,136,229,0.12);border:1px solid rgba(30,136,229,0.3);color:var(--accent);font-size:11px;padding:1px 6px;border-radius:3px;cursor:pointer;margin-left:6px;font-family:var(--font-data);">
+                ⇢ Copy to ICI/CWIRS/CRIS
+              </button>
+            </label>
+            <input class="form-input" id="ie-larics" placeholder="LA-RICS ID" style="font-family:var(--font-data);" oninput="checkInventorySystemIdDuplicates()">
+            <div id="ie-larics-warn" style="font-size:12px;color:var(--status-active);min-height:14px;margin-top:2px;font-family:var(--font-data);"></div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">ICI ID</label>
+            <input class="form-input" id="ie-ici" placeholder="ICI system ID" style="font-family:var(--font-data);" oninput="checkInventorySystemIdDuplicates()">
+            <div id="ie-ici-warn" style="font-size:12px;color:var(--status-active);min-height:14px;margin-top:2px;font-family:var(--font-data);"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">CWIRS ID</label>
+            <input class="form-input" id="ie-cwirs" placeholder="CWIRS system ID" style="font-family:var(--font-data);" oninput="checkInventorySystemIdDuplicates()">
+            <div id="ie-cwirs-warn" style="font-size:12px;color:var(--status-active);min-height:14px;margin-top:2px;font-family:var(--font-data);"></div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">CRIS ID</label>
+            <input class="form-input" id="ie-cris" placeholder="CRIS system ID" style="font-family:var(--font-data);" oninput="checkInventorySystemIdDuplicates()">
+            <div id="ie-cris-warn" style="font-size:12px;color:var(--status-active);min-height:14px;margin-top:2px;font-family:var(--font-data);"></div>
+          </div>
         </div>
       </div>
 
