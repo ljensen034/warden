@@ -9983,78 +9983,59 @@ function openBigBoard() {
   const agencyName = currentAgency?.name || 'WARDEN';
   const themeAttr  = document.documentElement.getAttribute('data-theme') || 'night';
 
-  bigBoardWindow.document.write(`<!DOCTYPE html>
-<html data-theme="${themeAttr}">
-<head>
-<meta charset="utf-8">
-<title>Big Board — ${agencyName}</title>
-<link rel="stylesheet" href="${pageStylesheetLink}">
-<style>
-  html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
-  #bb-host { width:100%; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
-</style>
-</head>
-<body>
-<div id="bb-host"></div>
-<button onclick="const el=document.documentElement;if(el.requestFullscreen)el.requestFullscreen();else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:monospace;font-size:12px;padding:6px 12px;background:rgba(0,0,0,0.6);color:#aaa;border:1px solid #333;border-radius:4px;cursor:pointer;" title="Fullscreen">⛶ Fullscreen</button>
-<scr\ipt>
-// Delegate all clicks to the parent window so Big Board controls work —
-// sort, filter, July 4th mode, quick-assign, etc. all live in the parent's JS context.
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('[onclick]');
-  if (!btn || window.opener?.closed) return;
-  const fn = btn.getAttribute('onclick');
-  if (!fn) return;
-  e.preventDefault();
-  e.stopPropagation();
-  try { window.opener.eval(fn); } catch(err) { console.warn('BB delegate:', err); }
-}, true);
-
-// Delegate select (sort dropdown) changes to parent
-document.addEventListener('change', function(e) {
-  const sel = e.target.closest('select[onchange]');
-  if (!sel || window.opener?.closed) return;
-  const fn = sel.getAttribute('onchange');
-  if (!fn) return;
-  // Make the parent's function see the right value by calling with it directly
-  try { window.opener.eval(fn.replace('this.value', JSON.stringify(sel.value))); } catch(err) {}
-}, true);
-
-// Swipe gestures on tiles — swipe left/right to cycle status in July 4th mode
-let _swipeStartX = 0, _swipeStartEl = null;
-document.addEventListener('touchstart', e => {
-  _swipeStartX = e.touches[0].clientX;
-  _swipeStartEl = e.target.closest('[onclick*="toggleBigBoardQuickAssign"]');
-}, { passive: true });
-document.addEventListener('touchend', e => {
-  if (!_swipeStartEl || !window.opener) return;
-  const dx = e.changedTouches[0].clientX - _swipeStartX;
-  if (Math.abs(dx) < 60) return; // too short to be a swipe
-  const idMatch = _swipeStartEl.getAttribute('onclick')?.match(/toggleBigBoardQuickAssign\('?([^')]+)'?\)/);
-  if (!idMatch) return;
-  const id = idMatch[1];
-  const ch = window.opener.channels?.find(c => String(c.id) === String(id));
-  if (!ch) return;
-  const order = ['available','active','reserved'];
-  const nextIdx = (order.indexOf(ch.status) + (dx > 0 ? 1 : -1) + order.length) % order.length;
-  try { window.opener.eval(`bigBoardQuickSetStatus('${id}','${order[nextIdx]}')`); } catch(err) {}
-  e.preventDefault();
-}, { passive: false });
-document.addEventListener('keydown', function(e) {
-  const el = e.target.closest('[onkeydown]');
-  if (!el || window.opener?.closed) return;
-  const fn = el.getAttribute('onkeydown');
-  if (!fn) return;
-  // Pass the event through eval — the onkeydown checks event.key etc.
-  try {
-    const fakeEvent = { key: e.key, ctrlKey: e.ctrlKey, stopPropagation: ()=>{} };
-    const wrapped = new Function('event', fn);
-    wrapped.call(el, fakeEvent);
-  } catch(err) {}
-}, true);
-<\/scr\ipt>
-</body>
-</html>`);
+  // Build the Big Board window HTML using string concatenation — NOT template
+  // literals, which break when CSS content or nested expressions contain
+  // unbalanced braces/parens that confuse the JS parser.
+  const bbHtml = [
+    '<!DOCTYPE html>',
+    '<html data-theme="' + themeAttr + '">',
+    '<head>',
+    '<meta charset="utf-8">',
+    '<title>Big Board — ' + agencyName + '</title>',
+    '<link rel="stylesheet" href="' + pageStylesheetLink + '">',
+    '<style>',
+    '  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}',
+    '  #bb-host{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;}',
+    '</style>',
+    '</head>',
+    '<body>',
+    '<div id="bb-host"></div>',
+    '<button onclick="var e=document.documentElement;if(e.requestFullscreen)e.requestFullscreen();else if(e.webkitRequestFullscreen)e.webkitRequestFullscreen();" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:monospace;font-size:12px;padding:6px 12px;background:rgba(0,0,0,0.6);color:#aaa;border:1px solid #333;border-radius:4px;cursor:pointer;">Fullscreen</button>',
+    '<scr' + 'ipt>',
+    'document.addEventListener("click",function(e){',
+    '  var btn=e.target.closest("[onclick]");',
+    '  if(!btn||!window.opener||window.opener.closed)return;',
+    '  var fn=btn.getAttribute("onclick");',
+    '  if(!fn)return;',
+    '  e.preventDefault();e.stopPropagation();',
+    '  try{window.opener.eval(fn);}catch(err){console.warn("BB:",err);}',
+    '},true);',
+    'document.addEventListener("change",function(e){',
+    '  var sel=e.target.closest("select[onchange]");',
+    '  if(!sel||!window.opener||window.opener.closed)return;',
+    '  var fn=sel.getAttribute("onchange");',
+    '  if(!fn)return;',
+    '  try{window.opener.eval(fn.replace("this.value",JSON.stringify(sel.value)));}catch(err){}',
+    '},true);',
+    'var _sx=0,_sel=null;',
+    'document.addEventListener("touchstart",function(e){_sx=e.touches[0].clientX;_sel=e.target.closest("[onclick]");},{passive:true});',
+    'document.addEventListener("touchend",function(e){',
+    '  if(!_sel||!window.opener)return;',
+    '  var dx=e.changedTouches[0].clientX-_sx;',
+    '  if(Math.abs(dx)<60)return;',
+    '  var m=(_sel.getAttribute("onclick")||"").match(/toggleBigBoardQuickAssign\\([\'"]?([^\'")]+)/);',
+    '  if(!m)return;',
+    '  var ch=window.opener.channels&&window.opener.channels.find(function(c){return String(c.id)===String(m[1]);});',
+    '  if(!ch)return;',
+    '  var ord=["available","active","reserved"];',
+    '  var ni=(ord.indexOf(ch.status)+(dx>0?1:-1)+3)%3;',
+    '  try{window.opener.eval("bigBoardQuickSetStatus(\'"+m[1]+"\',\'"+ord[ni]+"\')"); }catch(err){}',
+    '  e.preventDefault();',
+    '},{passive:false});',
+    '</' + 'script>',
+    '</body></html>'
+  ].join('\n');
+  bigBoardWindow.document.write(bbHtml);
   bigBoardWindow.document.close();
 
   // Render into the existing (hidden) overlay in the parent, then mirror it
