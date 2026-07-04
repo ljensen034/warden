@@ -6224,6 +6224,15 @@ function subscribeRealtime() {
           document.getElementById('channelDetailModal')?.classList.remove('open');
         }
       }
+      // If the Big Board window is open, re-render and sync immediately
+      // so status changes appear in real time rather than waiting up to 1s
+      if (bigBoardWindow && !bigBoardWindow.closed) {
+        renderBigBoard();
+        const host = bigBoardWindow.document.getElementById('bb-host');
+        if (host) host._cachedBBHTML = null;
+        _bbSyncPausedUntil = 0;
+        _syncBigBoardToWindow();
+      }
     })
     .subscribe(status => onRealtimeStatus('channels', status));
 
@@ -9865,11 +9874,27 @@ function toggleBigBoardQuickAssign(id) {
   } else {
     bigBoardQuickAssignId = sid;
     const ch = channels.find(c => String(c.id) === sid);
-    bbPendingStatus = ch ? ch.status : null; // start with current status selected
+    bbPendingStatus = ch ? ch.status : null;
   }
   renderBigBoard();
-  if (bigBoardQuickAssignId === sid) {
-    setTimeout(() => document.getElementById(`bbqa-input-${sid}`)?.focus(), 30);
+  // Invalidate sync cache and force immediate sync so the popover appears right away
+  if (bigBoardWindow && !bigBoardWindow.closed) {
+    const host = bigBoardWindow.document.getElementById('bb-host');
+    if (host) host._cachedBBHTML = null;
+    _bbSyncPausedUntil = 0;
+    _syncBigBoardToWindow();
+    // Focus input in the child window (not parent — element is only rendered there)
+    if (bigBoardQuickAssignId === sid) {
+      setTimeout(() => {
+        const inp = bigBoardWindow.document.getElementById('bbqa-input-' + sid);
+        if (inp) inp.focus();
+      }, 60);
+    }
+  } else {
+    // Fallback: focus in parent DOM (overlay mode)
+    if (bigBoardQuickAssignId === sid) {
+      setTimeout(() => document.getElementById('bbqa-input-' + sid)?.focus(), 30);
+    }
   }
 }
 
@@ -9878,6 +9903,19 @@ function toggleBigBoardQuickAssign(id) {
 function bbQuickSelectStatus(status) {
   bbPendingStatus = status;
   renderBigBoard();
+  // Force immediate sync so the selected button highlights right away
+  if (bigBoardWindow && !bigBoardWindow.closed) {
+    const host = bigBoardWindow.document.getElementById('bb-host');
+    if (host) host._cachedBBHTML = null;
+    _bbSyncPausedUntil = 0;
+    _syncBigBoardToWindow();
+    // Restore focus to the input after sync rebuilds the DOM
+    const sid = bigBoardQuickAssignId;
+    if (sid) setTimeout(() => {
+      const inp = bigBoardWindow.document.getElementById('bbqa-input-' + sid);
+      if (inp) inp.focus();
+    }, 60);
+  }
 }
 
 // Quick status change directly from the Big Board tile — no full modal, no
@@ -9888,14 +9926,29 @@ async function bigBoardQuickSetStatus(id, status) {
   const ch = channels.find(c => String(c.id) === String(id));
   if (!ch) return;
   const old = ch.status;
-  // Save undo state before mutating
   bbLastAction = { channelId: id, oldStatus: ch.status, oldActiveFor: ch.activeFor, oldAgency: ch.agency };
   const who = currentUser ? currentUser.name : 'Unknown';
-  const patch = { status, updated_by: who, updated_at: new Date().toISOString() };
+
+  // Optimistic update — apply immediately to local state
+  ch.status = status;
+  if (status === 'available') { ch.activeFor = null; ch.agency = '—'; }
+  ch.updatedAt = new Date().toISOString();
+  renderBigBoard();
+  if (bigBoardWindow && !bigBoardWindow.closed) {
+    const host = bigBoardWindow.document.getElementById('bb-host');
+    if (host) host._cachedBBHTML = null;
+    _bbSyncPausedUntil = 0;
+    _syncBigBoardToWindow();
+  }
+
+  const patch = { status, updated_by: who, updated_at: ch.updatedAt };
   if (status === 'available') { patch.active_for = null; patch.agency = '—'; }
 
   const { error } = await sb.from('channels').update(patch).eq('id', id);
-  if (error) { alert('Error updating channel: ' + error.message); return; }
+  if (error) {
+    alert('Error updating channel: ' + error.message);
+    await loadChannels(); renderBigBoard(); return;
+  }
 
   await logChannelHistory({
     channelId: id, designator: ch.designator, action: status === 'available' ? 'released' : 'status changed',
@@ -9905,6 +9958,12 @@ async function bigBoardQuickSetStatus(id, status) {
 
   await loadChannels();
   renderBigBoard();
+  if (bigBoardWindow && !bigBoardWindow.closed) {
+    const host = bigBoardWindow.document.getElementById('bb-host');
+    if (host) host._cachedBBHTML = null;
+    _bbSyncPausedUntil = 0;
+    _syncBigBoardToWindow();
+  }
 }
 
 // Save the "In Use For" / event-name text from the quick-assign input without
@@ -9915,7 +9974,7 @@ async function bigBoardQuickSaveActiveFor(id) {
   const ch = channels.find(c => String(c.id) === String(id));
   if (!ch) return;
 
-  // Read the input from both parent DOM and child window (whichever has the value)
+  // Read the input value before closing the popover
   const parentInput = document.getElementById(`bbqa-input-${id}`);
   const childInput  = bigBoardWindow?.document?.getElementById(`bbqa-input-${id}`);
   const value = (childInput?.value ?? parentInput?.value ?? '').trim();
@@ -9927,16 +9986,48 @@ async function bigBoardQuickSaveActiveFor(id) {
   // Save undo state
   bbLastAction = { channelId: id, oldStatus: ch.status, oldActiveFor: ch.activeFor, oldAgency: ch.agency };
 
+  // ── OPTIMISTIC UPDATE ──
+  // Close the popover and update local state IMMEDIATELY so the board
+  // doesn't appear frozen while waiting for the Supabase round-trip.
+  // The input focus skip in _syncBigBoardToWindow would otherwise hold
+  // the board in a stale state for the full duration of the async work.
+  bigBoardQuickAssignId = null;
+  bbPendingStatus = null;
+
+  // Patch the local channels array so the tile renders the new state at once
+  if (newStatus === 'available') {
+    ch.status = 'available'; ch.activeFor = null; ch.agency = '—';
+  } else {
+    ch.status = newStatus;
+    if (value) ch.activeFor = value;
+  }
+  ch.updatedAt = new Date().toISOString();
+
+  renderBigBoard();
+  if (bigBoardWindow && !bigBoardWindow.closed) {
+    const host = bigBoardWindow.document.getElementById('bb-host');
+    if (host) host._cachedBBHTML = null;
+    _bbSyncPausedUntil = 0;
+    _syncBigBoardToWindow();
+  }
+
+  // ── PERSIST TO SUPABASE ──
   const patch = {
     status: newStatus,
-    active_for: value || null,
+    active_for: newStatus === 'available' ? null : (value || null),
     updated_by: who,
-    updated_at: new Date().toISOString(),
+    updated_at: ch.updatedAt,
   };
-  if (newStatus === 'available') { patch.active_for = null; patch.agency = '—'; }
+  if (newStatus === 'available') patch.agency = '—';
 
   const { error } = await sb.from('channels').update(patch).eq('id', id);
-  if (error) { alert('Error saving: ' + error.message); return; }
+  if (error) {
+    alert('Error saving: ' + error.message);
+    // Revert the optimistic update and reload
+    await loadChannels();
+    renderBigBoard();
+    return;
+  }
 
   if (old !== newStatus) {
     await logChannelHistory({
@@ -9946,14 +10037,19 @@ async function bigBoardQuickSaveActiveFor(id) {
     });
     logEvent('channel', 'Status Change', `${ch.designator} → ${statusLabels[newStatus]}`, { channelId: id, designator: ch.designator, oldStatus: old, newStatus: newStatus });
   }
-  if (value) {
+  if (value && value !== bbLastAction.oldActiveFor) {
     logEvent('channel', 'Updated', `${ch.designator} — In Use For: "${value}"`, { channelId: id, designator: ch.designator });
   }
 
-  bigBoardQuickAssignId = null;
-  bbPendingStatus = null;
+  // Final refresh from server to confirm persisted state
   await loadChannels();
   renderBigBoard();
+  if (bigBoardWindow && !bigBoardWindow.closed) {
+    const host = bigBoardWindow.document.getElementById('bb-host');
+    if (host) host._cachedBBHTML = null;
+    _bbSyncPausedUntil = 0;
+    _syncBigBoardToWindow();
+  }
 }
 
 function toggleBigBoardFilter(key) {
@@ -10020,6 +10116,12 @@ async function undoBbLastAction() {
   bbLastAction = null;
   await loadChannels();
   renderBigBoard();
+  if (bigBoardWindow && !bigBoardWindow.closed) {
+    const host = bigBoardWindow.document.getElementById('bb-host');
+    if (host) host._cachedBBHTML = null;
+    _bbSyncPausedUntil = 0;
+    _syncBigBoardToWindow();
+  }
 }
 
 let bigBoardWindow = null;
@@ -10233,22 +10335,6 @@ function _startBigBoardTimers() {
   updateBigBoardClock();
 }
 
-function _startBigBoardTimers() {
-  bigBoardCountdown = 30;
-  clearInterval(bigBoardInterval);
-  bigBoardInterval = setInterval(() => {
-    bigBoardCountdown--;
-    const el = document.getElementById('bbCountdown');
-    if (el) el.textContent = bigBoardCountdown;
-    if (bigBoardCountdown <= 0) {
-      bigBoardCountdown = 30;
-      if (!bigBoardQuickAssignId) renderBigBoard();
-    }
-  }, 1000);
-  clearInterval(window._bbClockInterval);
-  window._bbClockInterval = setInterval(updateBigBoardClock, 1000);
-  updateBigBoardClock();
-}
 
 function updateBigBoardClock() {
   const el = document.getElementById('bbClock');
