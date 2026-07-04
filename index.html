@@ -10160,11 +10160,20 @@ function openBigBoard() {
     '<html data-theme="' + themeAttr + '">',
     '<head>',
     '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
     '<title>Big Board — ' + agencyName + '</title>',
     /* styles injected via DOM after window opens - see _syncBigBoardToWindow */
     '<style>',
-    '  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}',
-    '  #bb-host{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;}',
+    '  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;}',
+    '  #bb-host{width:100%;height:100vh;height:-webkit-fill-available;display:flex;flex-direction:column;overflow:hidden;}',
+    '  /* iPad: header wraps to two rows when controls overflow */',
+    '  @media(max-width:1100px){',
+    '    .bb-header-row{flex-wrap:wrap!important;height:auto!important;padding:8px 14px!important;gap:6px!important;}',
+    '    .bb-ctrl-group{flex-wrap:wrap!important;}',
+    '    .bb-logo-block,.bb-plan-block{display:none!important;}',
+    '  }',
+    '  /* Touch scrolling for the tile body */',
+    '  #bbScrollBody{-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}',
     '</style>',
     '</head>',
     '<body>',
@@ -10698,28 +10707,27 @@ function renderBigBoard() {
     </style>
 
     <!-- Header -->
-    <div style="position:sticky;top:0;z-index:10;background:${t.bgPanel};border-bottom:2px solid ${t.borderLit};padding:0 28px;height:76px;display:flex;align-items:center;gap:0;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:12px;padding-right:24px;border-right:1px solid ${t.border};flex-shrink:0;">
+    <div class="bb-header-row" style="position:sticky;top:0;z-index:10;background:${t.bgPanel};border-bottom:2px solid ${t.borderLit};padding:0 20px;min-height:76px;display:flex;align-items:center;gap:0;flex-shrink:0;overflow-x:auto;">
+      <div class="bb-logo-block" style="display:flex;align-items:center;gap:12px;padding-right:24px;border-right:1px solid ${t.border};flex-shrink:0;">
         <span style="font-size:26px;">📡</span>
         <div>
           <div style="font-family:var(--font-data);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:${t.textPrimary};">RF Channel Board</div>
           <div style="font-family:var(--font-data);font-size:12px;color:${t.accent};text-transform:uppercase;letter-spacing:0.14em;">Public Safety Ops</div>
         </div>
       </div>
-      <div style="padding:0 24px;border-right:1px solid ${t.border};flex-shrink:0;">
+      <div class="bb-plan-block" style="padding:0 24px;border-right:1px solid ${t.border};flex-shrink:0;">
         <div style="font-family:var(--font-data);font-size:12px;color:${t.textDim};text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Channel Plan</div>
         <div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:${t.textPrimary};line-height:1;">Organization-Wide</div>
         <div style="font-size:13px;color:${t.textDim};margin-top:3px;">${hasActiveFilters ? `${filteredChannels.length} of ${channels.length} channels (filtered)` : `${channels.length} channels`} · ${utcDate}</div>
       </div>
-      <div style="display:flex;flex:1;align-items:center;">${summaryStrip}</div>
+      <div style="display:flex;flex:1;align-items:center;overflow-x:auto;">${summaryStrip}</div>
 
-      <!-- Layout / Sort / Controls row -->
-      <div style="display:flex;border:1px solid ${t.border};border-radius:4px;overflow:hidden;flex-shrink:0;margin-left:12px;">
-        <button onclick="setBigBoardLayout('status')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='status'?t.accent:'transparent'};color:${bigBoardLayout==='status'?'#fff':t.textSecondary};border:none;padding:7px 10px;cursor:pointer;white-space:nowrap;">By Status</button>
-        <button onclick="setBigBoardLayout('tro')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='tro'?t.accent:'transparent'};color:${bigBoardLayout==='tro'?'#fff':t.textSecondary};border:none;padding:7px 10px;cursor:pointer;white-space:nowrap;">By TRO</button>
-      </div>
+      <!-- Layout / Sort / Controls row — all inside bb-ctrl-group so they flex-wrap together on iPad -->
+      <div class="bb-ctrl-group" style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;margin-left:8px;justify-content:flex-end;">
+        <button onclick="setBigBoardLayout('status')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='status'?t.accent:'transparent'};color:${bigBoardLayout==='status'?'#fff':t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 10px;cursor:pointer;white-space:nowrap;">By Status</button>
+        <button onclick="setBigBoardLayout('tro')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='tro'?t.accent:'transparent'};color:${bigBoardLayout==='tro'?'#fff':t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 10px;cursor:pointer;white-space:nowrap;">By TRO</button>
 
-      <select onchange="setBigBoardSort(this.value)" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${t.bgCard};color:${t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 8px;cursor:pointer;flex-shrink:0;margin-left:8px;">
+        <select onchange="setBigBoardSort(this.value)" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${t.bgCard};color:${t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 8px;cursor:pointer;flex-shrink:0;margin-left:8px;">
         <option value="designator" ${bigBoardSort==='designator'?'selected':''}>Sort: Designator</option>
         <option value="freq"       ${bigBoardSort==='freq'?'selected':''}>Sort: Frequency</option>
         <option value="function"   ${bigBoardSort==='function'?'selected':''}>Sort: Function</option>
@@ -10748,6 +10756,8 @@ function renderBigBoard() {
       <button onclick="toggleBigBoardFilterBar()" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:${hasActiveFilters?t.accent:'transparent'};color:${hasActiveFilters?'#fff':t.textSecondary};border:1px solid ${hasActiveFilters?t.accent:t.border};border-radius:4px;padding:7px 10px;cursor:pointer;flex-shrink:0;margin-left:8px;white-space:nowrap;">
         ${bigBoardFilterBarOpen?'▴':'▾'} Filter${hasActiveFilters?` (${bigBoardActiveFilters.size+bigBoardStatusFilters.size})`:''}
       </button>
+
+      </div><!-- /bb-ctrl-group -->
 
       <!-- Clock + connection + refresh -->
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-left:16px;border-left:1px solid ${t.border};flex-shrink:0;">
