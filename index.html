@@ -18416,26 +18416,56 @@ function exportInventoryCSV() {
 
 // ── BULK SYSTEM ID IMPORT ──
 function openSystemIdImportModal() {
-  const d = document.createElement('div');
-  d.id = 'sysIdImportOverlay';
-  d.className = 'modal-overlay open';
-  d.innerHTML = '<div class="modal" style="max-width:600px;">'
-    + '<div class="modal-header"><div class="modal-title">⬆ Bulk Import System IDs</div>'
-    + '<button class="modal-close" onclick="document.getElementById('sysIdImportOverlay').remove()">✕</button></div>'
-    + '<div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">'
-    + '<div style="font-size:14px;color:var(--text-dim);">Upload a CSV with a column for serial number and one or more system ID columns. Headers are matched case-insensitively.</div>'
-    + '<div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);background:var(--bg-deep);padding:10px 12px;border-radius:4px;border:1px solid var(--border);">'
-    + 'Required: <strong>serial_number</strong> (or "Serial Number")<br>'
-    + 'Optional: <strong>larics_id</strong>, <strong>ici_id</strong>, <strong>cwirs_id</strong>, <strong>cris_id</strong></div>'
+  const overlay = document.createElement('div');
+  overlay.id = 'sysIdImportOverlay';
+  overlay.className = 'modal-overlay open';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style.maxWidth = '600px';
+
+  const header = document.createElement('div');
+  header.className = 'modal-header';
+  const title = document.createElement('div');
+  title.className = 'modal-title';
+  title.textContent = '⬆ Bulk Import System IDs';
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'modal-close';
+  closeBtn.textContent = '✕';
+  closeBtn.onclick = function() { overlay.remove(); };
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+  body.style.cssText = 'display:flex;flex-direction:column;gap:14px;';
+  body.innerHTML = '<div style="font-size:14px;color:var(--text-dim);">Upload a CSV with a serial_number column and any of: larics_id, ici_id, cwirs_id, cris_id. Headers matched case-insensitively.</div>'
+    + '<div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);background:var(--bg-deep);padding:10px 12px;border-radius:4px;border:1px solid var(--border);">Required: <strong>serial_number</strong><br>Optional: <strong>larics_id</strong>, <strong>ici_id</strong>, <strong>cwirs_id</strong>, <strong>cris_id</strong></div>'
     + '<input type="file" id="sysIdCsvFile" accept=".csv" class="form-input" style="padding:8px;">'
     + '<div id="sysIdPreview" style="font-size:13px;color:var(--text-dim);"></div>'
-    + '<div id="sysIdProgress" style="display:none;font-size:13px;color:var(--accent);font-family:var(--font-data);"></div>'
-    + '</div>'
-    + '<div class="modal-footer">'
-    + '<button class="btn-secondary" onclick="document.getElementById('sysIdImportOverlay').remove()">Cancel</button>'
-    + '<button class="btn-primary" id="sysIdImportBtn" onclick="runSystemIdImport()" disabled>Import</button>'
-    + '</div></div>';
-  document.body.appendChild(d);
+    + '<div id="sysIdProgress" style="display:none;font-size:13px;color:var(--accent);font-family:var(--font-data);"></div>';
+
+  const footer = document.createElement('div');
+  footer.className = 'modal-footer';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-secondary';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = function() { overlay.remove(); };
+  const importBtn = document.createElement('button');
+  importBtn.className = 'btn-primary';
+  importBtn.id = 'sysIdImportBtn';
+  importBtn.textContent = 'Import';
+  importBtn.disabled = true;
+  importBtn.onclick = runSystemIdImport;
+  footer.appendChild(cancelBtn);
+  footer.appendChild(importBtn);
+
+  modal.appendChild(header);
+  modal.appendChild(body);
+  modal.appendChild(footer);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
   document.getElementById('sysIdCsvFile').addEventListener('change', previewSystemIdCsv);
 }
 
