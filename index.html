@@ -9976,9 +9976,21 @@ function openBigBoard() {
   }
 
   // Write a minimal shell into the new window — just enough to host the styles and a container
-  const allStyles = [...document.styleSheets].reduce((acc, ss) => {
-    try { return acc + [...ss.cssRules].map(r => r.cssText).join('\n'); } catch(e) { return acc; }
-  }, '');
+  // Extract just the CSS custom properties (variables) — safe to inline,
+  // no unbalanced parens. Full stylesheet linked via the page URL instead.
+  const rootVars = (() => {
+    try {
+      const sheet = [...document.styleSheets].find(ss => !ss.href);
+      if (!sheet) return '';
+      const rootRule = [...sheet.cssRules].find(r => r.selectorText === ':root');
+      return rootRule ? rootRule.cssText : '';
+    } catch(e) { return ''; }
+  })();
+
+  // Use the parent page's URL as a stylesheet link so the child window
+  // gets all styles without embedding raw CSS in a template literal
+  // (raw CSS contains unbalanced parens/braces that break template strings).
+  const pageStylesheetLink = window.location.href;
 
   const agencyName = currentAgency?.name || 'WARDEN';
   const themeAttr  = document.documentElement.getAttribute('data-theme') || 'night';
@@ -9988,8 +10000,8 @@ function openBigBoard() {
 <head>
 <meta charset="utf-8">
 <title>Big Board — ${agencyName}</title>
-<style>${allStyles}</style>
-<style>
+<link rel="stylesheet" href="${pageStylesheetLink}">
+<style>${rootVars}
   html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
   #bb-host { width:100%; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 </style>
