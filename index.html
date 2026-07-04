@@ -10136,19 +10136,24 @@ function _syncBigBoardToWindow() {
     bigBoardWindow._stylesInjected = true;
   }
 
-  // Don't rebuild the DOM while the user is typing in the quick-assign input —
-  // innerHTML replacement destroys the focused element and ejects the cursor.
+  // Skip DOM rebuild if user is actively interacting with the child window.
+  // Rebuilding innerHTML during interaction ejects focus, closes dropdowns,
+  // and resets scroll position.
   const childActive = bigBoardWindow.document.activeElement;
-  if (childActive && (childActive.tagName === 'INPUT' || childActive.tagName === 'TEXTAREA')) return;
+  const activeTag = childActive ? childActive.tagName : '';
+  if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
 
-  // Preserve scroll position — innerHTML rebuild resets it to 0 every sync
-  const scrollTop = host.scrollTop;
+  // Save scroll on the actual scrollable container (#bbScrollBody, not #bb-host
+  // which has overflow:hidden and never scrolls itself).
+  const childScrollBody = bigBoardWindow.document.getElementById('bbScrollBody');
+  const savedScroll = childScrollBody ? childScrollBody.scrollTop : 0;
 
   // Mirror the rendered HTML verbatim — all styles, structure, and content
   host.innerHTML = content.innerHTML;
 
-  // Restore scroll position after the DOM rebuild
-  host.scrollTop = scrollTop;
+  // Restore scroll on the freshly rebuilt element
+  const newScrollBody = bigBoardWindow.document.getElementById('bbScrollBody');
+  if (newScrollBody && savedScroll) newScrollBody.scrollTop = savedScroll;
   // Sync theme
   bigBoardWindow.document.documentElement.setAttribute('data-theme',
     document.documentElement.getAttribute('data-theme') || 'night');
@@ -10556,7 +10561,7 @@ function renderBigBoard() {
     </div>
 
     <!-- Body -->
-    <div style="padding:24px 28px 80px;overflow-y:auto;flex:1;">
+    <div id="bbScrollBody" style="padding:24px 28px 80px;overflow-y:auto;flex:1;">
       ${commandSectionHTML}
       ${sectionsHTML || `<div style="text-align:center;padding:80px;font-family:var(--font-data);font-size:18px;color:${t.textDim};">${hasActiveFilters ? 'No channels match the current filters' : 'No channels in plan'}</div>`}
     </div>
