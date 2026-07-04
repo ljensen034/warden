@@ -10171,6 +10171,51 @@ function openBigBoard() {
     '<div id="bb-host"></div>',
     '<button onclick="var e=document.documentElement;if(e.requestFullscreen)e.requestFullscreen();else if(e.webkitRequestFullscreen)e.webkitRequestFullscreen();" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:monospace;font-size:12px;padding:6px 12px;background:rgba(0,0,0,0.6);color:#aaa;border:1px solid #333;border-radius:4px;cursor:pointer;">Fullscreen</button>',
     '<scr' + 'ipt>',
+    '// ── Independent clock — runs entirely in child window, never depends on parent sync ──',
+    'var _bbLocalClock = setInterval(function(){',
+    '  var el=document.getElementById("bbClock");',
+    '  if(!el)return;',
+    '  var now=new Date();',
+    '  var t=now.toLocaleTimeString("en-US",{timeZone:"America/Los_Angeles",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});',
+    '  var tz=now.toLocaleString("en-US",{timeZone:"America/Los_Angeles",timeZoneName:"short"}).split(" ").pop();',
+    '  el.textContent=t+" "+tz;',
+    '},1000);',
+    '',
+    '// ── Heartbeat: detect when parent sync has died and show a warning ──',
+    'var _bbLastSync=Date.now();',
+    'var _bbSyncBanner=null;',
+    'function _bbCheckHeartbeat(){',
+    '  var age=Date.now()-_bbLastSync;',
+    '  if(age>8000&&!_bbSyncBanner){',
+    '    _bbSyncBanner=document.createElement("div");',
+    '    _bbSyncBanner.id="_bbWarnBanner";',
+    '    _bbSyncBanner.style.cssText="position:fixed;top:0;left:0;right:0;z-index:99999;background:#ff6d00;color:#fff;font-family:monospace;font-size:14px;font-weight:700;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;";',
+    '    _bbSyncBanner.innerHTML="⚠ Big Board sync lost — channel statuses may be stale."',
+    '      +"<div style=\"display:flex;gap:10px;\">"',
+    '      +"<button onclick=\"_bbReconnect()\" style=\"background:#fff;color:#ff6d00;border:none;padding:6px 14px;border-radius:4px;font-weight:700;cursor:pointer;\">↻ Reconnect</button>"',
+    '      +"<button onclick=\"window.close()\" style=\"background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.5);padding:6px 12px;border-radius:4px;cursor:pointer;\">Close</button>"',
+    '      +"</div>";',
+    '    document.body.appendChild(_bbSyncBanner);',
+    '  } else if(age<=8000&&_bbSyncBanner){',
+    '    _bbSyncBanner.remove();_bbSyncBanner=null;',
+    '  }',
+    '}',
+    'setInterval(_bbCheckHeartbeat,2000);',
+    '',
+    'function _bbReconnect(){',
+    '  if(!window.opener||window.opener.closed){',
+    '    alert("The WARDEN main window has been closed or refreshed. Please reopen the Big Board from WARDEN.");',
+    '    return;',
+    '  }',
+    '  // Ask the parent to re-establish the sync connection to this window',
+    '  try{',
+    '    window.opener._bbSyncPausedUntil=0;',
+    '    window.opener.bigBoardWindow=window;',
+    '    window.opener._syncBigBoardToWindow();',
+    '    _bbLastSync=Date.now();',
+    '    if(_bbSyncBanner){_bbSyncBanner.remove();_bbSyncBanner=null;}',
+    '  }catch(e){alert("Could not reconnect: "+e.message);}',
+    '}',
     'document.addEventListener("click",function(e){',
     '  var btn=e.target.closest("[onclick]");',
     '  if(!btn||!window.opener||window.opener.closed)return;',
@@ -10242,12 +10287,16 @@ function openBigBoard() {
   // Keep syncing every second (picks up channel changes, quick-assign popover state, etc.)
   clearInterval(bigBoardWindowSyncInterval);
   bigBoardWindowSyncInterval = setInterval(() => {
-    if (!bigBoardWindow || bigBoardWindow.closed) {
-      clearInterval(bigBoardWindowSyncInterval);
-      bigBoardWindow = null;
-      return;
+    try {
+      if (!bigBoardWindow || bigBoardWindow.closed) {
+        clearInterval(bigBoardWindowSyncInterval);
+        bigBoardWindow = null;
+        return;
+      }
+      _syncBigBoardToWindow();
+    } catch(e) {
+      console.warn('BB sync error:', e.message);
     }
-    _syncBigBoardToWindow();
   }, 1000);
 
   _startBigBoardTimers();
@@ -10301,6 +10350,9 @@ function _syncBigBoardToWindow() {
   // Rebuild the child window DOM
   host.innerHTML = newHTML;
 
+  // Update the heartbeat so the child window knows sync is alive
+  try { bigBoardWindow._bbLastSync = Date.now(); } catch(e) {}
+
   // Restore scroll on the freshly rebuilt element
   const newScrollBody = bigBoardWindow.document.getElementById('bbScrollBody');
   if (newScrollBody && savedScroll) newScrollBody.scrollTop = savedScroll;
@@ -10322,16 +10374,20 @@ function _startBigBoardTimers() {
   bigBoardCountdown = 30;
   clearInterval(bigBoardInterval);
   bigBoardInterval = setInterval(() => {
-    bigBoardCountdown--;
-    const el = document.getElementById('bbCountdown');
-    if (el) el.textContent = bigBoardCountdown;
-    if (bigBoardCountdown <= 0) {
-      bigBoardCountdown = 30;
-      if (!bigBoardQuickAssignId) renderBigBoard();
-    }
+    try {
+      bigBoardCountdown--;
+      const el = document.getElementById('bbCountdown');
+      if (el) el.textContent = bigBoardCountdown;
+      if (bigBoardCountdown <= 0) {
+        bigBoardCountdown = 30;
+        if (!bigBoardQuickAssignId) renderBigBoard();
+      }
+    } catch(e) { console.warn('BB countdown error:', e.message); }
   }, 1000);
   clearInterval(window._bbClockInterval);
-  window._bbClockInterval = setInterval(updateBigBoardClock, 1000);
+  window._bbClockInterval = setInterval(() => {
+    try { updateBigBoardClock(); } catch(e) {}
+  }, 1000);
   updateBigBoardClock();
 }
 
@@ -10345,6 +10401,16 @@ function updateBigBoardClock() {
   const tzAbbr  = now.toLocaleString('en-US', { timeZone:'America/Los_Angeles', timeZoneName:'short' }).split(' ').pop();
   el.textContent = timeStr + ' ' + tzAbbr;
   if (de) de.textContent = now.toLocaleDateString('en-US', { timeZone:'America/Los_Angeles', month:'short', day:'numeric', year:'numeric' });
+
+  // Update connection dot live — don't wait for a full renderBigBoard() call.
+  // The dot color is baked into innerHTML at render time so it goes stale;
+  // this keeps it accurate without a full re-render.
+  const dot = document.getElementById('bbConnDot');
+  if (dot) {
+    const live = realtimeChannelStates['channels'] === 'SUBSCRIBED';
+    dot.style.background = live ? '#00e676' : '#ff5252';
+    dot.title = live ? 'Live data' : 'Connection degraded';
+  }
 }
 
 // TRO-grouped Big Board layout: each TRO zone gets its own section, with
