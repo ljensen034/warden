@@ -9760,7 +9760,7 @@ async function deleteUser(userId) {
 // BIG BOARD — WALL DISPLAY
 // ─────────────────────────────────────────────
 let bigBoardInterval = null;
-let bigBoardCountdown = 30;
+let bigBoardCountdown = 15;
 
 // ── Big Board channel type classification ──
 // Combines band (VHF/UHF/700/800/Aviation/HF) with a role keyword match
@@ -10407,13 +10407,10 @@ function _syncBigBoardToWindow() {
   // ── BroadcastChannel sync (primary — works even when window.opener is severed) ──
   if (bbBroadcast) {
     try {
-      // Always send heartbeat
       bbBroadcast.postMessage({ type: 'heartbeat', t: now });
-      // Send HTML only when content has changed
-      if (bbBroadcast._cachedHTML !== newHTML) {
-        bbBroadcast._cachedHTML = newHTML;
-        bbBroadcast.postMessage({ type: 'html', html: newHTML, theme: themeAttr, t: now });
-      }
+      // Always send HTML — the clock updates every second so the content is always
+      // fresh. Removing the cache check eliminates a potential staleness failure point.
+      bbBroadcast.postMessage({ type: 'html', html: newHTML, theme: themeAttr, t: now });
     } catch(e) { console.warn('BB broadcast error:', e.message); }
   }
 
@@ -10474,7 +10471,7 @@ function _syncBigBoardToWindow() {
 function _writeBigBoardWindow() {} // kept for safety, no longer used
 
 function _startBigBoardTimers() {
-  bigBoardCountdown = 30;
+  bigBoardCountdown = 15;
   clearInterval(bigBoardInterval);
   bigBoardInterval = setInterval(() => {
     try {
@@ -10482,8 +10479,12 @@ function _startBigBoardTimers() {
       const el = document.getElementById('bbCountdown');
       if (el) el.textContent = bigBoardCountdown;
       if (bigBoardCountdown <= 0) {
-        bigBoardCountdown = 30;
-        if (!bigBoardQuickAssignId) renderBigBoard();
+        bigBoardCountdown = 15;
+        // Full refresh — re-fetch from Supabase so stale realtime subscriptions
+        // don't leave the Big Board showing outdated channel statuses.
+        if (!bigBoardQuickAssignId) {
+          loadChannels().then(() => renderBigBoard()).catch(() => renderBigBoard());
+        }
       }
     } catch(e) { console.warn('BB countdown error:', e.message); }
   }, 1000);
