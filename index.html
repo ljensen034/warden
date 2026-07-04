@@ -10184,21 +10184,46 @@ function openBigBoard() {
         '// ── Heartbeat: detect when parent sync has died and show a warning ──',
     'var _bbLastSync=Date.now();',
     'var _bbSyncBanner=null;',
+    'function _bbAlert(){',
+    '  try{',
+    '    var ctx=new(window.AudioContext||window.webkitAudioContext)();',
+    '    function beep(freq,start,dur){',
+    '      var o=ctx.createOscillator();',
+    '      var g=ctx.createGain();',
+    '      o.connect(g);g.connect(ctx.destination);',
+    '      o.frequency.value=freq;',
+    '      o.type="sine";',
+    '      g.gain.setValueAtTime(0.6,ctx.currentTime+start);',
+    '      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);',
+    '      o.start(ctx.currentTime+start);',
+    '      o.stop(ctx.currentTime+start+dur+0.05);',
+    '    }',
+    '    beep(880,0,0.18);beep(660,0.22,0.18);beep(440,0.44,0.35);',
+    '  }catch(e){}',
+    '}',
     'function _bbMakeBanner(){',
     '  var d=document.createElement("div");',
     '  d.id="_bbWarnBanner";',
-    '  d.style.cssText="position:fixed;top:0;left:0;right:0;z-index:99999;background:#ff6d00;color:#fff;font-family:monospace;font-size:13px;font-weight:700;padding:8px 16px;display:flex;align-items:center;gap:12px;";',
+    '  d.style.cssText="position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;font-family:Arial,sans-serif;font-size:22px;font-weight:900;padding:18px 28px;display:flex;align-items:center;gap:20px;box-shadow:0 4px 24px rgba(0,0,0,0.5);letter-spacing:0.02em;";',
+    '  var icon=document.createElement("span");',
+    '  icon.textContent="⚠";',
+    '  icon.style.cssText="font-size:32px;flex-shrink:0;animation:bbBlink 1s step-start infinite;";',
     '  var msg=document.createElement("span");',
-    '  msg.textContent="⚠ Big Board sync lost — channel statuses may be stale";',
+    '  msg.textContent="BIG BOARD SYNC LOST — CHANNEL STATUSES MAY BE STALE";',
+    '  msg.style.cssText="flex:1;";',
     '  var rb=document.createElement("button");',
-    '  rb.textContent="↻ Reconnect";',
-    '  rb.style.cssText="background:#fff;color:#ff6d00;border:none;padding:5px 12px;border-radius:4px;font-weight:700;cursor:pointer;margin-left:auto;";',
+    '  rb.textContent="↻ RECONNECT";',
+    '  rb.style.cssText="background:#fff;color:#c0392b;border:none;padding:10px 22px;border-radius:6px;font-size:18px;font-weight:900;cursor:pointer;flex-shrink:0;letter-spacing:0.05em;";',
     '  rb.onclick=_bbReconnect;',
     '  var cb=document.createElement("button");',
-    '  cb.textContent="Close BB";',
-    '  cb.style.cssText="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.5);padding:5px 10px;border-radius:4px;cursor:pointer;";',
+    '  cb.textContent="✕";',
+    '  cb.style.cssText="background:transparent;color:#fff;border:2px solid rgba(255,255,255,0.6);padding:8px 14px;border-radius:6px;font-size:18px;font-weight:700;cursor:pointer;flex-shrink:0;";',
+    '  cb.title="Close Big Board";',
     '  cb.onclick=function(){window.close();};',
-    '  d.appendChild(msg);d.appendChild(rb);d.appendChild(cb);',
+    '  var style=document.createElement("style");',
+    '  style.textContent="@keyframes bbBlink{0%,100%{opacity:1}50%{opacity:0}}";',
+    '  d.appendChild(style);',
+    '  d.appendChild(icon);d.appendChild(msg);d.appendChild(rb);d.appendChild(cb);',
     '  return d;',
     '}',
     'function _bbCheckHeartbeat(){',
@@ -10206,6 +10231,7 @@ function openBigBoard() {
     '  if(age>8000&&!_bbSyncBanner){',
     '    _bbSyncBanner=_bbMakeBanner();',
     '    document.body.appendChild(_bbSyncBanner);',
+    '    _bbAlert();',
     '  } else if(age<=8000&&_bbSyncBanner){',
     '    _bbSyncBanner.remove();_bbSyncBanner=null;',
     '  }',
@@ -10347,6 +10373,9 @@ function _syncBigBoardToWindow() {
   // (gives the UI time to settle after filter changes, etc.)
   if (Date.now() < _bbSyncPausedUntil) return;
 
+  // Heartbeat: tell the child window the parent is still alive
+  try { bigBoardWindow._bbLastSync = Date.now(); } catch(e) {}
+
   // Skip if the rendered HTML hasn't changed — avoids pointless DOM churn
   // that makes the Big Board feel unresponsive.
   const newHTML = content.innerHTML;
@@ -10359,9 +10388,6 @@ function _syncBigBoardToWindow() {
 
   // Rebuild the child window DOM
   host.innerHTML = newHTML;
-
-  // Update the heartbeat so the child window knows sync is alive
-  try { bigBoardWindow._bbLastSync = Date.now(); } catch(e) {}
 
   // Restore scroll on the freshly rebuilt element
   const newScrollBody = bigBoardWindow.document.getElementById('bbScrollBody');
