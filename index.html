@@ -9795,6 +9795,7 @@ let bigBoardSort        = 'designator'; // 'designator' | 'freq' | 'function' | 
 let bigBoardLayout      = 'status';     // 'status' | 'tro'
 let bigBoardJulyMode    = false;
 let bigBoardQuickAssignId = null;
+let bbPendingStatus = null; // status selected in popover but not yet saved to Supabase
 
 // ── New display settings ──
 let bigBoardFontSize    = 1;     // multiplier: 0.8 | 1 | 1.2 | 1.4
@@ -9834,14 +9835,26 @@ function toggleJulyMode() {
 }
 
 function toggleBigBoardQuickAssign(id) {
-  // Normalise to string — ch.id from Supabase may be an integer but the
-  // onclick attr passes it as a string, so strict === would always fail.
   const sid = String(id);
-  bigBoardQuickAssignId = bigBoardQuickAssignId === sid ? null : sid;
+  if (bigBoardQuickAssignId === sid) {
+    bigBoardQuickAssignId = null;
+    bbPendingStatus = null;
+  } else {
+    bigBoardQuickAssignId = sid;
+    const ch = channels.find(c => String(c.id) === sid);
+    bbPendingStatus = ch ? ch.status : null; // start with current status selected
+  }
   renderBigBoard();
   if (bigBoardQuickAssignId === sid) {
     setTimeout(() => document.getElementById(`bbqa-input-${sid}`)?.focus(), 30);
   }
+}
+
+// Set pending status locally — doesn't write to Supabase yet.
+// The tile stays in its current section until Save is pressed.
+function bbQuickSelectStatus(status) {
+  bbPendingStatus = status;
+  renderBigBoard();
 }
 
 // Quick status change directly from the Big Board tile — no full modal, no
@@ -9878,18 +9891,44 @@ async function bigBoardQuickSaveActiveFor(id) {
   if (currentUser?.role === 'viewer') return;
   const ch = channels.find(c => String(c.id) === String(id));
   if (!ch) return;
-  const input = document.getElementById(`bbqa-input-${id}`);
-  const value = input ? input.value.trim() : '';
-  const who = currentUser ? currentUser.name : 'Unknown';
 
-  const { error } = await sb.from('channels').update({
-    active_for: value || null, updated_by: who, updated_at: new Date().toISOString(),
-  }).eq('id', id);
+  // Read the input from both parent DOM and child window (whichever has the value)
+  const parentInput = document.getElementById(`bbqa-input-${id}`);
+  const childInput  = bigBoardWindow?.document?.getElementById(`bbqa-input-${id}`);
+  const value = (childInput?.value ?? parentInput?.value ?? '').trim();
+
+  const newStatus = bbPendingStatus || ch.status;
+  const who = currentUser ? currentUser.name : 'Unknown';
+  const old = ch.status;
+
+  // Save undo state
+  bbLastAction = { channelId: id, oldStatus: ch.status, oldActiveFor: ch.activeFor, oldAgency: ch.agency };
+
+  const patch = {
+    status: newStatus,
+    active_for: value || null,
+    updated_by: who,
+    updated_at: new Date().toISOString(),
+  };
+  if (newStatus === 'available') { patch.active_for = null; patch.agency = '—'; }
+
+  const { error } = await sb.from('channels').update(patch).eq('id', id);
   if (error) { alert('Error saving: ' + error.message); return; }
 
-  logEvent('channel', 'Updated', `${ch.designator} — In Use For: "${value || '(cleared)'}"`, { channelId: id, designator: ch.designator });
+  if (old !== newStatus) {
+    await logChannelHistory({
+      channelId: id, designator: ch.designator,
+      action: newStatus === 'available' ? 'released' : 'status changed',
+      field: 'Status', oldValue: statusLabels[old], newValue: statusLabels[newStatus], changedBy: who,
+    });
+    logEvent('channel', 'Status Change', `${ch.designator} → ${statusLabels[newStatus]}`, { channelId: id, designator: ch.designator, oldStatus: old, newStatus: newStatus });
+  }
+  if (value) {
+    logEvent('channel', 'Updated', `${ch.designator} — In Use For: "${value}"`, { channelId: id, designator: ch.designator });
+  }
 
   bigBoardQuickAssignId = null;
+  bbPendingStatus = null;
   await loadChannels();
   renderBigBoard();
 }
@@ -10096,6 +10135,11 @@ function _syncBigBoardToWindow() {
     });
     bigBoardWindow._stylesInjected = true;
   }
+
+  // Don't rebuild the DOM while the user is typing in the quick-assign input —
+  // innerHTML replacement destroys the focused element and ejects the cursor.
+  const childActive = bigBoardWindow.document.activeElement;
+  if (childActive && (childActive.tagName === 'INPUT' || childActive.tagName === 'TEXTAREA')) return;
 
   // Preserve scroll position — innerHTML rebuild resets it to 0 every sync
   const scrollTop = host.scrollTop;
@@ -10315,26 +10359,29 @@ function renderBigBoard() {
 
   // ── July 4th Mode: inline quick-assign panel rendered inside an expanded tile ──
   function quickAssignPanel(ch, t, SC) {
+    const pendingStatus = bbPendingStatus || ch.status;
     const statusBtn = (key, label) => {
       const s = SC[key];
-      const isCurrentStatus = ch.status === key;
-      return `<button onclick="event.stopPropagation();bigBoardQuickSetStatus('${ch.id}','${key}')" style="font-family:var(--font-data);font-size:13px;font-weight:700;padding:8px 10px;border-radius:5px;background:${isCurrentStatus ? s.color : t.bgDeep};color:${isCurrentStatus ? '#000' : s.color};border:1px solid ${s.color};cursor:pointer;flex:1;">${label}</button>`;
+      const isSelected = pendingStatus === key;
+      return '<button onclick="event.stopPropagation();bbQuickSelectStatus(\'' + key + '\')" style="font-family:var(--font-data);font-size:13px;font-weight:700;padding:8px 10px;border-radius:5px;background:' + (isSelected ? s.color : t.bgDeep) + ';color:' + (isSelected ? '#000' : s.color) + ';border:2px solid ' + s.color + ';cursor:pointer;flex:1;">' + label + '</button>';
     };
-    return `
-      <div onclick="event.stopPropagation()" style="margin-top:10px;padding-top:10px;border-top:1px solid ${t.border};display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;gap:6px;">
-          ${statusBtn('available', 'AVAILABLE')}
-          ${statusBtn('active', 'IN USE')}
-          ${statusBtn('reserved', 'RESERVED')}
-        </div>
-        <input id="bbqa-input-${ch.id}" type="text" placeholder="In use for / event name…" value="${escHtml(ch.activeFor || '')}"
-          style="font-family:var(--font-data);font-size:14px;padding:8px 10px;border-radius:5px;border:1px solid ${t.border};background:${t.bgDeep};color:${t.textPrimary};width:100%;box-sizing:border-box;"
-          onkeydown="if(event.key==='Enter'){event.stopPropagation();bigBoardQuickSaveActiveFor('${ch.id}');}" onclick="event.stopPropagation()">
-        <div style="display:flex;gap:6px;">
-          <button onclick="event.stopPropagation();bigBoardQuickSaveActiveFor('${ch.id}')" style="flex:1;font-family:var(--font-data);font-size:13px;font-weight:700;padding:8px;border-radius:5px;background:${t.accent};color:#fff;border:none;cursor:pointer;">✓ Save</button>
-          <button onclick="event.stopPropagation();bigBoardQuickAssignId=null;renderBigBoard();" style="font-family:var(--font-data);font-size:13px;padding:8px 14px;border-radius:5px;background:transparent;color:${t.textDim};border:1px solid ${t.border};cursor:pointer;">Close</button>
-        </div>
-      </div>`;
+    const inputId = 'bbqa-input-' + ch.id;
+    const saveCall = "bigBoardQuickSaveActiveFor('" + ch.id + "')";
+    const cancelCall = "bigBoardQuickAssignId=null;bbPendingStatus=null;renderBigBoard();";
+    return '<div onclick="event.stopPropagation()" style="margin-top:10px;padding-top:10px;border-top:1px solid ' + t.border + ';display:flex;flex-direction:column;gap:8px;">'
+      + '<div style="font-family:var(--font-data);font-size:11px;color:' + t.textDim + ';text-transform:uppercase;letter-spacing:0.08em;">Status — changes saved on ✓ Save</div>'
+      + '<div style="display:flex;gap:6px;">'
+      + statusBtn('available', 'AVAILABLE')
+      + statusBtn('active', 'IN USE')
+      + statusBtn('reserved', 'RESERVED')
+      + '</div>'
+      + '<input id="' + inputId + '" type="text" placeholder="In use for / event name…" value="' + escHtml(ch.activeFor || '') + '"'
+      + ' style="font-family:var(--font-data);font-size:14px;padding:8px 10px;border-radius:5px;border:1px solid ' + t.border + ';background:' + t.bgDeep + ';color:' + t.textPrimary + ';width:100%;box-sizing:border-box;"'
+      + ' onkeydown="if(event.keyCode===13){event.stopPropagation();' + saveCall + ';}" onclick="event.stopPropagation()">'
+      + '<div style="display:flex;gap:6px;">'
+      + '<button onclick="event.stopPropagation();' + saveCall + '" style="flex:1;font-family:var(--font-data);font-size:13px;font-weight:700;padding:8px;border-radius:5px;background:' + t.accent + ';color:#fff;border:none;cursor:pointer;">✓ Save</button>'
+      + '<button onclick="event.stopPropagation();' + cancelCall + '" style="font-family:var(--font-data);font-size:13px;padding:8px 14px;border-radius:5px;background:transparent;color:' + t.textDim + ';border:1px solid ' + t.border + ';cursor:pointer;">Cancel</button>'
+      + '</div></div>';
   }
 
   function section(key, list) {
