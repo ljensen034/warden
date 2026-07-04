@@ -9978,8 +9978,6 @@ function openBigBoard() {
   // Write a minimal shell into the new window — just enough to host the styles and a container
   // Use the parent page's URL as a stylesheet link so the child window
   // gets all styles without embedding raw CSS in a template literal.
-  const pageStylesheetLink = window.location.href;
-
   const agencyName = currentAgency?.name || 'WARDEN';
   const themeAttr  = document.documentElement.getAttribute('data-theme') || 'night';
 
@@ -9992,7 +9990,7 @@ function openBigBoard() {
     '<head>',
     '<meta charset="utf-8">',
     '<title>Big Board — ' + agencyName + '</title>',
-    '<link rel="stylesheet" href="' + pageStylesheetLink + '">',
+    /* styles injected via DOM after window opens - see _syncBigBoardToWindow */
     '<style>',
     '  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}',
     '  #bb-host{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;}',
@@ -10065,6 +10063,20 @@ function _syncBigBoardToWindow() {
   if (!content) return;
   const host = bigBoardWindow.document.getElementById('bb-host');
   if (!host) return;
+
+  // On first sync: copy all <style> blocks from the parent into the child window head.
+  // Done via DOM so we never embed raw CSS text in a JS string (CSS contains
+  // characters that break template literals and string escaping).
+  if (!bigBoardWindow._stylesInjected) {
+    const head = bigBoardWindow.document.head;
+    document.querySelectorAll('style').forEach(parentStyle => {
+      const childStyle = bigBoardWindow.document.createElement('style');
+      childStyle.textContent = parentStyle.textContent;
+      head.appendChild(childStyle);
+    });
+    bigBoardWindow._stylesInjected = true;
+  }
+
   // Mirror the rendered HTML verbatim — all styles, structure, and content
   host.innerHTML = content.innerHTML;
   // Sync theme
