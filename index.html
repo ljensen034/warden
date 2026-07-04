@@ -9707,14 +9707,19 @@ function toggleBigBoardFilterBar() {
   renderBigBoard();
 }
 
+let bigBoardWindow = null;
+let bigBoardWindowSyncInterval = null;
+
 function openBigBoard() {
   logEvent('nav', 'Big Board Opened', `${currentUser?.name||'Unknown'} opened Big Board`, { user: currentUser?.name });
 
-  const win = window.open('', 'warden_bigboard',
-    'width=1280,height=800,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes'
+  // Open the new window first
+  bigBoardWindow = window.open('', 'warden_bigboard',
+    'width=1400,height=900,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes'
   );
-  if (!win) {
-    // Pop-up was blocked — fall back to the original fullscreen overlay
+
+  if (!bigBoardWindow) {
+    // Popup blocked — fall back to fullscreen overlay in the main window
     renderBigBoard();
     const overlay = document.getElementById('bigBoardOverlay');
     overlay.style.display = 'flex';
@@ -9723,110 +9728,82 @@ function openBigBoard() {
     return;
   }
 
-  // Write a self-contained Big Board page into the new window
-  _writeBigBoardWindow(win);
-}
-
-function _writeBigBoardWindow(win) {
-  const theme = document.documentElement.getAttribute('data-theme') || 'night';
-  const themeVars = getComputedStyle(document.documentElement).cssText;
-
-  // Serialise current channel data as JSON
-  const channelData = JSON.stringify(channels);
-  const agencyName  = getAgencyDisplayName ? getAgencyDisplayName() : 'WARDEN';
-  const julyMode    = bigBoardJulyMode;
-
-  // Get the Big Board CSS from the current page
-  const bbStyles = [...document.styleSheets].reduce((acc, ss) => {
+  // Write a minimal shell into the new window — just enough to host the styles and a container
+  const allStyles = [...document.styleSheets].reduce((acc, ss) => {
     try { return acc + [...ss.cssRules].map(r => r.cssText).join('\n'); } catch(e) { return acc; }
   }, '');
 
-  win.document.write(`<!DOCTYPE html>
-<html data-theme="${theme}">
+  const agencyName = currentAgency?.name || 'WARDEN';
+  const themeAttr  = document.documentElement.getAttribute('data-theme') || 'night';
+
+  bigBoardWindow.document.write(`<!DOCTYPE html>
+<html data-theme="${themeAttr}">
 <head>
 <meta charset="utf-8">
 <title>Big Board — ${agencyName}</title>
+<style>${allStyles}</style>
 <style>
-:root { ${themeVars} }
-body { margin:0; background:var(--bg-deep,#0d1117); color:var(--text-primary,#e8eaf6); font-family:system-ui,sans-serif; }
-.bb-header { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; background:var(--bg-panel,#161b22); border-bottom:1px solid var(--border,#30363d); }
-.bb-title  { font-size:18px; font-weight:700; letter-spacing:0.06em; }
-.bb-clock  { font-family:monospace; font-size:20px; }
-.bb-grid   { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; padding:16px; }
-.bb-tile   { border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:6px; }
-.bb-desig  { font-size:18px; font-weight:700; letter-spacing:0.06em; }
-.bb-freq   { font-size:13px; opacity:0.7; font-family:monospace; }
-.bb-for    { font-size:14px; font-weight:600; }
-.bb-status { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:2px 7px; border-radius:2px; display:inline-block; margin-top:4px; }
-.st-available { background:rgba(0,229,170,0.15); color:#00e5aa; }
-.st-active    { background:rgba(255,82,82,0.15);  color:#ff5252; }
-.st-reserved  { background:rgba(255,196,0,0.15);  color:#ffc400; }
-#countdown { font-family:monospace; font-size:13px; opacity:0.5; }
+  html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
+  #bb-host { width:100%; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 </style>
 </head>
 <body>
-<div class="bb-header">
-  <div class="bb-title">📻 ${agencyName} — BIG BOARD</div>
-  <div id="bbClock" class="bb-clock"></div>
-  <div id="countdown">Auto-refresh in <span id="bbSecs">30</span>s</div>
-</div>
-<div id="bbGrid" class="bb-grid"></div>
-<scr\ipt>
-const channels = ${channelData};
-const statusLabels = { available:'Available', active:'In Use', reserved:'Reserved' };
+<div id="bb-host"></div>
+</body>
+</html>`);
+  bigBoardWindow.document.close();
 
-function render() {
-  const grid = document.getElementById('bbGrid');
-  const sorted = [...channels].sort((a,b)=>(a.designator||'').localeCompare(b.designator||''));
-  grid.innerHTML = sorted.map(ch => {
-    const colorMap = { available:'#00e5aa', active:'#ff5252', reserved:'#ffc400' };
-    const bgMap    = { available:'rgba(0,229,170,0.06)', active:'rgba(255,82,82,0.08)', reserved:'rgba(255,196,0,0.06)' };
-    const color = colorMap[ch.status] || '#888';
-    const bg    = bgMap[ch.status] || 'rgba(255,255,255,0.04)';
-    return \`<div class="bb-tile" style="background:\${bg};border:2px solid \${color}22;border-left:5px solid \${color};">
-      <div class="bb-desig" style="color:\${color};">\${ch.designator||'—'}</div>
-      <div class="bb-freq">\${ch.freq||'—'} MHz\${ch.tone?' · '+ch.tone:''}</div>
-      \${ch.activeFor ? \`<div class="bb-for">\${ch.activeFor}</div>\` : ''}
-      \${ch.troAssignment ? \`<div style="font-size:11px;opacity:0.6;">\${ch.troAssignment}</div>\` : ''}
-      <span class="bb-status st-\${ch.status}">\${statusLabels[ch.status]||ch.status}</span>
-    </div>\`;
-  }).join('');
-}
+  // Render into the existing (hidden) overlay in the parent, then mirror it
+  renderBigBoard();
+  _syncBigBoardToWindow();
 
-function clock() {
-  const el = document.getElementById('bbClock');
-  if (!el) return;
-  el.textContent = new Date().toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) + ' PT';
-}
-
-let secs = 30;
-function tick() {
-  secs--;
-  const el = document.getElementById('bbSecs');
-  if (el) el.textContent = secs;
-  if (secs <= 0) { secs = 30; window.opener?.channels && Object.assign(channels, window.opener.channels); render(); }
-}
-
-render();
-clock();
-setInterval(clock, 1000);
-setInterval(tick, 1000);
-
-// Live sync — update immediately when parent page's channels change
-setInterval(() => {
-  if (window.opener && !window.opener.closed && window.opener.channels) {
-    const fresh = JSON.stringify(window.opener.channels);
-    if (fresh !== JSON.stringify(channels)) {
-      channels.length = 0;
-      window.opener.channels.forEach(c => channels.push(c));
-      render();
-      secs = 30;
+  // Keep syncing every second (picks up channel changes, quick-assign popover state, etc.)
+  clearInterval(bigBoardWindowSyncInterval);
+  bigBoardWindowSyncInterval = setInterval(() => {
+    if (!bigBoardWindow || bigBoardWindow.closed) {
+      clearInterval(bigBoardWindowSyncInterval);
+      bigBoardWindow = null;
+      return;
     }
-  }
-}, 3000);
-<\/script>
-</body></html>`);
-  win.document.close();
+    _syncBigBoardToWindow();
+  }, 1000);
+
+  _startBigBoardTimers();
+
+  // Close the new window when the parent page unloads
+  window.addEventListener('beforeunload', () => { if (bigBoardWindow && !bigBoardWindow.closed) bigBoardWindow.close(); }, { once: true });
+}
+
+function _syncBigBoardToWindow() {
+  if (!bigBoardWindow || bigBoardWindow.closed) return;
+  const content = document.getElementById('bigBoardContent');
+  if (!content) return;
+  const host = bigBoardWindow.document.getElementById('bb-host');
+  if (!host) return;
+  // Mirror the rendered HTML verbatim into the new window's container
+  host.innerHTML = content.innerHTML;
+  // Also sync the theme in case the user switches it
+  bigBoardWindow.document.documentElement.setAttribute('data-theme',
+    document.documentElement.getAttribute('data-theme') || 'night');
+}
+
+function _writeBigBoardWindow() {} // kept for safety, no longer used
+
+function _startBigBoardTimers() {
+  bigBoardCountdown = 30;
+  clearInterval(bigBoardInterval);
+  bigBoardInterval = setInterval(() => {
+    bigBoardCountdown--;
+    const el = document.getElementById('bbCountdown');
+    if (el) el.textContent = bigBoardCountdown;
+    if (bigBoardCountdown <= 0) {
+      bigBoardCountdown = 30;
+      if (!bigBoardQuickAssignId) renderBigBoard();
+    }
+  }, 1000);
+  clearInterval(window._bbClockInterval);
+  window._bbClockInterval = setInterval(updateBigBoardClock, 1000);
+  updateBigBoardClock();
 }
 
 function _startBigBoardTimers() {
@@ -10133,8 +10110,12 @@ function renderBigBoard() {
 function closeBigBoard() {
   clearInterval(bigBoardInterval);
   clearInterval(window._bbClockInterval);
+  clearInterval(bigBoardWindowSyncInterval);
   bigBoardInterval = null;
-  bigBoardQuickAssignId = null; // never leave a popover open across a close/reopen cycle
+  bigBoardWindowSyncInterval = null;
+  bigBoardQuickAssignId = null;
+  if (bigBoardWindow && !bigBoardWindow.closed) bigBoardWindow.close();
+  bigBoardWindow = null;
   const overlay = document.getElementById('bigBoardOverlay');
   overlay.style.display = 'none';
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
