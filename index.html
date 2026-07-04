@@ -10125,6 +10125,7 @@ async function undoBbLastAction() {
 }
 
 let bigBoardWindow = null;
+let bbBroadcast    = null; // BroadcastChannel for reliable cross-tab sync
 let bigBoardWindowSyncInterval = null;
 let _bbSyncPausedUntil = 0; // timestamp — skip rebuilds until this time to avoid fighting user interactions
 
@@ -10179,6 +10180,12 @@ function openBigBoard() {
     '<body>',
     '<div id="bb-host"></div>',
     '<button onclick="var e=document.documentElement;if(e.requestFullscreen)e.requestFullscreen();else if(e.webkitRequestFullscreen)e.webkitRequestFullscreen();" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:monospace;font-size:12px;padding:6px 12px;background:rgba(0,0,0,0.6);color:#aaa;border:1px solid #333;border-radius:4px;cursor:pointer;">Fullscreen</button>',
+    '<button onclick="_bbTestSync()" title="Test sync lost alert" style="position:fixed;bottom:12px;right:100px;z-index:9999;font-family:monospace;font-size:10px;padding:4px 8px;background:rgba(0,0,0,0.25);color:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.08);border-radius:4px;cursor:pointer;">⚙</button>',
+    'function _bbTestSync(){',
+    '  _bbLastSync = Date.now() - 10000;',
+    '  _bbCheckHeartbeat();',
+    '  setTimeout(function(){ _bbLastSync = Date.now(); _bbCheckHeartbeat(); }, 6000);',
+    '}',
     '<scr' + 'ipt>',
     '// ── Independent clock — runs entirely in child window, never depends on parent sync ──',
     'var _bbLocalClock = setInterval(function(){',
@@ -10196,18 +10203,23 @@ function openBigBoard() {
     'function _bbAlert(){',
     '  try{',
     '    var ctx=new(window.AudioContext||window.webkitAudioContext)();',
-    '    function beep(freq,start,dur){',
+    '    function beep(freq,start,dur,vol){',
     '      var o=ctx.createOscillator();',
     '      var g=ctx.createGain();',
     '      o.connect(g);g.connect(ctx.destination);',
+    '      o.type="square";',
     '      o.frequency.value=freq;',
-    '      o.type="sine";',
-    '      g.gain.setValueAtTime(0.6,ctx.currentTime+start);',
-    '      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);',
+    '      g.gain.setValueAtTime(0,ctx.currentTime+start);',
+    '      g.gain.linearRampToValueAtTime(vol||0.4,ctx.currentTime+start+0.01);',
+    '      g.gain.setValueAtTime(vol||0.4,ctx.currentTime+start+dur-0.01);',
+    '      g.gain.linearRampToValueAtTime(0,ctx.currentTime+start+dur);',
     '      o.start(ctx.currentTime+start);',
     '      o.stop(ctx.currentTime+start+dur+0.05);',
     '    }',
-    '    beep(880,0,0.18);beep(660,0.22,0.18);beep(440,0.44,0.35);',
+    '    // Three urgent pulses: high-low-high pattern like an EAS alert',
+    '    beep(1320,0.00,0.12);beep(880,0.14,0.12);',
+    '    beep(1320,0.30,0.12);beep(880,0.44,0.12);',
+    '    beep(1320,0.60,0.12);beep(880,0.74,0.12);',
     '  }catch(e){}',
     '}',
     'function _bbMakeBanner(){',
@@ -10247,36 +10259,49 @@ function openBigBoard() {
     '}',
     'setInterval(_bbCheckHeartbeat,2000);',
     '',
-    '// ── Pull-based sync: child window requests updates from parent ──',
-    '// On mobile (iPad/iPhone), the browser throttles setInterval in background tabs.',
-    '// WARDEN tab goes to background when the Big Board tab is viewed, so the',
-    '// parent-push sync stops firing reliably. Having the Big Board (active tab)',
-    '// pull from WARDEN instead keeps updates flowing regardless of which tab is active.',
-    'setInterval(function(){',
-    '  if(!window.opener||window.opener.closed)return;',
-    '  try{',
-    '    // Ask the parent to run a sync cycle — this executes in the parent tab',
-    '    // but is triggered by the active Big Board tab so it bypasses throttling.',
-    '    if(window.opener._syncBigBoardToWindow){',
-    '      window.opener._bbSyncPausedUntil=0;',
-    '      window.opener._syncBigBoardToWindow();',
-    '    }',
-    '  }catch(e){}',
-    '},2000);',
+    '// ── BroadcastChannel receiver (primary sync — replaces window.opener polling) ──',
+    '// BroadcastChannel works between tabs of the same origin and is not affected by',
+    '// Chrome severing window.opener references after ~1 minute of inactivity.',
+    'var _bbBC = null;',
+    'try {',
+    '  _bbBC = new BroadcastChannel("warden_bigboard");',
+    '  _bbBC.onmessage = _bbOnBC;',
+    '} catch(e) {',
+    '  // BroadcastChannel not supported — fall back to window.opener polling',
+    '  setInterval(function() {',
+    '    if (!window.opener || window.opener.closed) return;',
+    '    try { window.opener._bbSyncPausedUntil = 0; window.opener._syncBigBoardToWindow(); } catch(err) {}',
+    '  }, 2000);',
+    '}',
     '',
-    'function _bbReconnect(){',
-    '  if(!window.opener||window.opener.closed){',
-    '    alert("The WARDEN main window has been closed or refreshed. Please reopen the Big Board from WARDEN.");',
-    '    return;',
+    'function _bbOnBC(e){',
+    '  var msg=e.data;if(!msg)return;',
+    '  _bbLastSync=Date.now();',
+    '  if(_bbSyncBanner){_bbSyncBanner.remove();_bbSyncBanner=null;}',
+    '  if(msg.type==="html"){',
+    '    var host=document.getElementById("bb-host");if(!host)return;',
+    '    var sb=document.getElementById("bbScrollBody");var scroll=sb?sb.scrollTop:0;',
+    '    host.innerHTML=msg.html;',
+    '    if(msg.theme)document.documentElement.setAttribute("data-theme",msg.theme);',
+    '    var nsb=document.getElementById("bbScrollBody");if(nsb&&scroll)nsb.scrollTop=scroll;',
     '  }',
-    '  // Ask the parent to re-establish the sync connection to this window',
+    '}',
+    'function _bbReconnect(){',
+    '  // Re-subscribe BroadcastChannel — works even if window.opener is gone',
+    '  try{',
+    '    if(_bbBC)_bbBC.close();',
+    '    _bbBC=new BroadcastChannel("warden_bigboard");',
+    '    _bbBC.onmessage=_bbOnBC;',
+    '    _bbLastSync=Date.now();',
+    '    if(_bbSyncBanner){_bbSyncBanner.remove();_bbSyncBanner=null;}',
+    '  }catch(e){}',
+    '  // Also try window.opener as fallback',
+    '  if(!window.opener||window.opener.closed)return;',
     '  try{',
     '    window.opener._bbSyncPausedUntil=0;',
     '    window.opener.bigBoardWindow=window;',
     '    window.opener._syncBigBoardToWindow();',
-    '    _bbLastSync=Date.now();',
-    '    if(_bbSyncBanner){_bbSyncBanner.remove();_bbSyncBanner=null;}',
-    '  }catch(e){alert("Could not reconnect: "+e.message);}',
+    '  }catch(e){}',
     '}',
     'document.addEventListener("click",function(e){',
     '  var btn=e.target.closest("[onclick]");',
@@ -10342,19 +10367,20 @@ function openBigBoard() {
   bigBoardWindow.document.write(bbHtml);
   bigBoardWindow.document.close();
 
+  // Open BroadcastChannel — reliable cross-tab sync that survives Chrome
+  // severing window.opener after tab inactivity (~1 min). BroadcastChannel
+  // works regardless of which tab is focused or in what process Chrome puts them.
+  if (bbBroadcast) bbBroadcast.close();
+  bbBroadcast = new BroadcastChannel('warden_bigboard');
+
   // Render into the existing (hidden) overlay in the parent, then mirror it
   renderBigBoard();
   _syncBigBoardToWindow();
 
-  // Keep syncing every second (picks up channel changes, quick-assign popover state, etc.)
+  // Keep syncing every second
   clearInterval(bigBoardWindowSyncInterval);
   bigBoardWindowSyncInterval = setInterval(() => {
     try {
-      if (!bigBoardWindow || bigBoardWindow.closed) {
-        clearInterval(bigBoardWindowSyncInterval);
-        bigBoardWindow = null;
-        return;
-      }
       _syncBigBoardToWindow();
     } catch(e) {
       console.warn('BB sync error:', e.message);
@@ -10363,69 +10389,84 @@ function openBigBoard() {
 
   _startBigBoardTimers();
 
-  // Close the new window when the parent page unloads
-  window.addEventListener('beforeunload', () => { if (bigBoardWindow && !bigBoardWindow.closed) bigBoardWindow.close(); }, { once: true });
+  // Close the new window and channel when the parent page unloads
+  window.addEventListener('beforeunload', () => {
+    if (bigBoardWindow && !bigBoardWindow.closed) bigBoardWindow.close();
+    if (bbBroadcast) { bbBroadcast.close(); bbBroadcast = null; }
+  }, { once: true });
 }
 
 function _syncBigBoardToWindow() {
-  if (!bigBoardWindow || bigBoardWindow.closed) return;
   const content = document.getElementById('bigBoardContent');
   if (!content) return;
+
+  const newHTML = content.innerHTML;
+  const themeAttr = document.documentElement.getAttribute('data-theme') || 'night';
+  const now = Date.now();
+
+  // ── BroadcastChannel sync (primary — works even when window.opener is severed) ──
+  if (bbBroadcast) {
+    try {
+      // Always send heartbeat
+      bbBroadcast.postMessage({ type: 'heartbeat', t: now });
+      // Send HTML only when content has changed
+      if (bbBroadcast._cachedHTML !== newHTML) {
+        bbBroadcast._cachedHTML = newHTML;
+        bbBroadcast.postMessage({ type: 'html', html: newHTML, theme: themeAttr, t: now });
+      }
+    } catch(e) { console.warn('BB broadcast error:', e.message); }
+  }
+
+  // ── window.opener sync (fallback — direct DOM for initial styles injection) ──
+  if (!bigBoardWindow || bigBoardWindow.closed) return;
   const host = bigBoardWindow.document.getElementById('bb-host');
   if (!host) return;
 
-  // Inject styles on first sync
+  // Inject styles on first sync (only possible via direct DOM access)
   if (!bigBoardWindow._stylesInjected) {
-    const head = bigBoardWindow.document.head;
-    document.querySelectorAll('style').forEach(parentStyle => {
-      const childStyle = bigBoardWindow.document.createElement('style');
-      childStyle.textContent = parentStyle.textContent;
-      head.appendChild(childStyle);
-    });
-    bigBoardWindow._stylesInjected = true;
+    try {
+      const head = bigBoardWindow.document.head;
+      document.querySelectorAll('style').forEach(parentStyle => {
+        const childStyle = bigBoardWindow.document.createElement('style');
+        childStyle.textContent = parentStyle.textContent;
+        head.appendChild(childStyle);
+      });
+      bigBoardWindow._stylesInjected = true;
+    } catch(e) {}
   }
 
-  // Sync theme attribute (cheap, always do this)
-  bigBoardWindow.document.documentElement.setAttribute('data-theme',
-    document.documentElement.getAttribute('data-theme') || 'night');
+  // Sync theme
+  try {
+    bigBoardWindow.document.documentElement.setAttribute('data-theme', themeAttr);
+  } catch(e) {}
 
-  // Heartbeat — update FIRST, before any early-return checks, so the child window
-  // always knows the parent sync loop is alive regardless of focus or pause state.
-  try { bigBoardWindow._bbLastSync = Date.now(); } catch(e) {}
+  // Heartbeat via direct property (belt-and-suspenders alongside BroadcastChannel)
+  try { bigBoardWindow._bbLastSync = now; } catch(e) {}
 
-  // Skip DOM rebuild if user is actively interacting with the child window.
-  // Rebuilding innerHTML ejects focus, closes dropdowns, and resets scroll.
-  const childActive = bigBoardWindow.document.activeElement;
-  const activeTag = childActive ? childActive.tagName : '';
-  if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+  // Skip DOM rebuild if input is focused
+  try {
+    const activeTag = bigBoardWindow.document.activeElement?.tagName || '';
+    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+  } catch(e) { return; }
 
-  // Skip if a recent delegation action asked us to pause
   if (Date.now() < _bbSyncPausedUntil) return;
 
-  // Skip if the rendered HTML hasn't changed — avoids pointless DOM churn
-  // that makes the Big Board feel unresponsive.
-  const newHTML = content.innerHTML;
+  // Skip if nothing changed (BroadcastChannel already sent the update)
   if (host._cachedBBHTML === newHTML) return;
   host._cachedBBHTML = newHTML;
 
-  // Save scroll position of the actual scrollable container
   const childScrollBody = bigBoardWindow.document.getElementById('bbScrollBody');
   const savedScroll = childScrollBody ? childScrollBody.scrollTop : 0;
 
-  // Rebuild the child window DOM
   host.innerHTML = newHTML;
 
-  // Restore scroll on the freshly rebuilt element
   const newScrollBody = bigBoardWindow.document.getElementById('bbScrollBody');
   if (newScrollBody && savedScroll) newScrollBody.scrollTop = savedScroll;
 
-  // Wire up quick-assign inputs
   host.querySelectorAll('input[id^="bbqa-input-"]').forEach(childInput => {
     const parentInput = document.getElementById(childInput.id);
     if (!parentInput) return;
-    if (bigBoardWindow.document.activeElement !== childInput) {
-      childInput.value = parentInput.value;
-    }
+    if (bigBoardWindow.document.activeElement !== childInput) childInput.value = parentInput.value;
     childInput.addEventListener('input', () => { parentInput.value = childInput.value; });
   });
 }
@@ -10843,6 +10884,7 @@ function closeBigBoard() {
   bigBoardInterval = null;
   bigBoardWindowSyncInterval = null;
   bigBoardQuickAssignId = null;
+  if (bbBroadcast) { bbBroadcast.close(); bbBroadcast = null; }
   if (bigBoardWindow && !bigBoardWindow.closed) bigBoardWindow.close();
   bigBoardWindow = null;
   const overlay = document.getElementById('bigBoardOverlay');
