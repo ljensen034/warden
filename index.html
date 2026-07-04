@@ -6001,6 +6001,32 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// ── SERVICE WORKER CACHE-BUST ──
+// Forces any cached stale build to be discarded immediately.
+// Runs synchronously before anything else so a bad cached version
+// never gets to define (or fail to define) doLogin or any other function.
+(function() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    if (!registrations.length) return;
+    var unregistered = false;
+    registrations.forEach(function(reg) {
+      // Check if the SW is controlling a stale cache by pinging it
+      reg.update();
+      // If a waiting worker exists, activate it immediately
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        unregistered = true;
+      }
+    });
+    // Listen for controller change (new SW took over) and reload once
+    if (unregistered) {
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        window.location.reload();
+      }, { once: true });
+    }
+  });
+})();
 // ─────────────────────────────────────────────
 const SUPABASE_URL  = 'https://zjnhwmkkjgogtyidzrjm.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpqbmh3bWtramdvZ3R5aWR6cmptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDMyNzcsImV4cCI6MjA5NjYxOTI3N30.AFILeKWgnKQNV1igRsZIFKxqTpCW-PwNLtN6ct2NPFo';
@@ -20314,9 +20340,25 @@ init();
 // the main app must keep working exactly as it does today.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch((err) => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // When a new SW installs and waits, tell it to take over immediately
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch((err) => {
       console.warn('Service worker registration failed (app still works normally):', err.message);
     });
+
+    // When the SW controller changes (new version activated), reload once to get fresh files
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    }, { once: true });
   });
 }
 </script>
