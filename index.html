@@ -10024,6 +10024,7 @@ async function undoBbLastAction() {
 
 let bigBoardWindow = null;
 let bigBoardWindowSyncInterval = null;
+let _bbSyncPausedUntil = 0; // timestamp — skip rebuilds until this time to avoid fighting user interactions
 
 function openBigBoard() {
   logEvent('nav', 'Big Board Opened', `${currentUser?.name||'Unknown'} opened Big Board`, { user: currentUser?.name });
@@ -10077,14 +10078,28 @@ function openBigBoard() {
     '  // Strip event.stopPropagation() — "event" is undefined in the parent eval context',
     '  fn=fn.replace(/event\\.stopPropagation\\(\\)\\s*;?/g,"").trim();',
     '  if(!fn)return;',
-    '  try{window.opener.eval(fn);}catch(err){console.warn("BB:",err);}',
+    '  try{',
+    '    // Pause the sync loop for 1.5s so the UI can settle after the action',
+    '    if(window.opener._bbSyncPausedUntil!==undefined) window.opener._bbSyncPausedUntil=Date.now()+1500;',
+    '    window.opener.eval(fn);',
+    '    // Immediately invalidate the content cache so the next sync rebuilds',
+    '    var host=document.getElementById("bb-host");',
+    '    if(host) host._cachedBBHTML=null;',
+    '    // Force a sync after a short delay to show the updated state',
+    '    setTimeout(function(){if(window.opener&&!window.opener.closed&&window.opener._syncBigBoardToWindow){window.opener._bbSyncPausedUntil=0;window.opener._syncBigBoardToWindow();}},150);',
+    '  }catch(err){console.warn("BB:",err);}',
     '},true);',
     'document.addEventListener("change",function(e){',
     '  var sel=e.target.closest("select[onchange]");',
     '  if(!sel||!window.opener||window.opener.closed)return;',
     '  var fn=sel.getAttribute("onchange");',
     '  if(!fn)return;',
-    '  try{window.opener.eval(fn.replace("this.value",JSON.stringify(sel.value)));}catch(err){}',
+    '  try{',
+    '    if(window.opener._bbSyncPausedUntil!==undefined) window.opener._bbSyncPausedUntil=Date.now()+1500;',
+    '    window.opener.eval(fn.replace("this.value",JSON.stringify(sel.value)));',
+    '    var host=document.getElementById("bb-host");if(host) host._cachedBBHTML=null;',
+    '    setTimeout(function(){if(window.opener&&!window.opener.closed&&window.opener._syncBigBoardToWindow){window.opener._bbSyncPausedUntil=0;window.opener._syncBigBoardToWindow();}},150);',
+    '  }catch(err){}',
     '},true);',
     'var _sx=0,_sel=null;',
     'document.addEventListener("touchstart",function(e){_sx=e.touches[0].clientX;_sel=e.target.closest("[onclick]");},{passive:true});',
@@ -10146,9 +10161,7 @@ function _syncBigBoardToWindow() {
   const host = bigBoardWindow.document.getElementById('bb-host');
   if (!host) return;
 
-  // On first sync: copy all <style> blocks from the parent into the child window head.
-  // Done via DOM so we never embed raw CSS text in a JS string (CSS contains
-  // characters that break template literals and string escaping).
+  // Inject styles on first sync
   if (!bigBoardWindow._stylesInjected) {
     const head = bigBoardWindow.document.head;
     document.querySelectorAll('style').forEach(parentStyle => {
@@ -10159,38 +10172,44 @@ function _syncBigBoardToWindow() {
     bigBoardWindow._stylesInjected = true;
   }
 
+  // Sync theme attribute (cheap, always do this)
+  bigBoardWindow.document.documentElement.setAttribute('data-theme',
+    document.documentElement.getAttribute('data-theme') || 'night');
+
   // Skip DOM rebuild if user is actively interacting with the child window.
-  // Rebuilding innerHTML during interaction ejects focus, closes dropdowns,
-  // and resets scroll position.
+  // Rebuilding innerHTML ejects focus, closes dropdowns, and resets scroll.
   const childActive = bigBoardWindow.document.activeElement;
   const activeTag = childActive ? childActive.tagName : '';
   if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
 
-  // Save scroll on the actual scrollable container (#bbScrollBody, not #bb-host
-  // which has overflow:hidden and never scrolls itself).
+  // Skip if a recent delegation action asked us to pause
+  // (gives the UI time to settle after filter changes, etc.)
+  if (Date.now() < _bbSyncPausedUntil) return;
+
+  // Skip if the rendered HTML hasn't changed — avoids pointless DOM churn
+  // that makes the Big Board feel unresponsive.
+  const newHTML = content.innerHTML;
+  if (host._cachedBBHTML === newHTML) return;
+  host._cachedBBHTML = newHTML;
+
+  // Save scroll position of the actual scrollable container
   const childScrollBody = bigBoardWindow.document.getElementById('bbScrollBody');
   const savedScroll = childScrollBody ? childScrollBody.scrollTop : 0;
 
-  // Mirror the rendered HTML verbatim — all styles, structure, and content
-  host.innerHTML = content.innerHTML;
+  // Rebuild the child window DOM
+  host.innerHTML = newHTML;
 
   // Restore scroll on the freshly rebuilt element
   const newScrollBody = bigBoardWindow.document.getElementById('bbScrollBody');
   if (newScrollBody && savedScroll) newScrollBody.scrollTop = savedScroll;
-  // Sync theme
-  bigBoardWindow.document.documentElement.setAttribute('data-theme',
-    document.documentElement.getAttribute('data-theme') || 'night');
 
-  // Wire up input fields in the child window to stay in sync with parent's DOM.
+  // Wire up quick-assign inputs
   host.querySelectorAll('input[id^="bbqa-input-"]').forEach(childInput => {
     const parentInput = document.getElementById(childInput.id);
     if (!parentInput) return;
-    // Only restore value if the child input isn't currently focused —
-    // otherwise the sync loop overwrites what the user is actively typing.
     if (bigBoardWindow.document.activeElement !== childInput) {
       childInput.value = parentInput.value;
     }
-    // Push child keystrokes back to parent
     childInput.addEventListener('input', () => { parentInput.value = childInput.value; });
   });
 }
