@@ -4727,6 +4727,7 @@
           <div style="display:flex;gap:8px;">
             <button class="btn-secondary" id="invBulkToggleBtn" style="font-size:14px;" onclick="toggleInventoryBulkMode()">☐ Select</button>
             <button class="btn-secondary" id="invExportBtn" style="font-size:14px;" onclick="exportInventoryCSV()">⬇ CSV</button>
+            <button class="btn-secondary" style="font-size:14px;" onclick="openSystemIdImportModal()" title="Bulk import LARICS/ICI/CWIRS/CRIS system IDs from CSV">⬆ System IDs</button>
             <button class="btn-primary"   id="invAddBtn"    style="font-size:14px;" onclick="openInventoryForm(null)">+ Add Radio</button>
           </div>
         </div>
@@ -9939,6 +9940,11 @@ function detectBbChanges() {
     if (prev !== undefined && prev !== ch.status) bbRecentlyChanged.add(String(ch.id));
     _bbPrevChannelStates[String(ch.id)] = ch.status;
   });
+  // Clear the pulse set after the animation duration (1.5s) so tiles don't
+  // keep flashing on subsequent re-renders triggered by the 1-second sync loop
+  if (bbRecentlyChanged.size > 0) {
+    setTimeout(() => bbRecentlyChanged.clear(), 1600);
+  }
 }
 
 async function undoBbLastAction() {
@@ -10033,6 +10039,17 @@ function openBigBoard() {
     '  try{window.opener.eval("bigBoardQuickSetStatus(\'"+m[1]+"\',\'"+ord[ni]+"\')"); }catch(err){}',
     '  e.preventDefault();',
     '},{passive:false});',
+    'document.addEventListener("keydown",function(e){',
+    '  var el=e.target.closest("[onkeydown]");',
+    '  if(!el||!window.opener||window.opener.closed)return;',
+    '  var fn=el.getAttribute("onkeydown");',
+    '  if(!fn)return;',
+    '  fn=fn.replace(/event\\.stopPropagation\\(\\)\\s*;?/g,"");',
+    '  fn=fn.replace(/event\\.key/g,JSON.stringify(e.key));',
+    '  fn=fn.replace(/event\\.ctrlKey/g,e.ctrlKey?"true":"false");',
+    '  fn=fn.trim();if(!fn)return;',
+    '  try{window.opener.eval(fn);}catch(err){}',
+    '},true);',
     '</' + 'script>',
     '</body></html>'
   ].join('\n');
@@ -10080,20 +10097,27 @@ function _syncBigBoardToWindow() {
     bigBoardWindow._stylesInjected = true;
   }
 
+  // Preserve scroll position — innerHTML rebuild resets it to 0 every sync
+  const scrollTop = host.scrollTop;
+
   // Mirror the rendered HTML verbatim — all styles, structure, and content
   host.innerHTML = content.innerHTML;
+
+  // Restore scroll position after the DOM rebuild
+  host.scrollTop = scrollTop;
   // Sync theme
   bigBoardWindow.document.documentElement.setAttribute('data-theme',
     document.documentElement.getAttribute('data-theme') || 'night');
 
   // Wire up input fields in the child window to stay in sync with parent's DOM.
-  // When user types in a quick-assign input in the child window, mirror the value
-  // back to the parent's (hidden) overlay so bigBoardQuickSaveActiveFor reads it.
   host.querySelectorAll('input[id^="bbqa-input-"]').forEach(childInput => {
     const parentInput = document.getElementById(childInput.id);
     if (!parentInput) return;
-    // Restore current value on every sync
-    childInput.value = parentInput.value;
+    // Only restore value if the child input isn't currently focused —
+    // otherwise the sync loop overwrites what the user is actively typing.
+    if (bigBoardWindow.document.activeElement !== childInput) {
+      childInput.value = parentInput.value;
+    }
     // Push child keystrokes back to parent
     childInput.addEventListener('input', () => { parentInput.value = childInput.value; });
   });
@@ -12095,6 +12119,7 @@ async function renderAdminUsers() {
         ${u.can_view_resources||u.role==='admin'?`<span style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);">🚒</span>`:''}
         <button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="openAdminUserForm('${u.id}')">Edit</button>
         ${!isMe ? `<button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="adminSendPasswordReset('${u.id}')">Reset PW</button>` : ''}
+        ${!isMe ? `<button class="btn-secondary" style="font-size:13px;padding:3px 10px;color:var(--status-reserved);" onclick="adminForceSignOut('${u.id}','${escHtml(u.name||'')}')">Sign Out</button>` : ''}
         ${!isMe ? `<button class="btn-secondary" style="font-size:13px;padding:3px 10px;color:${u.active!==false?'var(--status-reserved)':'var(--status-available)'};" onclick="adminToggleUserActive('${u.id}')">${u.active!==false?'Disable':'Enable'}</button>` : ''}
         ${!isMe ? `<button class="btn-danger" style="font-size:13px;padding:3px 10px;" onclick="adminDeleteUser('${u.id}')">Remove</button>` : ''}
       </div>
@@ -12255,47 +12280,64 @@ async function adminSendPasswordReset(id) {
 
   const email = u.email && u.email !== '—' ? u.email : null;
   if (!email) {
-    alert(`No email address found for ${u.name}. Cannot send reset link.`);
+    alert('No email on file for ' + u.name + '.\n\nAdd their email in Edit before sending a reset link.');
     return;
   }
 
-  if (!confirm(`Send a password reset email to ${u.name} (${email})?`)) return;
+  const choice = await new Promise(resolve => {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    d.innerHTML = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:24px;max-width:440px;width:100%;">'
+      + '<div style="font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Reset Password — ' + escHtml(u.name) + '</div>'
+      + '<div style="font-size:14px;color:var(--text-dim);margin-bottom:6px;">Will be sent to:</div>'
+      + '<div style="font-size:15px;color:var(--text-primary);font-family:var(--font-data);margin-bottom:16px;padding:8px 12px;background:var(--bg-deep);border-radius:4px;">' + escHtml(email) + '</div>'
+      + '<div style="font-size:13px;color:var(--text-dim);margin-bottom:20px;">The user will receive a link to set a new password. The link expires after 1 hour.</div>'
+      + '<div style="display:flex;gap:10px;">'
+      + '<button id="_pwSend" class="btn-primary" style="flex:1;">📧 Send Reset Email</button>'
+      + '<button id="_pwCancel" class="btn-secondary" style="flex:1;">Cancel</button>'
+      + '</div></div>';
+    document.body.appendChild(d);
+    d.querySelector('#_pwSend').onclick   = function() { document.body.removeChild(d); resolve('send'); };
+    d.querySelector('#_pwCancel').onclick = function() { document.body.removeChild(d); resolve(null); };
+    d.onclick = function(e) { if (e.target === d) { document.body.removeChild(d); resolve(null); } };
+  });
+
+  if (!choice) return;
 
   try {
-    // Try the admin-only generateLink endpoint first — this returns the actual
-    // link without sending an email, so admins can share it manually if needed.
-    // Falls back to the standard resetPasswordForEmail if admin API isn't available.
-    let sent = false;
-    try {
-      const { data, error } = await sb.auth.admin.generateLink({
-        type: 'recovery',
-        email,
-      });
-      if (!error && data) {
-        // Admin link generated — Supabase handles delivery via your project's
-        // configured email provider (Auth → Email Templates in the dashboard).
-        // The link is also returned in data.properties.action_link if you need
-        // to display it or copy it manually.
-        sent = true;
-      }
-    } catch(adminErr) {
-      // Admin API not available from client context (expected in most deployments)
-    }
-
-    if (!sent) {
-      // Standard flow — sends Supabase's built-in password reset email
-      const { error } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + window.location.pathname,
-      });
-      if (error) throw error;
-    }
-
-    logActivity(`Password reset sent to <span class="log-ch">${u.name}</span> (${email}) by ${currentUser?.name||'Admin'}`);
-    logEvent('auth', 'Password Reset Sent', `${u.name} — ${email}`, { userId: id, name: u.name });
-    pushNotification('available', `✅ Password reset email sent to ${u.name} (${email})`);
-
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname,
+    });
+    if (error) throw error;
+    logActivity('Password reset sent to <span class="log-ch">' + escHtml(u.name) + '</span> (' + escHtml(email) + ') by ' + (currentUser&&currentUser.name||'Admin'));
+    logEvent('auth', 'Password Reset Sent', u.name + ' — ' + email, { userId: id, name: u.name });
+    pushNotification('available', '✅ Password reset email sent to ' + u.name + ' (' + email + ')');
   } catch(e) {
-    alert(`Failed to send password reset: ${e.message}`);
+    alert('Failed to send password reset: ' + e.message);
+  }
+}
+
+async function adminForceSignOut(id, name) {
+  if (!confirm('Force sign out ' + name + '?\n\nThis invalidates their current session immediately. They will be signed out on all devices within a few minutes.')) return;
+  try {
+    const { error } = await sb.auth.admin.signOut(id);
+    if (error) throw error;
+    logActivity('Force sign-out of <span class="log-ch">' + escHtml(name) + '</span> by ' + (currentUser&&currentUser.name||'Admin'));
+    logEvent('auth', 'Force Sign Out', name, { userId: id, by: currentUser&&currentUser.name });
+    pushNotification('available', '✅ ' + name + ' has been signed out');
+  } catch(e) {
+    // admin.signOut requires service_role key — not available client-side.
+    // Fallback: disable/enable cycle invalidates the session token.
+    try {
+      await sb.from('profiles').update({ active: false }).eq('id', id);
+      await new Promise(r => setTimeout(r, 400));
+      await sb.from('profiles').update({ active: true }).eq('id', id);
+      logActivity('Force sign-out (session invalidation) of <span class="log-ch">' + escHtml(name) + '</span> by ' + (currentUser&&currentUser.name||'Admin'));
+      logEvent('auth', 'Force Sign Out', name, { userId: id, by: currentUser&&currentUser.name });
+      pushNotification('available', '✅ ' + name + ' session invalidated — they will be signed out shortly');
+    } catch(e2) {
+      alert('Could not force sign out: ' + e2.message + '\n\nUse the Disable button instead to block access immediately.');
+    }
   }
 }
 
@@ -15435,13 +15477,14 @@ async function sendPasswordReset() {
     alert('Enter your email address first, then click Forgot Password.');
     return;
   }
+  if (!confirm(`Send a password reset link to:\n\n${email}\n\nContinue?`)) return;
   const { error } = await sb.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.href
   });
   if (error) {
     alert('Error sending reset email: ' + error.message);
   } else {
-    alert(`Password reset email sent to ${email}. Check your inbox.`);
+    alert(`Password reset email sent to ${email}.\n\nCheck your inbox and spam folder.`);
   }
 }
 
@@ -17219,6 +17262,7 @@ async function deleteTeam(id) {
 // RID MANAGER — Radio ID Range Tracking
 // ═══════════════════════════════════════════════
 let ridRanges       = [];       // rows from rid_ranges table
+let ridCurrentPage  = 0;        // persisted across re-renders so realtime updates don't reset to page 1
 let ridFilter       = 'all';    // 'all' | 'free' | 'held' | 'committed'
 let ridRangeEditingId = null;
 
@@ -17371,7 +17415,8 @@ function renderRidManager() {
   // Build the flat list — with pagination for large ranges
   const PAGE_SIZE = 500;
   const ridPageEl = document.getElementById('ridPage');
-  const ridPage = parseInt(ridPageEl?.value || '0');
+  // Sync DOM → module var on user-initiated page changes (Prev/Next buttons write to ridCurrentPage directly)
+  const ridPage = ridCurrentPage;
   const rows = [];
   for (const range of ridRanges) {
     if (rangeF !== 'all' && String(range.id) !== String(rangeF)) continue;
@@ -17411,7 +17456,6 @@ function renderRidManager() {
     </div>` : '';
 
   grid.innerHTML = utilBarsHTML +
-    `<input type="hidden" id="ridPage" value="${page}">` +
     pageRows.map(r => {
       const s = RID_STATE[r.state];
       // Clicking a committed/held row: open trigger if exists, else inventory, else offer to assign
@@ -17674,6 +17718,12 @@ function invStatusColor(status) {
 }
 
 async function openInventoryModal(id) {
+  // Clear custody cache when switching records so the log doesn't show
+  // the previous radio's history if the new record loads quickly
+  if (String(id) !== String(currentInvId)) {
+    custodyCache = [];
+    custodyOffset = 0;
+  }
   currentInvId = id;
   const r = inventory.find(x => String(x.id) === String(id));
   if (!r) return;
@@ -18363,6 +18413,95 @@ function exportInventoryCSV() {
   const a = Object.assign(document.createElement('a'),{href:'data:text/csv;charset=utf-8,'+encodeURIComponent(csv),download:`radio-inventory-${new Date().toLocaleDateString('en-CA')}.csv`});
   a.click();
 }
+
+// ── BULK SYSTEM ID IMPORT ──
+function openSystemIdImportModal() {
+  const d = document.createElement('div');
+  d.id = 'sysIdImportOverlay';
+  d.className = 'modal-overlay open';
+  d.innerHTML = '<div class="modal" style="max-width:600px;">'
+    + '<div class="modal-header"><div class="modal-title">⬆ Bulk Import System IDs</div>'
+    + '<button class="modal-close" onclick="document.getElementById('sysIdImportOverlay').remove()">✕</button></div>'
+    + '<div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">'
+    + '<div style="font-size:14px;color:var(--text-dim);">Upload a CSV with a column for serial number and one or more system ID columns. Headers are matched case-insensitively.</div>'
+    + '<div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);background:var(--bg-deep);padding:10px 12px;border-radius:4px;border:1px solid var(--border);">'
+    + 'Required: <strong>serial_number</strong> (or "Serial Number")<br>'
+    + 'Optional: <strong>larics_id</strong>, <strong>ici_id</strong>, <strong>cwirs_id</strong>, <strong>cris_id</strong></div>'
+    + '<input type="file" id="sysIdCsvFile" accept=".csv" class="form-input" style="padding:8px;">'
+    + '<div id="sysIdPreview" style="font-size:13px;color:var(--text-dim);"></div>'
+    + '<div id="sysIdProgress" style="display:none;font-size:13px;color:var(--accent);font-family:var(--font-data);"></div>'
+    + '</div>'
+    + '<div class="modal-footer">'
+    + '<button class="btn-secondary" onclick="document.getElementById('sysIdImportOverlay').remove()">Cancel</button>'
+    + '<button class="btn-primary" id="sysIdImportBtn" onclick="runSystemIdImport()" disabled>Import</button>'
+    + '</div></div>';
+  document.body.appendChild(d);
+  document.getElementById('sysIdCsvFile').addEventListener('change', previewSystemIdCsv);
+}
+
+let _sysIdRows = [];
+
+function previewSystemIdCsv(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const text = ev.target.result;
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) { document.getElementById('sysIdPreview').textContent = 'File has no data rows.'; return; }
+    const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim().toLowerCase().replace(/\s+/g,'_'));
+    const serialIdx = headers.findIndex(h => h === 'serial_number' || h === 'serial_number' || h === 'serial');
+    if (serialIdx < 0) { document.getElementById('sysIdPreview').textContent = 'No serial_number column found.'; return; }
+    const cols = { larics_id: headers.indexOf('larics_id'), ici_id: headers.indexOf('ici_id'), cwirs_id: headers.indexOf('cwirs_id'), cris_id: headers.indexOf('cris_id') };
+    _sysIdRows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const vals = lines[i].split(',').map(v => v.replace(/^"|"$/g,'').trim());
+      const serial = vals[serialIdx];
+      if (!serial) continue;
+      const row = { serial };
+      let hasData = false;
+      Object.entries(cols).forEach(([key, idx]) => {
+        if (idx >= 0 && vals[idx]) { row[key] = vals[idx]; hasData = true; }
+      });
+      if (hasData) _sysIdRows.push(row);
+    }
+    const matched = _sysIdRows.filter(r => inventory.find(i => i.serial_number === r.serial)).length;
+    document.getElementById('sysIdPreview').innerHTML = '<strong>' + _sysIdRows.length + '</strong> rows with system IDs — <strong>' + matched + '</strong> match existing inventory records.'
+      + (matched < _sysIdRows.length ? '<br><span style="color:var(--status-reserved);">' + (_sysIdRows.length - matched) + ' serial numbers not found in inventory (will be skipped).</span>' : '');
+    document.getElementById('sysIdImportBtn').disabled = matched === 0;
+  };
+  reader.readAsText(file);
+}
+
+async function runSystemIdImport() {
+  const btn = document.getElementById('sysIdImportBtn');
+  const prog = document.getElementById('sysIdProgress');
+  btn.disabled = true;
+  prog.style.display = 'block';
+  let updated = 0, skipped = 0, failed = 0;
+  for (let i = 0; i < _sysIdRows.length; i++) {
+    const row = _sysIdRows[i];
+    prog.textContent = 'Processing ' + (i+1) + ' of ' + _sysIdRows.length + '…';
+    const inv = inventory.find(r => r.serial_number === row.serial);
+    if (!inv) { skipped++; continue; }
+    const update = {};
+    if (row.larics_id) update.larics_id = row.larics_id;
+    if (row.ici_id)    update.ici_id    = row.ici_id;
+    if (row.cwirs_id)  update.cwirs_id  = row.cwirs_id;
+    if (row.cris_id)   update.cris_id   = row.cris_id;
+    if (!Object.keys(update).length) { skipped++; continue; }
+    const { error } = await sb.from('radio_inventory').update(update).eq('id', inv.id);
+    if (error) { failed++; } else { updated++; }
+  }
+  await loadInventory();
+  renderInventory();
+  prog.innerHTML = '✓ Done: <strong>' + updated + '</strong> updated, ' + skipped + ' skipped, ' + (failed ? '<span style="color:var(--status-active);">' + failed + ' failed</span>' : '0 failed');
+  btn.textContent = 'Close';
+  btn.disabled = false;
+  btn.onclick = function() { document.getElementById('sysIdImportOverlay').remove(); };
+  logEvent('inventory', 'Bulk System ID Import', updated + ' records updated', { updated, skipped, failed, by: currentUser&&currentUser.name });
+}
+
 
 function exportCustodyCSV() {
   if (!currentInvId) { alert('Open a radio record first.'); return; }
@@ -19102,9 +19241,11 @@ async function releaseIncidentChannels(inc, specificIds) {
   for (const id of idsToRelease) {
     const ch = channels.find(c => String(c.id) === String(id));
     if (!ch) continue;
-    // Only release if still in use and still tied to this incident
     if (ch.status === 'available') continue;
-    if (ch.activeFor && inc.name && ch.activeFor !== inc.name) continue;
+    // Match by incident ID (stored in active_for_incident_id) if available,
+    // falling back to name match. Prevents wrong-release if name was edited.
+    if (ch.activeForIncidentId && inc.id && String(ch.activeForIncidentId) !== String(inc.id)) continue;
+    else if (!ch.activeForIncidentId && ch.activeFor && inc.name && ch.activeFor !== inc.name) continue;
 
     const { error } = await sb.from('channels').update({
       status: 'available', active_for: null, agency: '—',
