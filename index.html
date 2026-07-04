@@ -11,7 +11,7 @@
 
 <!-- iOS-specific install behavior — Safari ignores manifest.json display
      mode and needs these to launch standalone (no address bar) from the
-     home screen, and to use a proper icon instead of a screenshot thumbnail. -->
+     home screen, and to use a proper icon instead of a screenshoat thumbnail. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WARDEN">
@@ -186,7 +186,13 @@
     font-family: var(--font-ui);
     font-size: 16px;
     min-height: 100vh;
+    min-height: -webkit-fill-available; /* iOS height fix */
     overflow-x: hidden;
+    /* Prevent iOS elastic overscroll on the body itself */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    /* iOS tap callout and text selection prevention on interactive elements */
+    -webkit-touch-callout: none;
   }
 
   /* ── TOPBAR ── */
@@ -195,7 +201,10 @@
     align-items: center;
     gap: 20px;
     padding: 0 20px;
-    height: 52px;
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+    padding-top: env(safe-area-inset-top);
+    height: calc(52px + env(safe-area-inset-top));
     background: var(--bg-panel);
     border-bottom: 1px solid var(--border);
     position: sticky;
@@ -1837,6 +1846,9 @@
     position: fixed;
     bottom: 0; left: 0; right: 0;
     height: 58px;
+    /* Extend into iPhone home bar area */
+    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(58px + env(safe-area-inset-bottom));
     background: var(--bg-panel);
     border-top: 1px solid var(--border);
     z-index: 100;
@@ -1921,7 +1933,7 @@
     /* ── LAYOUT ── */
     .layout {
       grid-template-columns: 1fr;
-      height: calc(100vh - 52px - 46px - 58px);
+      height: calc(100vh - 52px - env(safe-area-inset-top) - 46px - calc(58px + env(safe-area-inset-bottom)));
     }
     .side-panel { display: none; }
     .main-panel { padding: 10px; gap: 10px; }
@@ -1997,13 +2009,73 @@
     #syslogSearch, #toneTableSearch, #trlogSearch, #uf-uuid {
       font-size: 16px !important;
     }
-    .modal-footer { padding: 12px 14px; }
+    .modal-footer { padding: 12px 14px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 
     /* ── NOTIFICATION DRAWER ── */
-    .notif-drawer { width: 100%; top: 52px; }
+    .notif-drawer { width: 100%; top: calc(52px + env(safe-area-inset-top)); }
 
     /* ── BOTTOM SHEET NAV ── */
     #mobileNavBar { display: flex !important; }
+
+    /* ── BIGGER TAP TARGETS ON MOBILE ── */
+    /* iOS guidelines: minimum 44×44pt tap target */
+    .btn-primary, .btn-secondary, .btn-danger, .btn-success {
+      min-height: 44px;
+      padding: 10px 16px;
+      touch-action: manipulation; /* prevent double-tap zoom */
+    }
+    .mobile-nav-btn {
+      min-height: 58px;
+      touch-action: manipulation;
+    }
+    /* Active state for iOS (hover doesn't fire on touch) */
+    .btn-primary:active    { background: #1565c0; transform: scale(0.97); }
+    .btn-secondary:active  { border-color: var(--accent); color: var(--accent); transform: scale(0.97); }
+    .channel-row:active    { background: var(--bg-hover); }
+    .inv-row:active        { background: var(--bg-hover); }
+    .trigger-row:active    { background: var(--bg-hover); }
+
+    /* ── MODAL BOTTOM SHEETS — keyboard avoidance ── */
+    .modal {
+      /* When iOS keyboard opens, allow modal to scroll rather than be clipped */
+      max-height: calc(100vh - env(safe-area-inset-top) - env(keyboard-inset-height, 0px));
+    }
+    .modal-body {
+      /* Bounce-free scrolling inside modals */
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    /* ── FORM INPUTS — extra height for easy tapping ── */
+    .form-input, .form-select {
+      min-height: 44px;
+      touch-action: manipulation;
+    }
+    .form-textarea { min-height: 88px; }
+
+    /* ── PREVENT TEXT SELECTION ON LONG PRESS for interactive tiles ── */
+    .channel-row, .inv-row, .trigger-row, .bb-tile, .mobile-nav-btn {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* ── MODAL HANDLE on bottom sheets ── */
+    .modal-header::before {
+      content: '';
+      display: block;
+      width: 36px;
+      height: 4px;
+      background: var(--border-lit);
+      border-radius: 2px;
+      margin: 0 auto 12px;
+    }
+
+    /* ── CHECKLIST ITEMS — larger touch targets ── */
+    .checklist-item {
+      min-height: 44px;
+      padding: 10px 12px !important;
+    }
 
     /* ── LOGIN ── */
     .login-card { max-width: 100%; border-radius: 0; }
@@ -3021,6 +3093,77 @@
     .pub-theme-swatch { width: 28px; height: 28px; }
   }
 
+  /* ── IOS PWA STANDALONE MODE ── */
+  /* When launched from home screen (no browser chrome), the status bar
+     sits over the top of the page. Use safe-area-inset-top to push
+     content below it. Already handled in topbar above, but ensure
+     any fixed/sticky elements also respect it. */
+  @media (display-mode: standalone) {
+    .topbar {
+      padding-top: max(12px, env(safe-area-inset-top));
+      height: calc(52px + env(safe-area-inset-top));
+    }
+    #mobileNavBar {
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      height: calc(58px + env(safe-area-inset-bottom));
+    }
+    /* Prevent the login screen from being obscured by the status bar */
+    #loginScreen {
+      padding-top: max(20px, env(safe-area-inset-top));
+    }
+  }
+
+  /* ── IPAD / TABLET BREAKPOINT (768–1024px) ──
+     iPad mini: 768×1024, iPad: 820×1180, iPad Pro 11": 834×1194
+     Portrait: use generous touch targets but show more content than phone.
+     Landscape: show side panel, wider nav, proper desktop density. */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    /* Show the side panel — iPad has room for it */
+    .side-panel { display: flex !important; width: 280px; }
+    .layout { grid-template-columns: 280px 1fr; }
+
+    /* Larger touch targets — iPad users often use fingers not stylus */
+    .btn-primary, .btn-secondary, .btn-danger {
+      min-height: 40px;
+      touch-action: manipulation;
+    }
+    .channel-row, .inv-row, .trigger-row {
+      padding: 11px 14px;
+    }
+
+    /* Nav bar — show text labels with larger icons for iPad */
+    .main-view-tab { font-size: 14px; padding: 8px 18px; }
+
+    /* Bottom nav bar — hide on iPad, use the top nav instead */
+    #mobileNavBar { display: none !important; }
+    #mobileMenuBtn { display: none !important; }
+    .topbar-desktop-actions { display: flex !important; }
+    .layout {
+      height: calc(100vh - 52px - env(safe-area-inset-top) - 46px);
+    }
+
+    /* Modals — not full-width bottom sheets on iPad, proper centered modals */
+    .modal-overlay { padding: 20px; align-items: center; }
+    .modal {
+      max-width: 600px !important;
+      border-radius: var(--radius) !important;
+      max-height: 85vh;
+    }
+    .form-row { grid-template-columns: 1fr 1fr !important; }
+
+    /* Inventory/trigger list — show more columns on iPad */
+    .inv-row { grid-template-columns: 28px 130px 1fr 130px 120px 80px 160px; }
+    .inv-grid-header { grid-template-columns: 28px 130px 1fr 130px 120px 80px 160px; }
+  }
+
+  /* ── IPAD LANDSCAPE — full desktop experience ── */
+  @media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
+    /* Treat as desktop — ensure all nav items visible */
+    #mobileNavBar { display: none !important; }
+    #mobileMenuBtn { display: none !important; }
+    .topbar-desktop-actions { display: flex !important; }
+  }
+
   /* ── COMM PLAN REQUEST MODULE (admin side) ── */
   .cpr-row {
     display: grid; grid-template-columns: 90px 1fr 140px 130px 130px 90px;
@@ -3933,11 +4076,17 @@
   <button class="mobile-nav-btn active" id="mnavChannels" onclick="mobileNav('channels')">
     <span class="nav-icon">📻</span>Channels
   </button>
+  <button class="mobile-nav-btn" id="mnavIncidents" onclick="mobileNav('incidents')">
+    <span class="nav-icon">🚨</span>Incidents
+  </button>
+  <button class="mobile-nav-btn" id="mnavInventory" onclick="mobileNav('inventory')">
+    <span class="nav-icon">📦</span>Inventory
+  </button>
   <button class="mobile-nav-btn" id="mnavLog" onclick="mobileNav('log')">
     <span class="nav-icon">📋</span>Log
   </button>
   <button class="mobile-nav-btn" id="mnavFilter" onclick="mobileNav('filter')">
-    <span class="nav-icon">🔍</span>Filter
+    <span class="nav-icon">⋯</span>More
   </button>
 </nav>
 
@@ -9595,10 +9744,22 @@ let bigBoardStatusFilters = new Set(); // empty = show all statuses too
 let bigBoardFilterBarOpen = false; // collapsed by default — wall displays want max space until someone needs to change filters
 
 // ── Sort, layout, and quick-assign mode ──
-let bigBoardSort       = 'designator'; // 'designator' | 'freq' | 'function' | 'tro' | 'recent'
-let bigBoardLayout      = 'status';     // 'status' = grouped by In Use/Reserved/Available (default) | 'tro' = grouped by TRO zone
-let bigBoardJulyMode    = false;        // when true, tiles are tap-to-assign instead of read-only
-let bigBoardQuickAssignId = null;       // channel id currently showing its inline quick-assign popover, or null
+let bigBoardSort        = 'designator'; // 'designator' | 'freq' | 'function' | 'tro' | 'recent'
+let bigBoardLayout      = 'status';     // 'status' | 'tro'
+let bigBoardJulyMode    = false;
+let bigBoardQuickAssignId = null;
+
+// ── New display settings ──
+let bigBoardFontSize    = 1;     // multiplier: 0.8 | 1 | 1.2 | 1.4
+let bigBoardCompact     = false; // compact tile mode
+let bigBoardAutoHide    = false; // hide available channels (show count badge only)
+
+// ── Undo last quick-assign action ──
+let bbLastAction = null; // { channelId, oldStatus, oldActiveFor, oldAgency }
+
+// ── Animation: track recently changed channel IDs for pulse effect ──
+let bbRecentlyChanged = new Set();
+let _bbPrevChannelStates = {}; // channelId → status for diff detection
 
 const BB_SORTERS = {
   designator: (a, b) => (a.designator || '').localeCompare(b.designator || '', undefined, { numeric: true }),
@@ -9644,6 +9805,8 @@ async function bigBoardQuickSetStatus(id, status) {
   const ch = channels.find(c => String(c.id) === String(id));
   if (!ch) return;
   const old = ch.status;
+  // Save undo state before mutating
+  bbLastAction = { channelId: id, oldStatus: ch.status, oldActiveFor: ch.activeFor, oldAgency: ch.agency };
   const who = currentUser ? currentUser.name : 'Unknown';
   const patch = { status, updated_by: who, updated_at: new Date().toISOString() };
   if (status === 'available') { patch.active_for = null; patch.agency = '—'; }
@@ -9707,6 +9870,44 @@ function toggleBigBoardFilterBar() {
   renderBigBoard();
 }
 
+function setBigBoardFontSize(mult) {
+  bigBoardFontSize = mult;
+  renderBigBoard();
+}
+
+function toggleBigBoardCompact() {
+  bigBoardCompact = !bigBoardCompact;
+  renderBigBoard();
+}
+
+function toggleBigBoardAutoHide() {
+  bigBoardAutoHide = !bigBoardAutoHide;
+  renderBigBoard();
+}
+
+// Detect which channels changed status since last render and trigger pulse
+function detectBbChanges() {
+  bbRecentlyChanged.clear();
+  channels.forEach(ch => {
+    const prev = _bbPrevChannelStates[String(ch.id)];
+    if (prev !== undefined && prev !== ch.status) bbRecentlyChanged.add(String(ch.id));
+    _bbPrevChannelStates[String(ch.id)] = ch.status;
+  });
+}
+
+async function undoBbLastAction() {
+  if (!bbLastAction) return;
+  const { channelId, oldStatus, oldActiveFor, oldAgency } = bbLastAction;
+  const who = currentUser?.name || 'Unknown';
+  await sb.from('channels').update({
+    status: oldStatus, active_for: oldActiveFor || null, agency: oldAgency || '—',
+    updated_by: who, updated_at: new Date().toISOString(),
+  }).eq('id', channelId);
+  bbLastAction = null;
+  await loadChannels();
+  renderBigBoard();
+}
+
 let bigBoardWindow = null;
 let bigBoardWindowSyncInterval = null;
 
@@ -9749,6 +9950,63 @@ function openBigBoard() {
 </head>
 <body>
 <div id="bb-host"></div>
+<button onclick="const el=document.documentElement;if(el.requestFullscreen)el.requestFullscreen();else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:monospace;font-size:12px;padding:6px 12px;background:rgba(0,0,0,0.6);color:#aaa;border:1px solid #333;border-radius:4px;cursor:pointer;" title="Fullscreen">⛶ Fullscreen</button>
+<scr\ipt>
+// Delegate all clicks to the parent window so Big Board controls work —
+// sort, filter, July 4th mode, quick-assign, etc. all live in the parent's JS context.
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[onclick]');
+  if (!btn || window.opener?.closed) return;
+  const fn = btn.getAttribute('onclick');
+  if (!fn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  try { window.opener.eval(fn); } catch(err) { console.warn('BB delegate:', err); }
+}, true);
+
+// Delegate select (sort dropdown) changes to parent
+document.addEventListener('change', function(e) {
+  const sel = e.target.closest('select[onchange]');
+  if (!sel || window.opener?.closed) return;
+  const fn = sel.getAttribute('onchange');
+  if (!fn) return;
+  // Make the parent's function see the right value by calling with it directly
+  try { window.opener.eval(fn.replace('this.value', JSON.stringify(sel.value))); } catch(err) {}
+}, true);
+
+// Swipe gestures on tiles — swipe left/right to cycle status in July 4th mode
+let _swipeStartX = 0, _swipeStartEl = null;
+document.addEventListener('touchstart', e => {
+  _swipeStartX = e.touches[0].clientX;
+  _swipeStartEl = e.target.closest('[onclick*="toggleBigBoardQuickAssign"]');
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!_swipeStartEl || !window.opener) return;
+  const dx = e.changedTouches[0].clientX - _swipeStartX;
+  if (Math.abs(dx) < 60) return; // too short to be a swipe
+  const idMatch = _swipeStartEl.getAttribute('onclick')?.match(/toggleBigBoardQuickAssign\('?([^')]+)'?\)/);
+  if (!idMatch) return;
+  const id = idMatch[1];
+  const ch = window.opener.channels?.find(c => String(c.id) === String(id));
+  if (!ch) return;
+  const order = ['available','active','reserved'];
+  const nextIdx = (order.indexOf(ch.status) + (dx > 0 ? 1 : -1) + order.length) % order.length;
+  try { window.opener.eval(`bigBoardQuickSetStatus('${id}','${order[nextIdx]}')`); } catch(err) {}
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('keydown', function(e) {
+  const el = e.target.closest('[onkeydown]');
+  if (!el || window.opener?.closed) return;
+  const fn = el.getAttribute('onkeydown');
+  if (!fn) return;
+  // Pass the event through eval — the onkeydown checks event.key etc.
+  try {
+    const fakeEvent = { key: e.key, ctrlKey: e.ctrlKey, stopPropagation: ()=>{} };
+    const wrapped = new Function('event', fn);
+    wrapped.call(el, fakeEvent);
+  } catch(err) {}
+}, true);
+<\/scr\ipt>
 </body>
 </html>`);
   bigBoardWindow.document.close();
@@ -9780,11 +10038,23 @@ function _syncBigBoardToWindow() {
   if (!content) return;
   const host = bigBoardWindow.document.getElementById('bb-host');
   if (!host) return;
-  // Mirror the rendered HTML verbatim into the new window's container
+  // Mirror the rendered HTML verbatim — all styles, structure, and content
   host.innerHTML = content.innerHTML;
-  // Also sync the theme in case the user switches it
+  // Sync theme
   bigBoardWindow.document.documentElement.setAttribute('data-theme',
     document.documentElement.getAttribute('data-theme') || 'night');
+
+  // Wire up input fields in the child window to stay in sync with parent's DOM.
+  // When user types in a quick-assign input in the child window, mirror the value
+  // back to the parent's (hidden) overlay so bigBoardQuickSaveActiveFor reads it.
+  host.querySelectorAll('input[id^="bbqa-input-"]').forEach(childInput => {
+    const parentInput = document.getElementById(childInput.id);
+    if (!parentInput) return;
+    // Restore current value on every sync
+    childInput.value = parentInput.value;
+    // Push child keystrokes back to parent
+    childInput.addEventListener('input', () => { parentInput.value = childInput.value; });
+  });
 }
 
 function _writeBigBoardWindow() {} // kept for safety, no longer used
@@ -9876,7 +10146,9 @@ function renderTroLayout(filteredChannels, t, SC, tileFn) {
 }
 
 function renderBigBoard() {
+  detectBbChanges(); // track which channels changed status since last render
   const theme = currentTheme || 'night';
+  const fs = bigBoardFontSize; // font size multiplier
   const themeVars = {
     night:       { bgDeep:'#0b0e13', bgPanel:'#12161e', bgCard:'#181d28', border:'#232c3d', borderLit:'#34415c', textPrimary:'#e3eaf5', textSecondary:'#7e94b3', textDim:'#44546e', accent:'#3b8fdc' },
     day:         { bgDeep:'#f0f2f5', bgPanel:'#ffffff', bgCard:'#f7f9fc', border:'#d0d8e4', borderLit:'#aab8cc', textPrimary:'#1a2332', textSecondary:'#4a5f7a', textDim:'#8fa0b8', accent:'#1565c0' },
@@ -9908,12 +10180,12 @@ function renderBigBoard() {
   }).sort(BB_SORTERS[bigBoardSort] || BB_SORTERS.designator);
   filteredChannels.forEach(ch => { if (groups[ch.status]) groups[ch.status].push(ch); });
 
-  // Reverse-lookup: which active/standby incident (if any) is this channel
-  // tied to right now — built once per render rather than per tile. (The
-  // reservation title is no longer looked up separately here — it's read
-  // directly off ch.activeFor, the same field shown everywhere else in the
-  // app, so the Big Board can never show something different from what's
-  // actually stored on the channel.)
+  // Command channels from active incidents — pinned at top
+  const commandChannelIds = new Set();
+  incidents.filter(i => i.status === 'active' || i.status === 'standby').forEach(inc => {
+    if (inc.command_channel_id) commandChannelIds.add(String(inc.command_channel_id));
+  });
+
   const chToIncident = {};
   incidents.filter(i => i.status !== 'closed').forEach(inc => {
     (inc.channel_ids || []).forEach(id => { chToIncident[String(id)] = inc; });
@@ -9923,31 +10195,54 @@ function renderBigBoard() {
   const utcDate = now.toLocaleDateString('en-US', { timeZone:'America/Los_Angeles', month:'short', day:'numeric', year:'numeric' });
   const utcTime = now.toLocaleTimeString('en-US', { timeZone:'America/Los_Angeles', hour:'2-digit', minute:'2-digit', hour12:false });
 
+  function relTime(iso) {
+    if (!iso) return null;
+    const ms = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(ms / 60000);
+    const hrs  = Math.floor(ms / 3600000);
+    if (mins < 1)  return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    if (hrs < 24)  return `${hrs}h ago`;
+    return new Date(iso).toLocaleTimeString('en-US', { timeZone:'America/Los_Angeles', hour:'2-digit', minute:'2-digit', hour12:false }) + ' PT';
+  }
+
   function tile(ch) {
     const s = SC[ch.status] || SC.available;
     const inc = chToIncident[String(ch.id)];
     const isQuickAssignOpen = bigBoardJulyMode && bigBoardQuickAssignId === String(ch.id);
     const julyClickAttr = bigBoardJulyMode ? `onclick="toggleBigBoardQuickAssign('${ch.id}')"` : '';
     const julyCursor = bigBoardJulyMode ? 'cursor:pointer;' : '';
-    const julyRing = isQuickAssignOpen ? `box-shadow:0 0 0 3px ${t.accent};` : '';
-    return `<div style="position:relative;background:${s.bg};border:2px solid ${s.border};border-left:6px solid ${s.color};border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:5px;min-width:0;${julyCursor}${julyRing}" ${julyClickAttr}>
-      ${bigBoardJulyMode ? `<div style="position:absolute;top:8px;right:8px;font-size:11px;opacity:0.5;">✥ tap to assign</div>` : ''}
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-        <div style="font-family:var(--font-data);font-size:20px;font-weight:700;color:${t.textPrimary};line-height:1;word-break:break-all;">${ch.designator}</div>
-        <div style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:${s.bg};color:${s.color};border:1px solid ${s.border};white-space:nowrap;flex-shrink:0;">${s.label}</div>
+    const julyRing   = isQuickAssignOpen ? `box-shadow:0 0 0 3px ${t.accent};` : '';
+    const isCmd      = commandChannelIds.has(String(ch.id));
+    const isPulsing  = bbRecentlyChanged.has(String(ch.id));
+    const lastChange = relTime(ch.updatedAt);
+    const cmdRing    = isCmd ? `box-shadow:0 0 0 3px gold,0 0 16px rgba(255,215,0,0.4);` : '';
+    const pulseAnim  = isPulsing ? 'animation:bbTileFlash 1.5s ease-out;' : '';
+    const pad        = bigBoardCompact ? '8px 12px' : '16px 18px';
+    const gap        = bigBoardCompact ? '3px' : '5px';
+    const desigSize  = `${(bigBoardCompact ? 15 : 20) * fs}px`;
+    const bodySize   = `${(bigBoardCompact ? 12 : 15) * fs}px`;
+    const labelSize  = `${11 * fs}px`;
+    return `<div style="position:relative;background:${s.bg};border:2px solid ${s.border};border-left:6px solid ${isCmd?'gold':s.color};border-radius:6px;padding:${pad};display:flex;flex-direction:column;gap:${gap};min-width:0;${julyCursor}${julyRing}${cmdRing}${pulseAnim}" ${julyClickAttr}>
+      ${isCmd ? `<div style="position:absolute;top:6px;left:14px;font-family:var(--font-data);font-size:10px;font-weight:700;letter-spacing:0.1em;color:gold;text-transform:uppercase;">⭐ COMMAND</div>` : ''}
+      ${bigBoardJulyMode && !isCmd ? `<div style="position:absolute;top:8px;right:8px;font-size:11px;opacity:0.5;">✥ tap</div>` : ''}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;${isCmd?'margin-top:14px;':''}">
+        <div style="font-family:var(--font-data);font-size:${desigSize};font-weight:700;color:${isCmd?'gold':t.textPrimary};line-height:1;word-break:break-all;">${ch.designator}</div>
+        <div style="font-family:var(--font-data);font-size:${labelSize};font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:${s.bg};color:${s.color};border:1px solid ${s.border};white-space:nowrap;flex-shrink:0;">${s.label}</div>
       </div>
-      ${ch.function && ch.function!=='—' ? `<div style="font-size:16px;color:${t.textSecondary};font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ch.function}</div>` : ''}
-      ${ch.activeFor ? `<div style="font-size:15px;color:${t.textPrimary};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ch.status==='reserved'?'📅':'🟢'} ${escHtml(ch.activeFor)}</div>` : ''}
-      ${inc ? `<div style="font-size:15px;color:${s.color};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🚨 ${escHtml(inc.name)}</div>` : ''}
-      <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;">
-        ${ch.agency && ch.agency!=='—' ? `<span style="font-family:var(--font-data);font-size:13px;color:${t.textDim};background:${t.bgPanel};padding:2px 7px;border-radius:2px;border:1px solid ${t.border};">${ch.agency}</span>` : ''}
-        ${ch.troAssignment ? `<span style="font-family:var(--font-data);font-size:13px;color:${t.accent};background:${t.bgPanel};padding:2px 7px;border-radius:2px;border:1px solid ${t.border};">${ch.troAssignment}</span>` : ''}
-      </div>
-      ${ch.notes ? `<div style="font-size:13px;color:${t.textDim};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">💬 ${ch.notes}</div>` : ''}
-      ${ch.warning ? `<div style="margin-top:6px;background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.4);border-radius:4px;padding:6px 9px;display:flex;gap:6px;align-items:flex-start;">
-        <span style="font-size:14px;flex-shrink:0;">⚠</span>
-        <span style="font-size:11.5px;color:#ff9800;font-weight:600;line-height:1.35;white-space:normal;">${escHtml(ch.warning)}</span>
+      ${!bigBoardCompact && ch.function && ch.function!=='—' ? `<div style="font-size:${bodySize};color:${t.textSecondary};font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ch.function}</div>` : ''}
+      ${ch.activeFor ? `<div style="font-size:${bodySize};color:${t.textPrimary};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ch.status==='reserved'?'📅':'🟢'} ${escHtml(ch.activeFor)}</div>` : ''}
+      ${inc ? `<div style="font-size:${bodySize};color:${s.color};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🚨 ${escHtml(inc.name)}</div>` : ''}
+      ${!bigBoardCompact ? `<div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;">
+        ${ch.agency && ch.agency!=='—' ? `<span style="font-family:var(--font-data);font-size:${labelSize};color:${t.textDim};background:${t.bgPanel};padding:2px 7px;border-radius:2px;border:1px solid ${t.border};">${ch.agency}</span>` : ''}
+        ${ch.troAssignment ? `<span style="font-family:var(--font-data);font-size:${labelSize};color:${t.accent};background:${t.bgPanel};padding:2px 7px;border-radius:2px;border:1px solid ${t.border};">${ch.troAssignment}</span>` : ''}
       </div>` : ''}
+      ${!bigBoardCompact && ch.notes ? `<div style="font-size:${labelSize};color:${t.textDim};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">💬 ${ch.notes}</div>` : ''}
+      ${!bigBoardCompact && ch.warning ? `<div style="margin-top:6px;background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.4);border-radius:4px;padding:6px 9px;display:flex;gap:6px;align-items:flex-start;">
+        <span style="font-size:14px;flex-shrink:0;">⚠</span>
+        <span style="font-size:${labelSize};color:#ff9800;font-weight:600;line-height:1.35;white-space:normal;">${escHtml(ch.warning)}</span>
+      </div>` : ''}
+      ${lastChange && ch.status !== 'available' ? `<div style="font-family:var(--font-data);font-size:${10*fs}px;color:${t.textDim};margin-top:2px;opacity:0.7;">⏱ ${lastChange}</div>` : ''}
       ${isQuickAssignOpen ? quickAssignPanel(ch, t, SC) : ''}
     </div>`;
   }
@@ -9980,26 +10275,63 @@ function renderBigBoard() {
     if (!list.length) return '';
     const s = SC[key];
     const pulse = key==='active' ? 'animation:bbPulse 2s infinite;' : '';
+    // Auto-hide available: collapse to a count badge instead of full tiles
+    if (bigBoardAutoHide && key === 'available') {
+      return `<div style="margin-bottom:20px;padding:10px 16px;background:${s.bg};border:1px solid ${s.border};border-radius:6px;display:flex;align-items:center;gap:12px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
+        <div style="font-family:var(--font-data);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:${s.color};">${s.label}</div>
+        <div style="font-family:var(--font-data);font-size:24px;font-weight:700;color:${s.color};">${list.length}</div>
+        <div style="font-family:var(--font-data);font-size:14px;color:${t.textDim};">channel${list.length!==1?'s':''} available</div>
+        <button onclick="toggleBigBoardAutoHide()" style="margin-left:auto;font-family:var(--font-data);font-size:12px;background:transparent;border:1px solid ${t.border};color:${t.textDim};border-radius:4px;padding:4px 10px;cursor:pointer;">Show All</button>
+      </div>`;
+    }
+    const minTile = bigBoardCompact ? '160px' : '280px';
     return `<div style="margin-bottom:32px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid ${s.border};">
         <div style="width:13px;height:13px;border-radius:50%;background:${s.color};box-shadow:0 0 8px ${s.color};flex-shrink:0;${pulse}"></div>
-        <div style="font-family:var(--font-data);font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:${s.color};">${s.label}</div>
-        <div style="font-family:var(--font-data);font-size:15px;color:${t.textDim};">${list.length} channel${list.length!==1?'s':''}</div>
+        <div style="font-family:var(--font-data);font-size:${16*fs}px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:${s.color};">${s.label}</div>
+        <div style="font-family:var(--font-data);font-size:${15*fs}px;color:${t.textDim};">${list.length} channel${list.length!==1?'s':''}</div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(${minTile},1fr));gap:${bigBoardCompact?'6px':'10px'};">
         ${list.map(tile).join('')}
       </div>
     </div>`;
   }
 
+  // Pinned command channels section
+  const commandChannels = filteredChannels.filter(ch => commandChannelIds.has(String(ch.id)));
+  const commandSectionHTML = commandChannels.length ? `
+    <div style="margin-bottom:28px;padding:14px 18px;background:rgba(255,215,0,0.06);border:2px solid rgba(255,215,0,0.3);border-radius:8px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <span style="font-size:18px;">⭐</span>
+        <div style="font-family:var(--font-data);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:gold;">Command Channels</div>
+        <div style="font-family:var(--font-data);font-size:14px;color:${t.textDim};">${commandChannels.length} assigned</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(${bigBoardCompact?'160px':'280px'},1fr));gap:${bigBoardCompact?'6px':'10px'};">
+        ${commandChannels.map(tile).join('')}
+      </div>
+    </div>` : '';
+
   const summaryStrip = Object.entries(SC).map(([k,s]) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:0 20px;border-right:1px solid ${t.border};">
-      <div style="font-family:var(--font-data);font-size:32px;font-weight:700;color:${s.color};line-height:1;">${groups[k]?.length||0}</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid ${t.border};">
+      <div style="font-family:var(--font-data);font-size:${28*fs}px;font-weight:700;color:${s.color};line-height:1;">${groups[k]?.length||0}</div>
       <div>
-        <div style="font-family:var(--font-data);font-size:11px;color:${t.textDim};text-transform:uppercase;letter-spacing:0.1em;">${s.label}</div>
-        <div style="width:24px;height:3px;border-radius:2px;background:${s.color};margin-top:3px;"></div>
+        <div style="font-family:var(--font-data);font-size:${10*fs}px;color:${t.textDim};text-transform:uppercase;letter-spacing:0.1em;">${s.label}</div>
+        <div style="width:20px;height:3px;border-radius:2px;background:${s.color};margin-top:3px;"></div>
       </div>
     </div>`).join('');
+
+  // Per-TRO-zone available counts for the header strip
+  const troZoneCounts = TRO_ZONES.map(zone => {
+    const total = channels.filter(ch => ch.troAssignment === zone).length;
+    if (!total) return '';
+    const avail = channels.filter(ch => ch.troAssignment === zone && ch.status === 'available').length;
+    const color = avail === 0 ? SC.active.color : avail === total ? SC.available.color : SC.reserved.color;
+    return `<div style="display:flex;flex-direction:column;align-items:center;padding:0 10px;border-right:1px solid ${t.border};">
+      <div style="font-family:var(--font-data);font-size:${11*fs}px;color:${t.textDim};text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;">${zone.replace('COUNTYWIDE ','CW-').replace('LARTCS ','L-')}</div>
+      <div style="font-family:var(--font-data);font-size:${14*fs}px;font-weight:700;color:${color};">${avail}/${total}</div>
+    </div>`;
+  }).join('');
 
   const sectionsHTML = bigBoardLayout === 'tro'
     ? renderTroLayout(filteredChannels, t, SC, tile)
@@ -10011,6 +10343,7 @@ function renderBigBoard() {
   container.innerHTML = `
     <style>
       @keyframes bbPulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+      @keyframes bbTileFlash { 0%{box-shadow:0 0 0 4px rgba(255,255,255,0.6)} 100%{box-shadow:none} }
       #bigBoardContent { font-family: var(--font-ui), sans-serif; }
       #bigBoardContent ::-webkit-scrollbar { width:6px; }
       #bigBoardContent ::-webkit-scrollbar-thumb { background:${t.borderLit}; border-radius:3px; }
@@ -10032,14 +10365,13 @@ function renderBigBoard() {
       </div>
       <div style="display:flex;flex:1;align-items:center;">${summaryStrip}</div>
 
-      <!-- Layout toggle: Status grouping vs TRO zone grouping -->
-      <div style="display:flex;border:1px solid ${t.border};border-radius:4px;overflow:hidden;flex-shrink:0;margin-left:16px;">
-        <button onclick="setBigBoardLayout('status')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='status'?t.accent:'transparent'};color:${bigBoardLayout==='status'?'#fff':t.textSecondary};border:none;padding:7px 12px;cursor:pointer;white-space:nowrap;">By Status</button>
-        <button onclick="setBigBoardLayout('tro')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='tro'?t.accent:'transparent'};color:${bigBoardLayout==='tro'?'#fff':t.textSecondary};border:none;padding:7px 12px;cursor:pointer;white-space:nowrap;">By TRO Zone</button>
+      <!-- Layout / Sort / Controls row -->
+      <div style="display:flex;border:1px solid ${t.border};border-radius:4px;overflow:hidden;flex-shrink:0;margin-left:12px;">
+        <button onclick="setBigBoardLayout('status')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='status'?t.accent:'transparent'};color:${bigBoardLayout==='status'?'#fff':t.textSecondary};border:none;padding:7px 10px;cursor:pointer;white-space:nowrap;">By Status</button>
+        <button onclick="setBigBoardLayout('tro')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='tro'?t.accent:'transparent'};color:${bigBoardLayout==='tro'?'#fff':t.textSecondary};border:none;padding:7px 10px;cursor:pointer;white-space:nowrap;">By TRO</button>
       </div>
 
-      <!-- Sort dropdown -->
-      <select onchange="setBigBoardSort(this.value)" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${t.bgCard};color:${t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 10px;cursor:pointer;flex-shrink:0;margin-left:10px;">
+      <select onchange="setBigBoardSort(this.value)" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${t.bgCard};color:${t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 8px;cursor:pointer;flex-shrink:0;margin-left:8px;">
         <option value="designator" ${bigBoardSort==='designator'?'selected':''}>Sort: Designator</option>
         <option value="freq"       ${bigBoardSort==='freq'?'selected':''}>Sort: Frequency</option>
         <option value="function"   ${bigBoardSort==='function'?'selected':''}>Sort: Function</option>
@@ -10047,20 +10379,41 @@ function renderBigBoard() {
         <option value="recent"     ${bigBoardSort==='recent'?'selected':''}>Sort: Recently Updated</option>
       </select>
 
-      <!-- July 4th Mode — rapid tap-to-assign -->
-      ${currentUser?.role !== 'viewer' ? `<button onclick="toggleJulyMode()" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardJulyMode ? '#ff6d00' : 'transparent'};color:${bigBoardJulyMode ? '#fff' : '#ff6d00'};border:1px solid #ff6d00;border-radius:4px;padding:7px 12px;cursor:pointer;flex-shrink:0;margin-left:10px;white-space:nowrap;">
-        🎆 ${bigBoardJulyMode ? 'July 4th Mode: ON' : 'July 4th Mode'}
-      </button>` : ''}
+      <!-- Font size -->
+      <div style="display:flex;border:1px solid ${t.border};border-radius:4px;overflow:hidden;flex-shrink:0;margin-left:8px;">
+        ${[0.8,1,1.2,1.4].map(sz => `<button onclick="setBigBoardFontSize(${sz})" style="font-family:var(--font-data);font-size:11px;font-weight:700;background:${bigBoardFontSize===sz?t.accent:'transparent'};color:${bigBoardFontSize===sz?'#fff':t.textSecondary};border:none;padding:7px 7px;cursor:pointer;">${sz===0.8?'S':sz===1?'M':sz===1.2?'L':'XL'}</button>`).join('')}
+      </div>
 
-      <button onclick="toggleBigBoardFilterBar()" id="bbFilterToggleBtn" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:${hasActiveFilters ? t.accent : 'transparent'};color:${hasActiveFilters ? '#fff' : t.textSecondary};border:1px solid ${hasActiveFilters ? t.accent : t.border};border-radius:4px;padding:7px 14px;cursor:pointer;flex-shrink:0;margin-left:10px;white-space:nowrap;">
-        ${bigBoardFilterBarOpen ? '▴' : '▾'} Filter${hasActiveFilters ? ` (${bigBoardActiveFilters.size + bigBoardStatusFilters.size})` : ''}
+      <!-- Compact mode -->
+      <button onclick="toggleBigBoardCompact()" style="font-family:var(--font-data);font-size:12px;font-weight:700;text-transform:uppercase;background:${bigBoardCompact?t.accent:'transparent'};color:${bigBoardCompact?'#fff':t.textSecondary};border:1px solid ${bigBoardCompact?t.accent:t.border};border-radius:4px;padding:7px 9px;cursor:pointer;flex-shrink:0;margin-left:8px;white-space:nowrap;">⊟ Compact</button>
+
+      <!-- Auto-hide available -->
+      <button onclick="toggleBigBoardAutoHide()" style="font-family:var(--font-data);font-size:12px;font-weight:700;text-transform:uppercase;background:${bigBoardAutoHide?t.accent:'transparent'};color:${bigBoardAutoHide?'#fff':t.textSecondary};border:1px solid ${bigBoardAutoHide?t.accent:t.border};border-radius:4px;padding:7px 9px;cursor:pointer;flex-shrink:0;margin-left:8px;white-space:nowrap;">👁 Hide Avail</button>
+
+      <!-- July 4th Mode -->
+      ${currentUser?.role !== 'viewer' ? `
+        <button onclick="toggleJulyMode()" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardJulyMode?'#ff6d00':'transparent'};color:${bigBoardJulyMode?'#fff':'#ff6d00'};border:1px solid #ff6d00;border-radius:4px;padding:7px 10px;cursor:pointer;flex-shrink:0;margin-left:8px;white-space:nowrap;">🎆 ${bigBoardJulyMode?'4th: ON':'July 4th'}</button>
+        ${bigBoardJulyMode && bbLastAction ? `<button onclick="undoBbLastAction()" style="font-family:var(--font-data);font-size:12px;font-weight:700;text-transform:uppercase;background:transparent;color:${t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 10px;cursor:pointer;flex-shrink:0;margin-left:6px;white-space:nowrap;">↩ Undo</button>` : ''}
+      ` : ''}
+
+      <!-- Filter -->
+      <button onclick="toggleBigBoardFilterBar()" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:${hasActiveFilters?t.accent:'transparent'};color:${hasActiveFilters?'#fff':t.textSecondary};border:1px solid ${hasActiveFilters?t.accent:t.border};border-radius:4px;padding:7px 10px;cursor:pointer;flex-shrink:0;margin-left:8px;white-space:nowrap;">
+        ${bigBoardFilterBarOpen?'▴':'▾'} Filter${hasActiveFilters?` (${bigBoardActiveFilters.size+bigBoardStatusFilters.size})`:''}
       </button>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-left:20px;border-left:1px solid ${t.border};flex-shrink:0;">
-        <div id="bbClock" style="font-family:var(--font-data);font-size:26px;font-weight:700;color:${SC.available.color};line-height:1;letter-spacing:0.04em;">--:--:--</div>
-        <div id="bbDate" style="font-family:var(--font-data);font-size:13px;color:${t.textDim};">${utcDate}</div>
-        <div style="font-family:var(--font-data);font-size:11px;color:${t.textDim};text-transform:uppercase;">↻ <span id="bbCountdown">30</span>s</div>
+
+      <!-- Clock + connection + refresh -->
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-left:16px;border-left:1px solid ${t.border};flex-shrink:0;">
+        <div id="bbClock" style="font-family:var(--font-data);font-size:${24*fs}px;font-weight:700;color:${SC.available.color};line-height:1;letter-spacing:0.04em;">--:--:--</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="bbDate" style="font-family:var(--font-data);font-size:11px;color:${t.textDim};">${utcDate}</div>
+          <div id="bbConnDot" style="width:7px;height:7px;border-radius:50%;background:${realtimeChannelStates['channels']==='SUBSCRIBED'?'#00e676':'#ff5252'};flex-shrink:0;" title="${realtimeChannelStates['channels']==='SUBSCRIBED'?'Live data':'Connection degraded'}"></div>
+          <button onclick="loadChannels().then(renderBigBoard)" style="font-family:var(--font-data);font-size:11px;background:transparent;border:none;color:${t.textDim};cursor:pointer;padding:0;" title="Refresh now">↻ <span id="bbCountdown">30</span>s</button>
+        </div>
       </div>
     </div>
+
+    <!-- TRO zone availability strip -->
+    ${troZoneCounts ? `<div style="display:flex;flex-wrap:nowrap;overflow-x:auto;background:${t.bgPanel};border-bottom:1px solid ${t.border};padding:4px 20px;flex-shrink:0;gap:0;">${troZoneCounts}</div>` : ''}
 
     <!-- Filter bar — collapsed by default, toggled via the Filter button above -->
     <div id="bbFilterBar" style="display:${bigBoardFilterBarOpen ? 'flex' : 'none'};flex-wrap:wrap;align-items:center;gap:10px;background:${t.bgPanel};border-bottom:1px solid ${t.border};padding:12px 28px;flex-shrink:0;">
@@ -10091,6 +10444,7 @@ function renderBigBoard() {
 
     <!-- Body -->
     <div style="padding:24px 28px 80px;overflow-y:auto;flex:1;">
+      ${commandSectionHTML}
       ${sectionsHTML || `<div style="text-align:center;padding:80px;font-family:var(--font-data);font-size:18px;color:${t.textDim};">${hasActiveFilters ? 'No channels match the current filters' : 'No channels in plan'}</div>`}
     </div>
 
@@ -10589,7 +10943,7 @@ document.addEventListener('click', function(e) {
 });
 
 function mobileNav(tab) {
-  ['channels','log','filter'].forEach(t => {
+  ['channels','incidents','inventory','log','filter'].forEach(t => {
     document.getElementById('mnav' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.remove('active');
   });
   document.getElementById('mnav' + tab.charAt(0).toUpperCase() + tab.slice(1))?.classList.add('active');
@@ -10599,6 +10953,15 @@ function mobileNav(tab) {
   if (tab === 'channels') {
     if (mainPanel) mainPanel.style.display = 'flex';
     closeMobileSheet();
+    switchMainTab('channels');
+  } else if (tab === 'incidents') {
+    if (mainPanel) mainPanel.style.display = 'flex';
+    closeMobileSheet();
+    switchMainTab('incidents');
+  } else if (tab === 'inventory') {
+    if (mainPanel) mainPanel.style.display = 'flex';
+    closeMobileSheet();
+    switchMainTab('inventory');
   } else if (tab === 'log') {
     const entries = activityLog.slice(0, 30).map(e => `
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
@@ -10609,17 +10972,36 @@ function mobileNav(tab) {
     document.getElementById('sheetContent').innerHTML = `<div style="padding-bottom:16px;">${entries}</div>`;
     openMobileSheet();
   } else if (tab === 'filter') {
-    document.getElementById('sheetTitle').textContent = '🔍 Filter Channels';
+    // "More" sheet — quick navigation to other modules + filter
+    document.getElementById('sheetTitle').textContent = '⋯ More';
+    const moreModules = [
+      { id:'overview',   icon:'📊', label:'Overview'        },
+      { id:'schedule',   icon:'📅', label:'Schedule'        },
+      { id:'triggers',   icon:'🔔', label:'Trigger Lookup'  },
+      { id:'rid',        icon:'🆔', label:'RID Manager'     },
+      { id:'uas',        icon:'🛸', label:'UAS Manager'     },
+      { id:'personnel',  icon:'👥', label:'Personnel'       },
+      { id:'resources',  icon:'🚒', label:'Resources'       },
+      { id:'commreq',    icon:'📡', label:'Comm Plan Req'   },
+    ];
     document.getElementById('sheetContent').innerHTML = `
-      <div style="padding:12px 16px 24px;display:flex;flex-direction:column;gap:10px;">
+      <div style="padding:12px 16px 8px;">
         <input class="form-input" id="mobileSearch" type="search" placeholder="Search channels…"
-          style="font-size:16px;" oninput="document.getElementById('searchBox').value=this.value;renderChannels();"
+          style="font-size:16px;margin-bottom:12px;" oninput="document.getElementById('searchBox').value=this.value;renderChannels();"
           value="${document.getElementById('searchBox').value}">
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
           ${['all','available','active','reserved'].map(f => `
             <button class="filter-btn ${currentFilter===f?'active':''}" style="flex:1;min-width:80px;justify-content:center;"
               onclick="setFilter('${f}',this);document.querySelectorAll('#sheetContent .filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');">
               ${f==='all'?'All':f==='active'?`<span class='filter-dot active'></span>In Use`:`<span class='filter-dot ${f}'></span>${f.charAt(0).toUpperCase()+f.slice(1)}`}
+            </button>`).join('')}
+        </div>
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">More Modules</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:24px;">
+          ${moreModules.map(m => `
+            <button onclick="closeMobileSheet();switchMainTab('${m.id}');"
+              style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-secondary);font-size:15px;cursor:pointer;touch-action:manipulation;">
+              <span style="font-size:20px;">${m.icon}</span>${m.label}
             </button>`).join('')}
         </div>
       </div>`;
@@ -15020,6 +15402,59 @@ async function sendPasswordReset() {
     alert(`Password reset email sent to ${email}. Check your inbox.`);
   }
 }
+
+// ─────────────────────────────────────────────
+// IOS / MOBILE TOUCH ENHANCEMENTS
+// ─────────────────────────────────────────────
+
+// Drag-to-dismiss for bottom sheet modals on iOS.
+// Grab the modal header drag handle, pull down > 80px → dismiss.
+(function initModalSwipeDismiss() {
+  let startY = 0, startEl = null, isDragging = false;
+
+  document.addEventListener('touchstart', e => {
+    const header = e.target.closest('.modal-header');
+    if (!header) return;
+    const overlay = header.closest('.modal-overlay');
+    if (!overlay || !overlay.classList.contains('open')) return;
+    // Only on mobile (768px or less)
+    if (window.innerWidth > 768) return;
+    startY = e.touches[0].clientY;
+    startEl = overlay;
+    isDragging = true;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!isDragging || !startEl) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy < 0) return; // don't allow pulling up
+    const modal = startEl.querySelector('.modal');
+    if (modal) modal.style.transform = `translateY(${Math.min(dy, 200)}px)`;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (!isDragging || !startEl) return;
+    const dy = e.changedTouches[0].clientY - startY;
+    const modal = startEl.querySelector('.modal');
+    if (modal) modal.style.transform = '';
+    if (dy > 80) {
+      // Pulled down far enough — find and call the close button
+      const closeBtn = startEl.querySelector('.modal-close, [onclick*="close"], [onclick*="Close"]');
+      if (closeBtn) closeBtn.click();
+      else startEl.classList.remove('open');
+    }
+    isDragging = false; startEl = null;
+  }, { passive: true });
+})();
+
+// Prevent pull-to-refresh (iOS Safari) from interfering with the app.
+// Only allow the native pull-to-refresh when the page is actually at the top.
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1) return; // allow pinch-zoom
+  const el = e.target.closest('[style*="overflow-y:auto"],[style*="overflow-y: auto"],[class*="overflow"]');
+  if (el && el.scrollTop > 0) return; // let scrollable containers scroll normally
+  // At the top — prevent browser pull-to-refresh if not in a scrollable container
+}, { passive: true });
 
 async function init() {
   // Check for public comm plan request route FIRST — bypasses all auth/login
