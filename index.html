@@ -11,7 +11,7 @@
 
 <!-- iOS-specific install behavior — Safari ignores manifest.json display
      mode and needs these to launch standalone (no address bar) from the
-     home screen, and to use a proper icon instead of a screenshoat thumbnail. -->
+     home screen, and to use a proper icon instead of a screenshot thumbnail. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WARDEN">
@@ -201,10 +201,7 @@
     align-items: center;
     gap: 20px;
     padding: 0 20px;
-    padding-left: max(20px, env(safe-area-inset-left));
-    padding-right: max(20px, env(safe-area-inset-right));
-    padding-top: env(safe-area-inset-top);
-    height: calc(52px + env(safe-area-inset-top));
+    height: 52px;
     background: var(--bg-panel);
     border-bottom: 1px solid var(--border);
     position: sticky;
@@ -1909,8 +1906,15 @@
 
   @media (max-width: 768px) {
 
-    /* ── TOPBAR ── */
-    .topbar { padding: 0 12px; gap: 8px; }
+    /* ── TOPBAR — iOS safe area ── */
+    .topbar {
+      padding: 0 12px;
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+      padding-top: env(safe-area-inset-top);
+      height: calc(52px + env(safe-area-inset-top));
+      gap: 8px;
+    }
     .topbar-logo .badge { display: none; }
     .topbar-logo { font-size: 13px; gap: 6px; }
     .topbar-clock { display: none; }
