@@ -5249,7 +5249,7 @@
 
       <!-- Radio Config panel -->
       <div id="admin-radioconf-panel" style="display:none;">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
           <!-- Radio Models -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
@@ -5281,6 +5281,17 @@
             <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
               <input class="form-input" id="newChannelFunction" placeholder="Function/purpose…" style="flex:1;font-size:14px;" onkeydown="if(event.key==='Enter')addChannelFunction()">
               <button class="btn-primary" style="font-size:14px;padding:5px 12px;" onclick="addChannelFunction()">+ Add</button>
+            </div>
+          </div>
+          <!-- TRO Zones -->
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-family:var(--font-data);font-size:13px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">TRO Zones</div>
+            </div>
+            <div id="troZoneList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
+            <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
+              <input class="form-input" id="newTroZone" placeholder="Zone name…" style="flex:1;font-size:14px;" onkeydown="if(event.key==='Enter')addTroZone()">
+              <button class="btn-primary" style="font-size:14px;padding:5px 12px;" onclick="addTroZone()">+ Add</button>
             </div>
           </div>
         </div>
@@ -5646,15 +5657,6 @@
           <label class="form-label">TRO Assignment<span class="form-label-hint">optional — used by the Operational Dashboard</span></label>
           <select class="form-select" id="f-tro">
             <option value="">— None —</option>
-            <option value="SOUTH">SOUTH</option>
-            <option value="CENTRAL">CENTRAL</option>
-            <option value="SGV">SGV</option>
-            <option value="NORTH">NORTH</option>
-            <option value="COUNTYWIDE UHF">COUNTYWIDE UHF</option>
-            <option value="COUNTYWIDE VHF">COUNTYWIDE VHF</option>
-            <option value="LARTCS UHF">LARTCS UHF</option>
-            <option value="LARTCS VHF">LARTCS VHF</option>
-            <option value="LARTCS 800">LARTCS 800</option>
           </select>
         </div>
       </div>
@@ -8172,6 +8174,7 @@ function openAddModal() {
   document.getElementById('f-bw').value     = 'W';
   document.getElementById('f-adm').value    = 'A';
   document.getElementById('f-tro').value    = '';
+  populateTroDropdown();
   const cc = document.getElementById('f-conflict-check');
   if (cc) cc.checked = true;
   document.getElementById('conflictWarning')?.remove();
@@ -9770,10 +9773,30 @@ const BB_TYPE_DEFS = [
 // Shared by both the Operational Dashboard and the Big Board's TRO layout —
 // defined here, before either feature, so it's always available regardless
 // of which one runs first.
-const TRO_ZONES = [
+let TRO_ZONES = [
   'COUNTYWIDE UHF', 'COUNTYWIDE VHF', 'SOUTH', 'CENTRAL', 'SGV', 'NORTH',
   'LARTCS UHF', 'LARTCS VHF', 'LARTCS 800',
-];
+]; // default — overwritten by loadTroZones() from Supabase
+
+async function loadTroZones() {
+  try {
+    const { data } = await sb.from('tro_zones')
+      .select('*')
+      .eq('agency_id', currentAgency?.id)
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true });
+    if (data && data.length) TRO_ZONES = data.map(z => z.name);
+  } catch(e) { /* keep defaults */ }
+  populateTroDropdown();
+}
+
+function populateTroDropdown() {
+  const sel = document.getElementById('f-tro');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— None —</option>'
+    + TRO_ZONES.map(z => `<option value="${escHtml(z)}"${current===z?' selected':''}>${escHtml(z)}</option>`).join('');
+}
 
 function classifyChannelType(ch) {
   const haystack = `${ch.function||''} ${ch.designator||''}`.toLowerCase();
@@ -18643,7 +18666,83 @@ async function renderAdminRadioConfig() {
   await renderRadioModelList();
   await renderRadioBandList();
   await renderChannelFunctionList();
+  await renderTroZoneList();
   renderToneTable();
+}
+
+async function renderTroZoneList() {
+  const el = document.getElementById('troZoneList');
+  if (!el) return;
+  const { data } = await sb.from('tro_zones').select('*')
+    .eq('agency_id', currentAgency?.id)
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true });
+  const items = data || [];
+
+  if (!items.length) {
+    el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;margin-bottom:8px;">No custom zones — using defaults.<br>Add zones to override.</div>'
+      + defaultTroZoneRows();
+    return;
+  }
+
+  el.innerHTML = items.map((z, i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;flex-direction:column;gap:1px;">
+        <button onclick="moveTroZone('${z.id}','up')" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:10px;padding:0;line-height:1;" ${i===0?'disabled':''}>▲</button>
+        <button onclick="moveTroZone('${z.id}','down')" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:10px;padding:0;line-height:1;" ${i===items.length-1?'disabled':''}>▼</button>
+      </div>
+      <span style="font-family:var(--font-data);font-size:14px;color:var(--text-primary);flex:1;">${escHtml(z.name)}</span>
+      <button onclick="deleteTroZone('${z.id}','${escHtml(z.name)}')" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:16px;padding:0 4px;" title="Delete">✕</button>
+    </div>`).join('');
+}
+
+function defaultTroZoneRows() {
+  return '<div style="margin-top:6px;">'
+    + ['COUNTYWIDE UHF','COUNTYWIDE VHF','SOUTH','CENTRAL','SGV','NORTH','LARTCS UHF','LARTCS VHF','LARTCS 800']
+      .map(z => `<div style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);padding:3px 0;">${z}</div>`).join('')
+    + '</div>';
+}
+
+async function addTroZone() {
+  const inp = document.getElementById('newTroZone');
+  const name = inp?.value.trim();
+  if (!name) return;
+  // Get current max sort_order
+  const { data: existing } = await sb.from('tro_zones').select('sort_order')
+    .eq('agency_id', currentAgency?.id).order('sort_order', { ascending: false }).limit(1);
+  const nextOrder = existing?.length ? (existing[0].sort_order + 1) : 0;
+  const { error } = await sb.from('tro_zones').insert({ name, agency_id: currentAgency?.id, sort_order: nextOrder });
+  if (error) { alert(error.message); return; }
+  inp.value = '';
+  await loadTroZones();
+  renderTroZoneList();
+  // Refresh the TRO dropdown on the channel form
+  populateTroDropdown?.();
+}
+
+async function deleteTroZone(id, name) {
+  if (!confirm('Delete TRO zone "' + name + '"?\n\nChannels assigned to this zone will keep their assignment — it will just no longer appear in the zone list.')) return;
+  await sb.from('tro_zones').delete().eq('id', id);
+  await loadTroZones();
+  renderTroZoneList();
+  populateTroDropdown?.();
+}
+
+async function moveTroZone(id, direction) {
+  const { data: items } = await sb.from('tro_zones').select('*')
+    .eq('agency_id', currentAgency?.id).order('sort_order', { ascending: true }).order('name', { ascending: true });
+  if (!items) return;
+  const idx = items.findIndex(z => String(z.id) === String(id));
+  if (idx < 0) return;
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= items.length) return;
+  // Swap sort_order values
+  const a = items[idx], b = items[swapIdx];
+  const aOrder = a.sort_order ?? idx, bOrder = b.sort_order ?? swapIdx;
+  await sb.from('tro_zones').update({ sort_order: bOrder }).eq('id', a.id);
+  await sb.from('tro_zones').update({ sort_order: aOrder }).eq('id', b.id);
+  await loadTroZones();
+  renderTroZoneList();
 }
 
 function renderToneTable() {
@@ -19584,6 +19683,7 @@ async function postLoginRouter() {
     // Regular user: load their agency, proceed to app
     await loadUserAgency();
     await loadAllData();
+    await loadTroZones();
     await loadLowAvailSettings();
     await loadActivityLog();
     snapshotChannels();
