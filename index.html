@@ -10247,6 +10247,23 @@ function openBigBoard() {
     '}',
     'setInterval(_bbCheckHeartbeat,2000);',
     '',
+    '// ── Pull-based sync: child window requests updates from parent ──',
+    '// On mobile (iPad/iPhone), the browser throttles setInterval in background tabs.',
+    '// WARDEN tab goes to background when the Big Board tab is viewed, so the',
+    '// parent-push sync stops firing reliably. Having the Big Board (active tab)',
+    '// pull from WARDEN instead keeps updates flowing regardless of which tab is active.',
+    'setInterval(function(){',
+    '  if(!window.opener||window.opener.closed)return;',
+    '  try{',
+    '    // Ask the parent to run a sync cycle — this executes in the parent tab',
+    '    // but is triggered by the active Big Board tab so it bypasses throttling.',
+    '    if(window.opener._syncBigBoardToWindow){',
+    '      window.opener._bbSyncPausedUntil=0;',
+    '      window.opener._syncBigBoardToWindow();',
+    '    }',
+    '  }catch(e){}',
+    '},2000);',
+    '',
     'function _bbReconnect(){',
     '  if(!window.opener||window.opener.closed){',
     '    alert("The WARDEN main window has been closed or refreshed. Please reopen the Big Board from WARDEN.");',
@@ -10372,6 +10389,10 @@ function _syncBigBoardToWindow() {
   bigBoardWindow.document.documentElement.setAttribute('data-theme',
     document.documentElement.getAttribute('data-theme') || 'night');
 
+  // Heartbeat — update FIRST, before any early-return checks, so the child window
+  // always knows the parent sync loop is alive regardless of focus or pause state.
+  try { bigBoardWindow._bbLastSync = Date.now(); } catch(e) {}
+
   // Skip DOM rebuild if user is actively interacting with the child window.
   // Rebuilding innerHTML ejects focus, closes dropdowns, and resets scroll.
   const childActive = bigBoardWindow.document.activeElement;
@@ -10379,11 +10400,7 @@ function _syncBigBoardToWindow() {
   if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
 
   // Skip if a recent delegation action asked us to pause
-  // (gives the UI time to settle after filter changes, etc.)
   if (Date.now() < _bbSyncPausedUntil) return;
-
-  // Heartbeat: tell the child window the parent is still alive
-  try { bigBoardWindow._bbLastSync = Date.now(); } catch(e) {}
 
   // Skip if the rendered HTML hasn't changed — avoids pointless DOM churn
   // that makes the Big Board feel unresponsive.
@@ -12411,6 +12428,7 @@ async function renderAdminUsers() {
         ${u.can_view_resources||u.role==='admin'?`<span style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);">🚒</span>`:''}
         <button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="openAdminUserForm('${u.id}')">Edit</button>
         ${!isMe ? `<button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="adminSendPasswordReset('${u.id}')">Reset PW</button>` : ''}
+        ${!isMe ? `<button class="btn-secondary" style="font-size:13px;padding:3px 10px;" onclick="adminSetPasswordDirect('${u.id}','${escHtml(u.name||'')}')">Set PW</button>` : ''}
         ${!isMe ? `<button class="btn-secondary" style="font-size:13px;padding:3px 10px;color:var(--status-reserved);" onclick="adminForceSignOut('${u.id}','${escHtml(u.name||'')}')">Sign Out</button>` : ''}
         ${!isMe ? `<button class="btn-secondary" style="font-size:13px;padding:3px 10px;color:${u.active!==false?'var(--status-reserved)':'var(--status-available)'};" onclick="adminToggleUserActive('${u.id}')">${u.active!==false?'Disable':'Enable'}</button>` : ''}
         ${!isMe ? `<button class="btn-danger" style="font-size:13px;padding:3px 10px;" onclick="adminDeleteUser('${u.id}')">Remove</button>` : ''}
@@ -12607,6 +12625,104 @@ async function adminSendPasswordReset(id) {
   } catch(e) {
     alert('Failed to send password reset: ' + e.message);
   }
+}
+
+async function adminSetPasswordDirect(id, name) {
+  // Build modal via DOM to avoid any quote conflicts
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:24px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:14px;';
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:16px;font-weight:700;color:var(--text-primary);';
+  title.textContent = 'Set Password — ' + name;
+  modal.appendChild(title);
+
+  const note = document.createElement('div');
+  note.style.cssText = 'font-size:13px;color:var(--text-dim);';
+  note.textContent = 'Set a new password for this user directly. They will be able to log in immediately with the new password. Share it with them securely.';
+  modal.appendChild(note);
+
+  const pw1 = document.createElement('input');
+  pw1.type = 'password';
+  pw1.placeholder = 'New password (min 8 characters)';
+  pw1.className = 'form-input';
+  pw1.style.fontSize = '15px';
+  modal.appendChild(pw1);
+
+  const pw2 = document.createElement('input');
+  pw2.type = 'password';
+  pw2.placeholder = 'Confirm new password';
+  pw2.className = 'form-input';
+  pw2.style.fontSize = '15px';
+  modal.appendChild(pw2);
+
+  const errEl = document.createElement('div');
+  errEl.style.cssText = 'font-size:13px;color:var(--status-active);display:none;';
+  modal.appendChild(errEl);
+
+  const footer = document.createElement('div');
+  footer.style.cssText = 'display:flex;gap:10px;';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-secondary';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = () => overlay.remove();
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn-primary';
+  saveBtn.textContent = 'Set Password';
+  saveBtn.onclick = async () => {
+    const p1 = pw1.value.trim();
+    const p2 = pw2.value.trim();
+    errEl.style.display = 'none';
+
+    if (p1.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
+    if (p1 !== p2)     { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Setting…';
+
+    try {
+      const session = (await sb.auth.getSession()).data.session;
+      if (!session) throw new Error('Not logged in');
+
+      const res = await fetch(SUPABASE_URL + '/functions/v1/admin-set-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+        },
+        body: JSON.stringify({ userId: id, newPassword: p1 }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Unknown error');
+
+      overlay.remove();
+      logEvent('auth', 'Password Set', 'Admin set password for ' + name, { userId: id, name, by: currentUser?.name });
+      logActivity('Password directly set for <span class="log-ch">' + escHtml(name) + '</span> by ' + (currentUser?.name || 'Admin'));
+      pushNotification('available', '✅ Password updated for ' + name);
+    } catch(e) {
+      errEl.textContent = 'Error: ' + e.message;
+      errEl.style.display = 'block';
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Set Password';
+    }
+  };
+
+  footer.appendChild(cancelBtn);
+  footer.appendChild(saveBtn);
+  modal.appendChild(footer);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Close on backdrop click
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+  setTimeout(() => pw1.focus(), 50);
 }
 
 async function adminForceSignOut(id, name) {
