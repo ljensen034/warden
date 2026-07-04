@@ -10280,11 +10280,22 @@ function openBigBoard() {
     '  if(_bbSyncBanner){_bbSyncBanner.remove();_bbSyncBanner=null;}',
     '  if(msg.type==="html"){',
     '    var host=document.getElementById("bb-host");if(!host)return;',
+    '    var at=document.activeElement?document.activeElement.tagName:"";',
+    '    if(at==="INPUT"||at==="TEXTAREA"||at==="SELECT")return;',
     '    var sb=document.getElementById("bbScrollBody");var scroll=sb?sb.scrollTop:0;',
     '    host.innerHTML=msg.html;',
     '    if(msg.theme)document.documentElement.setAttribute("data-theme",msg.theme);',
     '    var nsb=document.getElementById("bbScrollBody");if(nsb&&scroll)nsb.scrollTop=scroll;',
     '  }',
+    '}',
+    '// postMessage listener for PC popup windows (BroadcastChannel may fail on about:blank)',
+    'var _bbLastMsgT=0;',
+    'window.addEventListener("message",function(e){',
+    '  var msg=e.data;if(!msg||!msg.type)return;',
+    '  if(msg.t&&msg.t===_bbLastMsgT)return;',
+    '  if(msg.t)_bbLastMsgT=msg.t;',
+    '  _bbOnBC(e);',
+    '});',
     '}',
     'function _bbReconnect(){',
     '  // Re-subscribe BroadcastChannel — works even if window.opener is gone',
@@ -10404,14 +10415,22 @@ function _syncBigBoardToWindow() {
   const themeAttr = document.documentElement.getAttribute('data-theme') || 'night';
   const now = Date.now();
 
-  // ── BroadcastChannel sync (primary — works even when window.opener is severed) ──
+  // ── BroadcastChannel sync (works for same-origin tabs on iPad/mobile) ──
   if (bbBroadcast) {
     try {
       bbBroadcast.postMessage({ type: 'heartbeat', t: now });
-      // Always send HTML — the clock updates every second so the content is always
-      // fresh. Removing the cache check eliminates a potential staleness failure point.
       bbBroadcast.postMessage({ type: 'html', html: newHTML, theme: themeAttr, t: now });
     } catch(e) { console.warn('BB broadcast error:', e.message); }
+  }
+
+  // ── postMessage sync (works for popup windows where BroadcastChannel may fail ──
+  // about:blank popups created via document.write() have an opaque origin that
+  // can prevent BroadcastChannel delivery in Chrome. postMessage uses the direct
+  // window reference and bypasses the origin check entirely.
+  if (bigBoardWindow && !bigBoardWindow.closed) {
+    try {
+      bigBoardWindow.postMessage({ type: 'html', html: newHTML, theme: themeAttr, t: now }, '*');
+    } catch(e) {}
   }
 
   // ── window.opener sync (fallback — direct DOM for initial styles injection) ──
