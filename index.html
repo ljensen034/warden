@@ -10129,6 +10129,15 @@ let bbBroadcast    = null; // BroadcastChannel for reliable cross-tab sync
 let bigBoardWindowSyncInterval = null;
 let _bbSyncPausedUntil = 0; // timestamp — skip rebuilds until this time to avoid fighting user interactions
 
+// ── Parent listener: respond to sync requests from the Big Board window ──
+// The Big Board (foreground) pings us every 3s. We respond immediately with
+// a fresh sync, bypassing Chrome's background-tab timer throttling entirely.
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'request_sync' && bbBroadcast) {
+    _syncBigBoardToWindow();
+  }
+});
+
 function openBigBoard() {
   logEvent('nav', 'Big Board Opened', `${currentUser?.name||'Unknown'} opened Big Board`, { user: currentUser?.name });
 
@@ -10259,6 +10268,20 @@ function openBigBoard() {
     '}',
     'setInterval(_bbCheckHeartbeat,2000);',
     '',
+    'function _bbOnBC(e){',
+    '  var msg=e.data;if(!msg)return;',
+    '  _bbLastSync=Date.now();',
+    '  if(_bbSyncBanner){_bbSyncBanner.remove();_bbSyncBanner=null;}',
+    '  if(msg.type==="html"){',
+    '    var host=document.getElementById("bb-host");if(!host)return;',
+    '    var at=document.activeElement?document.activeElement.tagName:"";',
+    '    if(at==="INPUT"||at==="TEXTAREA"||at==="SELECT")return;',
+    '    var sb=document.getElementById("bbScrollBody");var scroll=sb?sb.scrollTop:0;',
+    '    host.innerHTML=msg.html;',
+    '    if(msg.theme)document.documentElement.setAttribute("data-theme",msg.theme);',
+    '    var nsb=document.getElementById("bbScrollBody");if(nsb&&scroll)nsb.scrollTop=scroll;',
+    '  }',
+    '}',
     '// ── BroadcastChannel receiver (primary sync — replaces window.opener polling) ──',
     '// BroadcastChannel works between tabs of the same origin and is not affected by',
     '// Chrome severing window.opener references after ~1 minute of inactivity.',
@@ -10274,20 +10297,6 @@ function openBigBoard() {
     '  }, 2000);',
     '}',
     '',
-    'function _bbOnBC(e){',
-    '  var msg=e.data;if(!msg)return;',
-    '  _bbLastSync=Date.now();',
-    '  if(_bbSyncBanner){_bbSyncBanner.remove();_bbSyncBanner=null;}',
-    '  if(msg.type==="html"){',
-    '    var host=document.getElementById("bb-host");if(!host)return;',
-    '    var at=document.activeElement?document.activeElement.tagName:"";',
-    '    if(at==="INPUT"||at==="TEXTAREA"||at==="SELECT")return;',
-    '    var sb=document.getElementById("bbScrollBody");var scroll=sb?sb.scrollTop:0;',
-    '    host.innerHTML=msg.html;',
-    '    if(msg.theme)document.documentElement.setAttribute("data-theme",msg.theme);',
-    '    var nsb=document.getElementById("bbScrollBody");if(nsb&&scroll)nsb.scrollTop=scroll;',
-    '  }',
-    '}',
     '// postMessage listener for PC popup windows (BroadcastChannel may fail on about:blank)',
     'var _bbLastMsgT=0;',
     'window.addEventListener("message",function(e){',
@@ -10296,7 +10305,6 @@ function openBigBoard() {
     '  if(msg.t)_bbLastMsgT=msg.t;',
     '  _bbOnBC(e);',
     '});',
-    '}',
     'function _bbReconnect(){',
     '  // Re-subscribe BroadcastChannel — works even if window.opener is gone',
     '  try{',
@@ -10314,6 +10322,17 @@ function openBigBoard() {
     '    window.opener._syncBigBoardToWindow();',
     '  }catch(e){}',
     '}',
+    '// ── Child-driven sync: Big Board (foreground) pings WARDEN (background) ──',
+    '// Chrome throttles background tab timers. WARDEN goes to background when',
+    '// the Big Board is being viewed, slowing its push interval to a crawl.',
+    '// Having the foreground Big Board request syncs keeps data flowing reliably.',
+    'setInterval(function(){',
+    '  try{',
+    '    if(window.opener&&!window.opener.closed)',
+    '      window.opener.postMessage({type:"request_sync"},"*");',
+    '  }catch(e){}',
+    '},3000);',
+    '',
     'document.addEventListener("click",function(e){',
     '  var btn=e.target.closest("[onclick]");',
     '  if(!btn||!window.opener||window.opener.closed)return;',
