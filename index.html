@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- WARDEN build 20260704-024330 -->
+<!-- WARDEN build 20260705-031606 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -6039,6 +6039,44 @@ if (typeof supabase === 'undefined') {
 })();
 // ─────────────────────────────────────────────
 const SUPABASE_URL  = 'https://zjnhwmkkjgogtyidzrjm.supabase.co';
+const BUILD_VERSION = '20260705-031606'; // injected at deploy time
+
+// ── New build detection ──
+// Every 5 minutes, fetch the live page and compare BUILD_VERSION.
+// If a new deploy is detected, show a dismissible refresh prompt.
+(function checkForUpdates() {
+  const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+  const PAGE_URL = location.href.split('?')[0].split('#')[0];
+
+  function doCheck() {
+    fetch(PAGE_URL + '?_cb=' + Date.now(), { cache: 'no-store' })
+      .then(r => r.text())
+      .then(html => {
+        const m = html.match(/const BUILD_VERSION = '([^']+)'/);
+        if (!m) return;
+        const liveBuild = m[1];
+        if (liveBuild !== BUILD_VERSION) showUpdateBanner(liveBuild);
+      })
+      .catch(() => {}); // network errors are silently ignored
+  }
+
+  function showUpdateBanner(newBuild) {
+    if (document.getElementById('_wardenUpdateBanner')) return; // already showing
+    const bar = document.createElement('div');
+    bar.id = '_wardenUpdateBanner';
+    bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99998;background:#1565c0;color:#fff;font-family:system-ui,sans-serif;font-size:14px;font-weight:600;padding:12px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 -2px 12px rgba(0,0,0,0.3);';
+    bar.innerHTML = '<span style="flex:1;">🔄 A new version of WARDEN has been deployed. Refresh to get the latest updates.</span>'
+      + '<button onclick="location.reload()" style="background:#fff;color:#1565c0;border:none;padding:8px 18px;border-radius:4px;font-size:14px;font-weight:700;cursor:pointer;">Refresh Now</button>'
+      + '<button onclick="this.parentElement.remove()" style="background:transparent;color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.4);padding:8px 12px;border-radius:4px;font-size:14px;cursor:pointer;">Dismiss</button>';
+    document.body.appendChild(bar);
+  }
+
+  // Start checking after 5 minutes (don't check immediately on load)
+  setTimeout(function tick() {
+    doCheck();
+    setTimeout(tick, CHECK_INTERVAL);
+  }, CHECK_INTERVAL);
+})();
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpqbmh3bWtramdvZ3R5aWR6cmptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDMyNzcsImV4cCI6MjA5NjYxOTI3N30.AFILeKWgnKQNV1igRsZIFKxqTpCW-PwNLtN6ct2NPFo';
 
 if (typeof supabase === 'undefined') {
@@ -7962,7 +8000,7 @@ async function confirmBulkEdit() {
     const patch = { updated_by: who, updated_at: now };
     if (statusEnabled) {
       patch.status = statusVal;
-      if (statusVal === 'available') { patch.active_for = null; patch.agency = '—'; }
+      if (statusVal === 'available') { patch.active_for = null; }
     }
     if (activeForEnabled) patch.active_for   = activeForVal || null;
     if (agencyEnabled)    patch.agency        = agencyVal    || '—';
@@ -8116,7 +8154,7 @@ async function releaseChannel(id) {
   const old = ch.status;
   const who = currentUser ? currentUser.name : 'Unknown';
   const { error } = await sb.from('channels').update({
-    status: 'available', active_for: null, agency: '—', updated_by: who, updated_at: new Date().toISOString()
+    status: 'available', active_for: null, updated_by: who, updated_at: new Date().toISOString()
   }).eq('id', id);
   if (error) { alert('Error releasing channel: ' + error.message); return; }
   await logChannelHistory({
@@ -8203,6 +8241,8 @@ function openEditModal(id) {
   document.getElementById('f-bw').value          = ch.bandwidth || 'W';
   document.getElementById('f-adm').value         = ch.adm || 'A';
   document.getElementById('f-power').value       = ch.power || '';
+  document.getElementById('f-tro').value         = ch.troAssignment || '';
+  populateTroDropdown();
   document.getElementById('f-tro').value         = ch.troAssignment || '';
   populateChannelFunctionDropdown(ch.function !== '—' ? ch.function : '');
   document.getElementById('f-agency').value      = ch.agency !== '—' ? ch.agency : '';
@@ -9931,7 +9971,7 @@ async function bigBoardQuickSetStatus(id, status) {
 
   // Optimistic update — apply immediately to local state
   ch.status = status;
-  if (status === 'available') { ch.activeFor = null; ch.agency = '—'; }
+  if (status === 'available') { ch.activeFor = null; }
   ch.updatedAt = new Date().toISOString();
   renderBigBoard();
   if (bigBoardWindow && !bigBoardWindow.closed) {
@@ -9942,7 +9982,7 @@ async function bigBoardQuickSetStatus(id, status) {
   }
 
   const patch = { status, updated_by: who, updated_at: ch.updatedAt };
-  if (status === 'available') { patch.active_for = null; patch.agency = '—'; }
+  if (status === 'available') { patch.active_for = null; }
 
   const { error } = await sb.from('channels').update(patch).eq('id', id);
   if (error) {
@@ -9996,7 +10036,7 @@ async function bigBoardQuickSaveActiveFor(id) {
 
   // Patch the local channels array so the tile renders the new state at once
   if (newStatus === 'available') {
-    ch.status = 'available'; ch.activeFor = null; ch.agency = '—';
+    ch.status = 'available'; ch.activeFor = null;
   } else {
     ch.status = newStatus;
     if (value) ch.activeFor = value;
@@ -10018,7 +10058,7 @@ async function bigBoardQuickSaveActiveFor(id) {
     updated_by: who,
     updated_at: ch.updatedAt,
   };
-  if (newStatus === 'available') patch.agency = '—';
+  // agency and tro_assignment intentionally preserved when marking available
 
   const { error } = await sb.from('channels').update(patch).eq('id', id);
   if (error) {
@@ -19843,7 +19883,7 @@ async function releaseIncidentChannels(inc, specificIds) {
     else if (!ch.activeForIncidentId && ch.activeFor && inc.name && ch.activeFor !== inc.name) continue;
 
     const { error } = await sb.from('channels').update({
-      status: 'available', active_for: null, agency: '—',
+      status: 'available', active_for: null,
       updated_by: who, updated_at: new Date().toISOString(),
     }).eq('id', id);
     if (!error) {
