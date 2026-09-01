@@ -19197,7 +19197,7 @@ async function saveRidRange() {
 
 async function deleteRidRange(id) {
   const r = ridRanges.find(x => String(x.id) === String(id));
-  if (!r || !confirm(`Delete range "${r.name}" (${r.start_id}–${r.end_id})?\nThis only deletes the range definition — radio ID records in the trigger lookup are not affected.`)) return;
+  if (!r || !confirm(`Delete range "${r.name}" (${r.start_id}–${r.end_id})?\nThis only deletes the range definition — radio records in Inventory are not affected.`)) return;
   const { error } = await sb.from('rid_ranges').delete().eq('id', id);
   if (error) { alert('Error: ' + error.message); return; }
   logEvent('admin', 'RID Range Deleted', `${r.name} (${r.start_id}–${r.end_id})`);
@@ -19249,7 +19249,7 @@ function renderInventory() {
     if (modelFilt  !== 'all' && r.radio_model !== modelFilt) return false;
     if (bandFilt   !== 'all' && r.radio_band  !== bandFilt)  return false;
     if (query) return [r.serial_number, r.radio_model, r.radio_band, r.assigned_unit,
-      r.assigned_person, r.agency, r.mdc_id_ref,
+      r.assigned_person, r.agency, r.mdc_id,
       r.larics_id, r.ici_id, r.cwirs_id, r.cris_id]
       .some(f => (f||'').toLowerCase().includes(query));
     return true;
@@ -19524,7 +19524,6 @@ async function openInventoryForm(id) {
     if (modelSel) modelSel.value = '';
     if (bandSel)  bandSel.value  = '';
     document.getElementById('ie-control-top').checked = false;
-    if (mdcSel) mdcSel.value = '';
   }
   document.getElementById('inventoryModal').classList.remove('open');
   document.getElementById('inventoryEditModal').classList.add('open');
@@ -19707,7 +19706,6 @@ function printSignOutSlip(id) {
   const agency  = currentAgency?.name || 'Agency';
   const now = new Date().toLocaleString('en-US', { timeZone:'America/Los_Angeles', dateStyle:'full', timeStyle:'short' });
   const sysIds = [
-    r.mdc_id    ? `MDC: ${r.mdc_id}` : '',
     r.larics_id ? `LARICS: ${r.larics_id}` : '',
     r.ici_id    ? `ICI: ${r.ici_id}` : '',
     r.cwirs_id  ? `CWIRS: ${r.cwirs_id}` : '',
@@ -19729,7 +19727,7 @@ function printSignOutSlip(id) {
     <div class="field"><div class="label">Date / Time</div><div class="value">${now} PT</div></div>
     <div class="field"><div class="label">Serial Number</div><div class="value" style="font-family:monospace;font-size:20px;">${escHtml(r.serial_number||'—')}</div></div>
     <div class="field"><div class="label">Radio Model</div><div class="value">${escHtml(r.radio_model||'—')} · ${escHtml(r.radio_band||'—')}</div></div>
-    ${trigger ? `<div class="field"><div class="label">MDC ID</div><div class="value" style="font-family:monospace;font-size:20px;letter-spacing:0.15em;">${escHtml(trigger.mdc_id||'—')}</div></div>` : ''}
+    ${r.mdc_id ? `<div class="field"><div class="label">MDC ID</div><div class="value" style="font-family:monospace;font-size:20px;letter-spacing:0.15em;">${escHtml(r.mdc_id)}</div></div>` : ''}
     ${sysIds ? `<div class="field"><div class="label">System IDs</div><div class="value" style="font-size:14px;">${escHtml(sysIds)}</div></div>` : ''}
     <div class="field"><div class="label">Assigned To</div><div class="value">${escHtml(r.assigned_unit||'—')}</div></div>
     <div class="field"><div class="label">Person</div><div class="value">${escHtml(r.assigned_person||'—')}</div></div>
