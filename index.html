@@ -5474,9 +5474,23 @@
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
               <div style="font-family:var(--font-data);font-size:13px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Systems</div>
-              <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Display name and default code per System ID field — used by RID Ranges</div>
+              <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Named systems used by RID Ranges — each ties to one Inventory System ID field, and more than one System can share a field (e.g. two LARICS networks)</div>
             </div>
             <div id="radioSystemList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
+            <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;">
+              <input class="form-input" id="newRadioSystemLabel" placeholder="System name…" style="font-size:14px;" onkeydown="if(event.key==='Enter')addRadioSystem()">
+              <div style="display:flex;gap:6px;">
+                <select class="form-select" id="newRadioSystemFieldType" style="flex:1;font-size:13px;padding:5px 8px;">
+                  <option value="mdc_id">MDC ID</option>
+                  <option value="larics_id">LARICS</option>
+                  <option value="ici_id">ICI</option>
+                  <option value="cwirs_id">CWIRS</option>
+                  <option value="cris_id">CRIS</option>
+                </select>
+                <input class="form-input" id="newRadioSystemCode" placeholder="Code (optional)" style="flex:1;font-size:13px;font-family:var(--font-data);">
+                <button class="btn-primary" style="font-size:14px;padding:5px 12px;flex-shrink:0;" onclick="addRadioSystem()">+ Add</button>
+              </div>
+            </div>
           </div>
           <!-- Radio Models -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
@@ -17734,10 +17748,13 @@ function renderInventoryStatusOptions() {
   if (radioStatuses.some(s => s.key === cur)) sel.value = cur;
 }
 
-// ── RADIO SYSTEMS — fixed set of 5 (one per real Inventory System ID
-// field), editable label + default code only. No add/delete: there's
-// no 6th field to validate a 6th system against. ──
+// ── RADIO SYSTEMS — admin-managed named systems (add/edit/remove).
+// Each System ties to one of the 5 real Inventory System ID fields —
+// that link is what makes range validation possible — but more than
+// one named System can point at the same field (e.g. two different
+// LARICS networks), which is why this is a free list, not a fixed 5. ──
 let radioSystems = [];
+const RID_FIELD_TYPE_LABELS = { mdc_id:'MDC ID', larics_id:'LARICS', ici_id:'ICI', cwirs_id:'CWIRS', cris_id:'CRIS' };
 
 async function loadRadioSystems() {
   try {
@@ -17752,11 +17769,15 @@ function renderRadioSystemList() {
   if (!el) return;
   el.innerHTML = radioSystems.length
     ? radioSystems.map(s => `
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
-          <span style="flex:1;font-family:var(--font-data);font-size:14px;color:var(--text-primary);cursor:pointer;" onclick="renameRadioSystem(${s.id},'${escHtml(s.label).replace(/'/g,"\\'")}')" title="Click to rename">${escHtml(s.label)}</span>
-          <span style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);cursor:pointer;min-width:70px;text-align:right;" onclick="editRadioSystemCode(${s.id},'${escHtml(s.default_code||'').replace(/'/g,"\\'")}')" title="Click to set default code">${s.default_code ? escHtml(s.default_code) : '— set code —'}</span>
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);">
+          <span style="flex:1;font-family:var(--font-data);font-size:14px;color:var(--text-primary);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="renameRadioSystem(${s.id},'${escHtml(s.label).replace(/'/g,"\\'")}')" title="Click to rename">${escHtml(s.label)}</span>
+          <select onchange="updateRadioSystemFieldType(${s.id}, this.value)" style="font-family:var(--font-data);font-size:11px;background:var(--bg-deep);color:var(--text-dim);border:1px solid var(--border);border-radius:2px;padding:2px 4px;flex-shrink:0;">
+            ${Object.entries(RID_FIELD_TYPE_LABELS).map(([ft, label]) => `<option value="${ft}"${s.field_type===ft?' selected':''}>${label}</option>`).join('')}
+          </select>
+          <span style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);cursor:pointer;min-width:60px;text-align:right;flex-shrink:0;" onclick="editRadioSystemCode(${s.id},'${escHtml(s.default_code||'').replace(/'/g,"\\'")}')" title="Click to set default code">${s.default_code ? escHtml(s.default_code) : '— code —'}</span>
+          <button onclick="deleteRadioSystem(${s.id},'${escHtml(s.label).replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:15px;padding:0 2px;flex-shrink:0;" title="Delete">✕</button>
         </div>`).join('')
-    : '<div style="color:var(--text-dim);font-size:14px;">Loading…</div>';
+    : '<div style="color:var(--text-dim);font-size:14px;">No systems yet — add one below.</div>';
 
   // Also keep the RID Range form's System dropdown in sync with the
   // latest labels, in case it's already open behind this panel.
@@ -17775,12 +17796,46 @@ function editRadioSystemCode(id, currentCode) {
   saveRadioSystemField(id, { default_code: next.trim() || null });
 }
 
+function updateRadioSystemFieldType(id, newFieldType) {
+  saveRadioSystemField(id, { field_type: newFieldType });
+}
+
 async function saveRadioSystemField(id, patch) {
   const { error } = await sb.from('radio_systems').update(patch).eq('id', id);
   if (error) { alert(error.message); return; }
   await loadRadioSystems();
   renderRadioSystemList();
   logEvent('system', 'Radio System Updated', JSON.stringify(patch));
+}
+
+async function addRadioSystem() {
+  const labelInp = document.getElementById('newRadioSystemLabel');
+  const fieldSel = document.getElementById('newRadioSystemFieldType');
+  const codeInp  = document.getElementById('newRadioSystemCode');
+  const label = labelInp?.value.trim();
+  if (!label) return;
+  const { error } = await sb.from('radio_systems').insert({
+    label, field_type: fieldSel?.value || 'mdc_id',
+    default_code: codeInp?.value.trim() || null,
+    sort_order: radioSystems.length, agency_id: agencyId(),
+  });
+  if (error) { alert(error.message); return; }
+  labelInp.value = '';
+  codeInp.value = '';
+  await loadRadioSystems();
+  renderRadioSystemList();
+  logEvent('system', 'Radio System Added', label);
+}
+
+async function deleteRadioSystem(id, label) {
+  const inUse = ridRanges.filter(r => r.system_id === id).length;
+  const warn = inUse ? `\n\n⚠ ${inUse} RID range(s) currently use this System — they'll fall back to unrestricted (checked against no specific field) until reassigned.` : '';
+  if (!confirm(`Delete System "${label}"?${warn}`)) return;
+  const { error } = await sb.from('radio_systems').delete().eq('id', id);
+  if (error) { alert(error.message); return; }
+  await loadRadioSystems();
+  renderRadioSystemList();
+  logEvent('system', 'Radio System Deleted', label);
 }
 
 // Populates the RID Range edit form's System dropdown from radioSystems.
@@ -17791,7 +17846,7 @@ function populateRrSystemDropdown() {
   if (!sel) return;
   const cur = sel.value;
   sel.innerHTML = '<option value="">— Unrestricted (any System ID field) —</option>' +
-    radioSystems.map(s => `<option value="${s.field_type}">${escHtml(s.label)}</option>`).join('');
+    radioSystems.map(s => `<option value="${s.id}">${escHtml(s.label)} (${RID_FIELD_TYPE_LABELS[s.field_type]||s.field_type})</option>`).join('');
   sel.value = cur;
 }
 
@@ -17804,7 +17859,7 @@ function onRrSystemChange() {
   const codesEl = document.getElementById('rr-system-codes');
   if (!sel || !codesEl) return;
   if (rrCodesManuallyEdited || codesEl.value.trim()) return;
-  const sys = radioSystems.find(s => s.field_type === sel.value);
+  const sys = radioSystems.find(s => String(s.id) === sel.value);
   if (sys?.default_code) codesEl.value = sys.default_code;
 }
 
@@ -19188,7 +19243,9 @@ function renderAdminRidRanges() {
   }
   el.innerHTML = ridRanges.map(r => {
     const count = r.end_id - r.start_id + 1;
-    const sysLabel = r.system ? (radioSystems.find(s => s.field_type === r.system)?.label || RID_SYSTEM_LABELS[r.system] || r.system) : 'Any';
+    const sysLabel = r.system_id
+      ? (radioSystems.find(s => s.id === r.system_id)?.label || 'Unknown System')
+      : r.system ? (radioSystems.find(s => s.field_type === r.system)?.label || RID_SYSTEM_LABELS[r.system] || r.system) : 'Any';
     const codes = (r.system_codes || []).join(', ');
     return `<div style="display:grid;grid-template-columns:1fr 90px 90px 110px 100px 80px;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
       <div>
@@ -19222,7 +19279,14 @@ function openRidRangeForm(id) {
     document.getElementById('rr-start').value       = r.start_id    || '';
     document.getElementById('rr-end').value         = r.end_id      || '';
     document.getElementById('rr-description').value = r.description || '';
-    document.getElementById('rr-system').value      = r.system      || '';
+    // Prefer the real system_id link; fall back to matching the legacy
+    // field-type string for any range saved before this rebuild.
+    let systemVal = r.system_id ? String(r.system_id) : '';
+    if (!systemVal && r.system) {
+      const matched = radioSystems.find(s => s.field_type === r.system);
+      if (matched) systemVal = String(matched.id);
+    }
+    document.getElementById('rr-system').value      = systemVal;
     document.getElementById('rr-system-codes').value = (r.system_codes || []).join(', ');
     if (document.getElementById('rr-system-codes').value) rrCodesManuallyEdited = true;
   } else {
@@ -19243,7 +19307,8 @@ async function saveRidRange() {
   const start = parseInt(document.getElementById('rr-start').value);
   const end   = parseInt(document.getElementById('rr-end').value);
   const desc  = document.getElementById('rr-description').value.trim();
-  const system = document.getElementById('rr-system').value || null;
+  const systemIdVal = document.getElementById('rr-system').value || null;
+  const selectedSystem = systemIdVal ? radioSystems.find(s => String(s.id) === systemIdVal) : null;
   const systemCodes = document.getElementById('rr-system-codes').value.trim()
     ? document.getElementById('rr-system-codes').value.split(',').map(s => s.trim()).filter(Boolean)
     : null;
@@ -19258,7 +19323,9 @@ async function saveRidRange() {
 
   const row = {
     name, start_id: start, end_id: end, description: desc || null,
-    system, system_codes: systemCodes,
+    system_id: selectedSystem ? selectedSystem.id : null,
+    system: selectedSystem ? selectedSystem.field_type : null, // legacy text column, kept in sync
+    system_codes: systemCodes,
     updated_by: currentUser?.name || 'Unknown', updated_at: new Date().toISOString(),
     agency_id: agencyId(),
   };
@@ -19643,7 +19710,16 @@ function checkIdOutOfRange(fieldSystem, value) {
   if (!val) return null;
   const num = parseInt(val, 10);
   if (isNaN(num) || String(num) !== val) return null;
-  const applicable = ridRanges.filter(r => r.system === fieldSystem);
+  // A range applies to this field if either its system_id points at a
+  // System whose field_type matches, or (for ranges saved before the
+  // system_id column existed) its legacy system text matches directly.
+  const applicable = ridRanges.filter(r => {
+    if (r.system_id) {
+      const sys = radioSystems.find(s => s.id === r.system_id);
+      return sys?.field_type === fieldSystem;
+    }
+    return r.system === fieldSystem;
+  });
   if (!applicable.length) return null;
   const inRange = applicable.some(r => num >= r.start_id && num <= r.end_id);
   if (inRange) return null;
