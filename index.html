@@ -106,6 +106,88 @@
   [data-theme="nightvision"] .channel-row,
   [data-theme="nightvision"] .modal { box-shadow: 0 0 18px rgba(0,255,102,0.04) inset; }
 
+  /* ── THEME: REFINED CONSOLE (tightened night-mode evolution) ── */
+  [data-theme="refined"] {
+    --bg-deep:     #0a0d12;
+    --bg-panel:    #10141b;
+    --bg-card:     #161b24;
+    --bg-hover:    #1c2330;
+    --border:      #212a3a;
+    --border-lit:  #303c52;
+    --status-available: #00e5aa;
+    --status-active:    #ff5252;
+    --status-reserved:  #ffb300;
+    --status-interop:   #a29bfe;
+    --text-primary:  #eef2f9;
+    --text-secondary:#8ba0bd;
+    --text-dim:      #4a5975;
+    --accent:        #3b8fdc;
+    --accent-glow:   rgba(59,143,220,0.15);
+    --radius: 8px;
+  }
+  [data-theme="refined"] .channel-row,
+  [data-theme="refined"] .inv-row,
+  [data-theme="refined"] .res-row,
+  [data-theme="refined"] .part-row { border-left: 3px solid transparent; }
+  [data-theme="refined"] .channel-row:hover,
+  [data-theme="refined"] .inv-row:hover,
+  [data-theme="refined"] .res-row:hover,
+  [data-theme="refined"] .part-row:hover { border-left-color: var(--border-lit); }
+
+  /* ── THEME: MODERN OPS (elevated cards, softer pill tags) ── */
+  [data-theme="modern"] {
+    --bg-deep:     #14181f;
+    --bg-panel:    #171c25;
+    --bg-card:     #1a2030;
+    --bg-hover:    #212940;
+    --border:      #232a3a;
+    --border-lit:  #303a50;
+    --status-available: #4ade80;
+    --status-active:    #f87171;
+    --status-reserved:  #fbbf24;
+    --status-interop:   #c084fc;
+    --text-primary:  #f1f5f9;
+    --text-secondary:#94a3b8;
+    --text-dim:      #64748b;
+    --accent:        #5b9bf0;
+    --accent-glow:   rgba(91,155,240,0.16);
+    --radius: 12px;
+  }
+  [data-theme="modern"] .status-pill,
+  [data-theme="modern"] .inv-status-chip,
+  [data-theme="modern"] .cpr-status-chip,
+  [data-theme="modern"] .part-status-chip,
+  [data-theme="modern"] .res-pill,
+  [data-theme="modern"] .sched-status-chip { border-radius: 20px; }
+  [data-theme="modern"] .channel-row,
+  [data-theme="modern"] .inv-row,
+  [data-theme="modern"] .res-row,
+  [data-theme="modern"] .part-row,
+  [data-theme="modern"] .tg-row,
+  [data-theme="modern"] .modal { box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset; }
+
+  /* ── THEME: FIELD / GLANCE MODE (high-contrast, oversized, for glare or a
+     quick mid-incident glance — larger type and touch targets throughout,
+     shape-coded status alongside color for colorblind accessibility) ── */
+  [data-theme="field"] {
+    --bg-deep:     #000000;
+    --bg-panel:    #050505;
+    --bg-card:     #0d0d0d;
+    --bg-hover:    #1a1a1a;
+    --border:      #2a2a2a;
+    --border-lit:  #444444;
+    --status-available: #4ade80;
+    --status-active:    #ef4444;
+    --status-reserved:  #eab308;
+    --status-interop:   #a78bfa;
+    --text-primary:  #ffffff;
+    --text-secondary:#d1d5db;
+    --text-dim:      #9ca3af;
+    --accent:        #60a5fa;
+    --accent-glow:   rgba(96,165,250,0.2);
+    --radius: 10px;
+  }
+
   /* ── THEME SWITCHER UI ── */
   .theme-switcher {
     position: relative;
@@ -2785,6 +2867,37 @@
     .inv-row { grid-template-columns: 24px 100px 1fr auto; }
     .inv-row > *:nth-child(n+5) { display: none; }
   }
+  /* ── PARTS & SUPPLIES ── */
+  .part-status-chip {
+    display: inline-flex; align-items: center;
+    font-family: var(--font-data); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 2px; white-space: nowrap;
+  }
+  .part-status-chip.ok  { background:rgba(0,230,118,0.12); color:var(--status-available); border:1px solid rgba(0,230,118,0.3); }
+  .part-status-chip.low { background:rgba(255,196,0,0.12);  color:var(--status-reserved); border:1px solid rgba(255,196,0,0.3); }
+  .part-status-chip.out { background:rgba(255,82,82,0.12);  color:var(--status-active);   border:1px solid rgba(255,82,82,0.3); }
+  .part-row {
+    display: grid;
+    grid-template-columns: 4px 120px 1fr 120px 110px 90px 130px 100px;
+    align-items: center; gap: 8px; padding: 9px 12px;
+    background: var(--bg-card); border: 1px solid transparent;
+    border-radius: var(--radius); margin-bottom: 3px;
+    cursor: pointer; transition: var(--transition);
+  }
+  .part-row:hover { border-color: var(--border-lit); background: var(--bg-hover); }
+  .part-grid-header {
+    display: grid;
+    grid-template-columns: 4px 120px 1fr 120px 110px 90px 130px 100px;
+    gap: 8px; padding: 4px 12px 8px;
+    font-family: var(--font-data); font-size: 12px;
+    color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  @media (max-width: 768px) {
+    .part-grid-header { display: none; }
+    .part-row { grid-template-columns: 4px 1fr auto; }
+    .part-row > *:nth-child(n+4) { display: none; }
+  }
   #announcementBanner {
     display: none;
     background: linear-gradient(90deg, rgba(255,196,0,0.15), rgba(255,196,0,0.08));
@@ -3396,6 +3509,50 @@
     .form-input, .form-select, .form-textarea { font-size: 15px; }
     .btn-primary, .btn-secondary, .btn-danger { font-size: 15px; }
   }
+
+  /* ═══════════════════════════════════════════════════════════
+     FIELD / GLANCE MODE — readability + touch-target pass
+     Same intent as the GLOBAL READABILITY PASS above, scoped to
+     [data-theme="field"] and pushed further: this mode exists for
+     someone glancing at a phone in sunlight or mid-incident, so it
+     trades density for size everywhere it's cheap to do so.
+     ═══════════════════════════════════════════════════════════ */
+  [data-theme="field"] body { font-size: 18px; }
+  [data-theme="field"] .btn-primary,
+  [data-theme="field"] .btn-secondary,
+  [data-theme="field"] .btn-danger,
+  [data-theme="field"] .btn-success,
+  [data-theme="field"] .btn-warning {
+    font-size: 17px; padding: 12px 18px; min-height: 48px;
+  }
+  [data-theme="field"] .form-input,
+  [data-theme="field"] .form-select,
+  [data-theme="field"] .form-textarea,
+  [data-theme="field"] .search-input {
+    font-size: 17px; padding: 12px 14px; min-height: 48px;
+  }
+  [data-theme="field"] .status-pill,
+  [data-theme="field"] .inv-status-chip,
+  [data-theme="field"] .part-status-chip,
+  [data-theme="field"] .res-pill {
+    font-size: 15px; padding: 6px 12px;
+  }
+  [data-theme="field"] .channel-row,
+  [data-theme="field"] .inv-row,
+  [data-theme="field"] .res-row,
+  [data-theme="field"] .part-row,
+  [data-theme="field"] .tg-row {
+    padding: 14px 16px; min-height: 56px;
+  }
+  [data-theme="field"] .ch-designator   { font-size: 19px; }
+  [data-theme="field"] .ch-freq,
+  [data-theme="field"] .ch-function,
+  [data-theme="field"] .ch-assignment  { font-size: 17px; }
+  [data-theme="field"] .status-bar     { width: 6px; }
+  [data-theme="field"] .stat-count     { font-size: 26px; }
+  [data-theme="field"] .stat-label     { font-size: 13px; }
+  [data-theme="field"] .mobile-nav-btn { min-height: 64px; }
+  [data-theme="field"] .mobile-nav-btn .nav-icon { font-size: 24px; }
 </style>
 </head>
 <body>
@@ -3804,6 +3961,13 @@
           </div>
           <label class="toggle-switch"><input type="checkbox" id="nt-email-res-overdue" onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
         </div>
+        <div class="notif-toggle-row">
+          <div class="notif-toggle-info">
+            <div class="notif-toggle-name">Email on Low Stock</div>
+            <div class="notif-toggle-desc">Alert when a part or supply drops to or below its reorder threshold</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" id="nt-email-lowstock" onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+        </div>
       </div>
 
     </div>
@@ -4175,6 +4339,42 @@
         </div>
         <span class="theme-check" style="display:none;" id="check-nightvision">✓</span>
       </div>
+      <div class="theme-option" data-theme="refined" onclick="setTheme('refined',this)">
+        <div class="theme-swatch">
+          <span style="background:#0a0d12;border:1px solid #212a3a;"></span>
+          <span style="background:#161b24;border:1px solid #212a3a;"></span>
+          <span style="background:#3b8fdc;"></span>
+        </div>
+        <div class="theme-option-info">
+          <div class="theme-option-name">Refined Console</div>
+          <div class="theme-option-desc">Tightened night mode — subtler cards, more breathing room</div>
+        </div>
+        <span class="theme-check" style="display:none;" id="check-refined">✓</span>
+      </div>
+      <div class="theme-option" data-theme="modern" onclick="setTheme('modern',this)">
+        <div class="theme-swatch">
+          <span style="background:#14181f;border:1px solid #232a3a;"></span>
+          <span style="background:#1a2030;border:1px solid #232a3a;"></span>
+          <span style="background:#5b9bf0;"></span>
+        </div>
+        <div class="theme-option-info">
+          <div class="theme-option-name">Modern Ops</div>
+          <div class="theme-option-desc">Elevated cards, rounder pill tags</div>
+        </div>
+        <span class="theme-check" style="display:none;" id="check-modern">✓</span>
+      </div>
+      <div class="theme-option" data-theme="field" onclick="setTheme('field',this)">
+        <div class="theme-swatch">
+          <span style="background:#000000;border:1px solid #2a2a2a;"></span>
+          <span style="background:#0d0d0d;border:1px solid #2a2a2a;"></span>
+          <span style="background:#60a5fa;"></span>
+        </div>
+        <div class="theme-option-info">
+          <div class="theme-option-name">Field / Glance Mode</div>
+          <div class="theme-option-desc">Larger type and touch targets for glare or a quick glance</div>
+        </div>
+        <span class="theme-check" style="display:none;" id="check-field">✓</span>
+      </div>
     </div>
   </div>
   <div class="topbar-user" id="topbarUser" style="margin-left:4px;"></div>
@@ -4278,6 +4478,10 @@
           <div class="nav-group-item" id="navitem-rid" onclick="closeAllNavGroups();switchMainTab('rid')">
             <span class="nav-item-icon">🆔</span>RID Manager
           </div>
+          <div class="nav-group-item" id="navitem-parts" onclick="closeAllNavGroups();switchMainTab('parts')">
+            <span class="nav-item-icon">🧰</span>Parts &amp; Supplies
+            <span class="nav-badge" id="navbadge-parts" style="display:none;margin-left:auto;">0</span>
+          </div>
         </div>
       </div>
 
@@ -4296,6 +4500,7 @@
       <span id="mvtab-triggers" style="display:none;"></span>
       <span id="mvtab-inventory" style="display:none;"></span>
       <span id="mvtab-rid" style="display:none;"></span>
+      <span id="mvtab-parts" style="display:none;"></span>
     </div>
 
     <!-- ── OVERVIEW VIEW ── -->
@@ -4792,6 +4997,78 @@
             <span>Timestamp</span><span>Serial</span><span>Event</span><span>Actor</span>
           </div>
           <div id="invLogBody" style="max-height:520px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PARTS & SUPPLIES VIEW ── -->
+    <div id="view-parts" style="display:none;">
+      <div class="tab-page-header">
+        <div>
+          <div class="tab-page-title">Parts &amp; Supplies</div>
+          <div class="tab-page-subtitle">Consumable parts and shop supplies — stock levels, cost, vendor, and usage</div>
+        </div>
+      </div>
+
+      <!-- Low stock alert banner -->
+      <div class="low-avail-banner hidden" id="partsLowStockBanner">
+        <span class="lav-icon">⚠</span>
+        <span id="partsLowStockText"></span>
+        <button class="lav-dismiss" onclick="dismissPartsLowStockBanner()" title="Dismiss">✕</button>
+      </div>
+
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:14px;">
+        <button class="admin-sub-tab active" id="partstab-list" onclick="switchPartsTab('list')">🧰 All Parts</button>
+        <button class="admin-sub-tab"        id="partstab-log"  onclick="switchPartsTab('log')">🕐 Usage Log</button>
+      </div>
+
+      <!-- List panel -->
+      <div id="parts-list-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input class="search-input" id="partSearch" type="text" placeholder="Search part #, name, vendor…" oninput="renderPartsInventory()" style="width:230px;">
+            <select class="form-select" id="partCategoryFilter" onchange="renderPartsInventory()" style="width:170px;font-size:14px;padding:5px 8px;">
+              <option value="all">All Categories</option>
+            </select>
+            <select class="form-select" id="partStockFilter" onchange="renderPartsInventory()" style="width:150px;font-size:14px;padding:5px 8px;">
+              <option value="all">All Stock Levels</option>
+              <option value="low">Low Stock</option>
+              <option value="out">Out of Stock</option>
+              <option value="ok">In Stock</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-secondary" style="font-size:14px;" onclick="exportPartsCSV()">⬇ CSV</button>
+            <button class="btn-primary"   style="font-size:14px;" onclick="openPartEditModal(null)">+ Add Part</button>
+          </div>
+        </div>
+
+        <!-- Summary strip -->
+        <div id="partsSummaryStrip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
+
+        <div class="part-grid-header">
+          <span></span><span>Part #</span><span>Name</span><span>Category</span><span>Qty / Reorder</span><span>Unit Cost</span><span>Vendor</span><span>Status</span>
+        </div>
+        <div id="partsGrid"></div>
+        <div id="partsEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
+          <div style="font-size:32px;margin-bottom:10px;">🧰</div>
+          <div style="font-size:15px;color:var(--text-secondary);">No parts in inventory yet</div>
+          <div style="font-size:14px;margin-top:4px;">Click + Add Part to get started</div>
+        </div>
+      </div>
+
+      <!-- Global usage log panel -->
+      <div id="parts-log-panel" style="display:none;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+          <input class="search-input" id="partsLogSearch" type="text" placeholder="Search log…" oninput="renderPartsUsageLog()" style="width:260px;">
+          <button class="btn-secondary" style="font-size:13px;padding:4px 10px;" onclick="loadPartsUsageLog()">↺ Refresh</button>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="display:grid;grid-template-columns:150px 150px 100px 1fr 120px;gap:0;padding:6px 14px;background:var(--bg-deep);font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--border);">
+            <span>Timestamp</span><span>Part</span><span>Action</span><span>Detail</span><span>Actor</span>
+          </div>
+          <div id="partsUsageLogBody" style="max-height:520px;overflow-y:auto;"></div>
         </div>
       </div>
     </div>
@@ -9137,6 +9414,9 @@ const THEMES = {
   night:       { icon: '🌙', label: 'Night Mode'   },
   day:         { icon: '☀️',  label: 'Day Mode'     },
   nightvision: { icon: '🟢', label: 'Night Vision' },
+  refined:     { icon: '🔷', label: 'Refined Console' },
+  modern:      { icon: '⬦',  label: 'Modern Ops'    },
+  field:       { icon: '🔲', label: 'Field / Glance Mode' },
 };
 
 let currentTheme = 'night';
@@ -9424,6 +9704,8 @@ function showLandingPage() {
       stats:()=>`<span class="module-stat"><strong>${window._triggerCount||0}</strong> registered IDs</span>` },
     { id:'inventory',  icon:'📦', title:'Radio Inventory', desc:'Full lifecycle tracking — status, assignment, condition, chain of custody.', accent:'#9c27b0',
       stats:()=>{ const c=window._inventoryCount||0; const a=window._inventoryActive||0; return `<span class="module-stat"><strong>${c}</strong> radios</span><span class="module-stat"><strong>${a}</strong> deployed</span>`; } },
+    { id:'parts',      icon:'🧰', title:'Parts & Supplies', desc:'Consumable parts and shop supplies — stock levels, cost, vendor, low-stock alerts.', accent:'#8d6e63',
+      stats:()=>{ const low=partsInventory.filter(p=>partStockStatus(p)!=='ok').length; return `<span class="module-stat"><strong>${partsInventory.length}</strong> parts</span><span class="module-stat"><strong>${low}</strong> low/out</span>`; } },
     { id:'incidents',  icon:'🚨', title:'Incident Management', desc:'Named incidents — tie channels, talkgroups, reservations, and radios together.', accent:'var(--status-active)',
       stats:()=>{ const a=incidents.filter(i=>i.status==='active').length; return `<span class="module-stat"><strong>${a}</strong> active</span>`; } },
     { id:'commreq',    icon:'📝', title:'Comm Plan Req', desc:'Public communications plan request intake — no login needed to submit.', accent:'#26a69a',
@@ -9470,6 +9752,8 @@ function openModule(id) {
     switchMainTab('triggers');
   } else if (id === 'inventory') {
     switchMainTab('inventory');
+  } else if (id === 'parts') {
+    switchMainTab('parts');
   } else if (id === 'incidents') {
     switchMainTab('incidents');
   } else if (id === 'commreq') {
@@ -10644,6 +10928,9 @@ function renderBigBoard() {
     night:       { bgDeep:'#0b0e13', bgPanel:'#12161e', bgCard:'#181d28', border:'#232c3d', borderLit:'#34415c', textPrimary:'#e3eaf5', textSecondary:'#7e94b3', textDim:'#44546e', accent:'#3b8fdc' },
     day:         { bgDeep:'#f0f2f5', bgPanel:'#ffffff', bgCard:'#f7f9fc', border:'#d0d8e4', borderLit:'#aab8cc', textPrimary:'#1a2332', textSecondary:'#4a5f7a', textDim:'#8fa0b8', accent:'#1565c0' },
     nightvision: { bgDeep:'#000000', bgPanel:'#030a03', bgCard:'#061206', border:'#133313', borderLit:'#1f5c1f', textPrimary:'#4dff7a', textSecondary:'#2eb84f', textDim:'#1a5c2a', accent:'#00ff66' },
+    refined:     { bgDeep:'#0a0d12', bgPanel:'#10141b', bgCard:'#161b24', border:'#212a3a', borderLit:'#303c52', textPrimary:'#eef2f9', textSecondary:'#8ba0bd', textDim:'#4a5975', accent:'#3b8fdc' },
+    modern:      { bgDeep:'#14181f', bgPanel:'#171c25', bgCard:'#1a2030', border:'#232a3a', borderLit:'#303a50', textPrimary:'#f1f5f9', textSecondary:'#94a3b8', textDim:'#64748b', accent:'#5b9bf0' },
+    field:       { bgDeep:'#000000', bgPanel:'#050505', bgCard:'#0d0d0d', border:'#2a2a2a', borderLit:'#444444', textPrimary:'#ffffff', textSecondary:'#d1d5db', textDim:'#9ca3af', accent:'#60a5fa' },
   };
   const t = themeVars[theme] || themeVars.night;
 
@@ -10660,6 +10947,11 @@ function renderBigBoard() {
     SC.active.color='#ff3b3b';   SC.active.bg='rgba(255,59,59,0.10)';   SC.active.border='rgba(255,59,59,0.3)';
     SC.reserved.color='#d4ff39'; SC.reserved.bg='rgba(212,255,57,0.10)'; SC.reserved.border='rgba(212,255,57,0.3)';
     SC.available.color='#39ff6a';SC.available.bg='rgba(57,255,106,0.10)';SC.available.border='rgba(57,255,106,0.3)';
+  }
+  if (theme === 'modern' || theme === 'field') {
+    SC.active.color='#f87171';    SC.active.bg='rgba(248,113,113,0.10)';    SC.active.border='rgba(248,113,113,0.28)';
+    SC.reserved.color='#fbbf24';  SC.reserved.bg='rgba(251,191,36,0.10)';   SC.reserved.border='rgba(251,191,36,0.28)';
+    SC.available.color='#4ade80'; SC.available.bg='rgba(74,222,128,0.10)';  SC.available.border='rgba(74,222,128,0.28)';
   }
 
   const groups = { active:[], reserved:[], available:[] };
@@ -11188,10 +11480,10 @@ function loadNotifSettings() {
       added: true, updated: true, active: true, available: true,
       reserved: true, removed: true, sound: true, toast: true,
       tone: 'chime', emailAddress: '', emailActive: false, emailConflict: false, emailLowAvail: false,
-      emailResSignout: false, emailResOverdue: false
+      emailResSignout: false, emailResOverdue: false, emailLowStock: false
     };
   } catch(e) {
-    return { added:true, updated:true, active:true, available:true, reserved:true, removed:true, sound:true, toast:true, tone:'chime', emailAddress: '', emailActive: false, emailConflict: false, emailLowAvail: false };
+    return { added:true, updated:true, active:true, available:true, reserved:true, removed:true, sound:true, toast:true, tone:'chime', emailAddress: '', emailActive: false, emailConflict: false, emailLowAvail: false, emailLowStock: false };
   }
 }
 
@@ -11212,6 +11504,7 @@ function saveNotifSettings() {
     emailLowAvail: document.getElementById('nt-email-lowavail')?.checked ?? false,
     emailResSignout: document.getElementById('nt-email-res-signout')?.checked ?? false,
     emailResOverdue: document.getElementById('nt-email-res-overdue')?.checked ?? false,
+    emailLowStock: document.getElementById('nt-email-lowstock')?.checked ?? false,
   };
   try { localStorage.setItem('rfNotifSettings', JSON.stringify(notifSettings)); } catch(e) {}
 }
@@ -11222,7 +11515,7 @@ function openNotifSettings() {
     available:'nt-available', reserved:'nt-reserved', removed:'nt-removed',
     sound:'nt-sound', toast:'nt-toast', emailActive:'nt-email-active',
     emailConflict:'nt-email-conflict', emailLowAvail:'nt-email-lowavail',
-    emailResSignout:'nt-email-res-signout', emailResOverdue:'nt-email-res-overdue' };
+    emailResSignout:'nt-email-res-signout', emailResOverdue:'nt-email-res-overdue', emailLowStock:'nt-email-lowstock' };
   Object.entries(map).forEach(([k,id]) => {
     const el = document.getElementById(id);
     if (el) el.checked = !!notifSettings[k];
@@ -11287,6 +11580,7 @@ async function sendEmailNotification(subject, body, type) {
   if (type === 'lowavail'    && !notifSettings.emailLowAvail)    return;
   if (type === 'res-signout' && !notifSettings.emailResSignout)  return;
   if (type === 'res-overdue' && !notifSettings.emailResOverdue)  return;
+  if (type === 'lowstock'    && !notifSettings.emailLowStock)    return;
   
   try {
     // This is a placeholder - replace with your own backend endpoint
@@ -12148,7 +12442,7 @@ let activeMainTab = 'channels';
 const NAV_GROUP_MAP = {
   channels: 'channelplan', talkgroups: 'channelplan',
   schedule: 'operations', incidents: 'operations', commreq: 'operations',
-  triggers: 'lookups', inventory: 'lookups',
+  triggers: 'lookups', inventory: 'lookups', parts: 'lookups',
 };
 
 function switchMainTab(tab) {
@@ -12164,7 +12458,7 @@ function switchMainTab(tab) {
   }
 
   activeMainTab = tab;
-  ['overview','channels','talkgroups','schedule','rfanalyzer','triggers','inventory','incidents','commreq','resources','admin','uas','personnel','rid'].forEach(t => {
+  ['overview','channels','talkgroups','schedule','rfanalyzer','triggers','inventory','incidents','commreq','resources','admin','uas','personnel','rid','parts'].forEach(t => {
     document.getElementById(`mvtab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`navitem-${t}`)?.classList.toggle('active', t === tab);
     const v = document.getElementById(`view-${t}`);
@@ -12190,6 +12484,7 @@ function switchMainTab(tab) {
   if (tab === 'uas')         renderUasTab();
   if (tab === 'personnel')   renderPersonnelTab();
   if (tab === 'rid')         renderRidManager();
+  if (tab === 'parts')       renderPartsInventory();
 
   // Log page visits so admins can see usage patterns in the System Log
   const PAGE_LABELS = {
@@ -12197,7 +12492,7 @@ function switchMainTab(tab) {
     schedule: 'Schedule', rfanalyzer: 'RF Deconflicter', triggers: 'Trigger Lookup',
     inventory: 'Radio Inventory', incidents: 'Incidents', commreq: 'Comm Plan Requests',
     resources: 'Resources', admin: 'Admin', uas: 'UAS Manager',
-    personnel: 'Personnel', rid: 'RID Manager',
+    personnel: 'Personnel', rid: 'RID Manager', parts: 'Parts & Supplies',
   };
   if (currentUser && PAGE_LABELS[tab]) {
     logEvent('nav', 'Page Visit', PAGE_LABELS[tab], { tab, user: currentUser.name });
@@ -13052,7 +13347,8 @@ async function renderAdminSystem() {
       ${dot(s.added)}Added &nbsp;·&nbsp; ${dot(s.active)}Active &nbsp;·&nbsp; ${dot(s.reserved)}Reserved<br>
       ${dot(!!s.emailAddress)}Email: <span style="color:var(--text-secondary);">${s.emailAddress||'Not set'}</span><br>
       ${dot(s.emailActive)}Ch Active &nbsp;·&nbsp; ${dot(s.emailConflict)}Conflict &nbsp;·&nbsp; ${dot(s.emailLowAvail)}Low avail<br>
-      ${dot(s.emailResSignout)}Res sign-out &nbsp;·&nbsp; ${dot(s.emailResOverdue)}Res overdue
+      ${dot(s.emailResSignout)}Res sign-out &nbsp;·&nbsp; ${dot(s.emailResOverdue)}Res overdue<br>
+      ${dot(s.emailLowStock)}Low stock
     `;
   }
 
@@ -13456,6 +13752,436 @@ async function deleteResource(id) {
 // Stub — category management UI can be added later
 function openResourceCategoryModal() {
   alert('Category management coming soon. Current categories: Vehicle, Cache / Equipment, Personnel, Aircraft, Watercraft, Other.');
+}
+
+// ─────────────────────────────────────────────
+// PARTS & SUPPLIES MODULE
+// Standalone — its own tables (parts_inventory, parts_usage_log), no
+// dependency on Radio Inventory / Trigger Lookup / the audit trail work.
+// ─────────────────────────────────────────────
+let partsInventory      = [];
+let partEditingId       = null;
+let currentPartId       = null;
+let partsUsageLogCache  = [];
+let activePartsTab      = 'list';
+let partsLowStockDismissed = false;
+
+const PART_CATEGORIES = [
+  'Antenna', 'Battery', 'Connector / Cable', 'Mounting Hardware',
+  'Case / Pouch', 'Programming Cable', 'Consumable', 'Other',
+];
+
+// 'out' | 'low' | 'ok' — drives the status chip and the low-stock banner
+function partStockStatus(p) {
+  const qty = Number(p.quantity_on_hand) || 0;
+  const threshold = Number(p.reorder_threshold) || 0;
+  if (qty <= 0) return 'out';
+  if (threshold > 0 && qty <= threshold) return 'low';
+  return 'ok';
+}
+const PART_STATUS_LABELS = { ok: 'In Stock', low: 'Low Stock', out: 'Out of Stock' };
+
+async function loadPartsInventory() {
+  try {
+    const { data, error } = await sb.from('parts_inventory').select('*').order('name', { ascending: true });
+    if (error) { console.warn('loadPartsInventory:', error.message); return; }
+    partsInventory = data || [];
+  } catch(e) { console.warn('loadPartsInventory:', e.message); }
+}
+
+function switchPartsTab(tab) {
+  activePartsTab = tab;
+  ['list','log'].forEach(t => {
+    document.getElementById(`partstab-${t}`)?.classList.toggle('active', t === tab);
+    const panel = document.getElementById(`parts-${t}-panel`);
+    if (panel) panel.style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'log') loadPartsUsageLog();
+}
+
+function renderPartsInventory() {
+  const query    = (document.getElementById('partSearch')?.value || '').toLowerCase();
+  const catFilt  = document.getElementById('partCategoryFilter')?.value  || 'all';
+  const stFilt   = document.getElementById('partStockFilter')?.value     || 'all';
+  const grid     = document.getElementById('partsGrid');
+  const empty    = document.getElementById('partsEmpty');
+  if (!grid) return;
+
+  // Populate category filter
+  const catSel = document.getElementById('partCategoryFilter');
+  if (catSel && catSel.options.length <= 1) {
+    PART_CATEGORIES.forEach(c => {
+      const o = document.createElement('option'); o.value = c; o.textContent = c;
+      catSel.appendChild(o);
+    });
+  }
+  // Populate the category dropdown on the edit form too, once
+  const peCatSel = document.getElementById('pe-category');
+  if (peCatSel && peCatSel.options.length <= 1) {
+    PART_CATEGORIES.forEach(c => {
+      const o = document.createElement('option'); o.value = c; o.textContent = c;
+      peCatSel.appendChild(o);
+    });
+  }
+
+  const filtered = partsInventory.filter(p => {
+    if (catFilt !== 'all' && p.category !== catFilt) return false;
+    if (stFilt  !== 'all' && partStockStatus(p) !== stFilt) return false;
+    if (query) return [p.part_number, p.name, p.category, p.vendor, p.vendor_part_number, p.location]
+      .some(f => (f||'').toLowerCase().includes(query));
+    return true;
+  });
+
+  // Summary strip
+  const strip = document.getElementById('partsSummaryStrip');
+  if (strip) {
+    const counts = { ok:0, low:0, out:0 };
+    partsInventory.forEach(p => { counts[partStockStatus(p)]++; });
+    const totalValue = partsInventory.reduce((sum, p) => sum + (Number(p.quantity_on_hand)||0) * (Number(p.unit_cost)||0), 0);
+    strip.innerHTML = `
+      <div class="res-summary-chip${stFilt==='all'?' active':''}" onclick="document.getElementById('partStockFilter').value='all';renderPartsInventory();">
+        <span class="chip-count">${partsInventory.length}</span><span>Total Parts</span>
+      </div>
+      <div class="res-summary-chip${stFilt==='low'?' active':''}" onclick="document.getElementById('partStockFilter').value='low';renderPartsInventory();">
+        <span class="chip-count" style="color:var(--status-reserved);">${counts.low}</span><span>Low Stock</span>
+      </div>
+      <div class="res-summary-chip${stFilt==='out'?' active':''}" onclick="document.getElementById('partStockFilter').value='out';renderPartsInventory();">
+        <span class="chip-count" style="color:var(--status-active);">${counts.out}</span><span>Out of Stock</span>
+      </div>
+      <div class="res-summary-chip">
+        <span class="chip-count" style="color:var(--status-available);">$${totalValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span><span>Inventory Value</span>
+      </div>`;
+  }
+
+  if (!filtered.length) {
+    grid.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+  } else {
+    if (empty) empty.style.display = 'none';
+    grid.innerHTML = filtered.map(p => {
+      const status = partStockStatus(p);
+      const barColor = status === 'out' ? 'var(--status-active)' : status === 'low' ? 'var(--status-reserved)' : 'var(--status-available)';
+      const cost = p.unit_cost != null ? `$${Number(p.unit_cost).toFixed(2)}` : '—';
+      return `<div class="part-row" onclick="openPartModal('${p.id}')">
+        <div style="width:4px;height:32px;border-radius:2px;background:${barColor};"></div>
+        <div style="font-family:var(--font-data);font-size:14px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(p.part_number||'—')}</div>
+        <div style="font-size:15px;color:var(--text-primary);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(p.name||'—')}</div>
+        <div style="font-size:14px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(p.category||'—')}</div>
+        <div style="font-family:var(--font-data);font-size:14px;color:var(--text-primary);">${p.quantity_on_hand ?? 0} <span style="color:var(--text-dim);">/ ${p.reorder_threshold ?? 0}</span></div>
+        <div style="font-family:var(--font-data);font-size:14px;color:var(--text-secondary);">${cost}</div>
+        <div style="font-size:14px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(p.vendor||'—')}</div>
+        <div><span class="part-status-chip ${status}">${PART_STATUS_LABELS[status]}</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  checkLowStockAlerts();
+}
+
+// ── Low-stock banner (mirrors checkLowAvailability's shape/UX) ──
+function checkLowStockAlerts() {
+  const banner = document.getElementById('partsLowStockBanner');
+  if (!banner) return;
+  if (partsLowStockDismissed) { banner.classList.add('hidden'); return; }
+
+  const flagged = partsInventory.filter(p => partStockStatus(p) !== 'ok');
+  if (!flagged.length) { banner.classList.add('hidden'); return; }
+
+  banner.classList.remove('hidden');
+  const names = flagged.slice(0, 4).map(p => p.name).join(', ');
+  const more  = flagged.length > 4 ? ` +${flagged.length - 4} more` : '';
+  document.getElementById('partsLowStockText').textContent =
+    `⚠ ${flagged.length} part${flagged.length!==1?'s':''} at or below reorder threshold — ${names}${more}`;
+}
+
+function dismissPartsLowStockBanner() {
+  partsLowStockDismissed = true;
+  document.getElementById('partsLowStockBanner')?.classList.add('hidden');
+  setTimeout(() => { partsLowStockDismissed = false; checkLowStockAlerts(); }, 600000);
+}
+
+// ── Detail modal ──
+async function openPartModal(id) {
+  currentPartId = id;
+  const p = partsInventory.find(x => String(x.id) === String(id));
+  if (!p) return;
+
+  const status = partStockStatus(p);
+  document.getElementById('partModalTitle').textContent = p.name || 'Part Detail';
+
+  const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:15px;color:var(--text-secondary);">${escHtml(String(val))}</div></div>` : '';
+
+  document.getElementById('partDetailSection').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+      <div style="font-family:var(--font-data);font-size:20px;font-weight:700;color:var(--text-primary);">${escHtml(p.name||'—')}</div>
+      <span class="part-status-chip ${status}">${PART_STATUS_LABELS[status]}</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px;">
+      <span style="font-family:var(--font-data);font-size:32px;font-weight:700;color:var(--text-primary);">${p.quantity_on_hand ?? 0}</span>
+      <span style="font-size:14px;color:var(--text-dim);">on hand · reorder at ${p.reorder_threshold ?? 0}${p.reorder_quantity ? ` · reorder qty ${p.reorder_quantity}` : ''}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:10px;">
+      ${field('Part Number',   p.part_number)}
+      ${field('Category',      p.category)}
+      ${field('Unit Cost',     p.unit_cost != null ? '$' + Number(p.unit_cost).toFixed(2) : '')}
+      ${field('Storage Location', p.location)}
+      ${field('Vendor',        p.vendor)}
+      ${field('Vendor Part #', p.vendor_part_number)}
+    </div>
+    ${p.notes ? `<div style="font-size:14px;color:var(--text-secondary);padding:10px 12px;background:var(--bg-deep);border-radius:var(--radius);line-height:1.6;">${escHtml(p.notes)}</div>` : ''}
+  `;
+
+  document.getElementById('pa-qty').value = 1;
+  document.getElementById('pa-reason').value = '';
+  document.getElementById('pa-error').textContent = '';
+
+  await renderPartUsageDetail(id);
+  document.getElementById('partModal').classList.add('open');
+}
+
+function closePartModal() {
+  document.getElementById('partModal').classList.remove('open');
+  currentPartId = null;
+}
+
+async function renderPartUsageDetail(partId) {
+  const el = document.getElementById('partUsageDetail');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:10px 14px;color:var(--text-dim);font-size:14px;">Loading…</div>';
+  try {
+    const { data } = await sb.from('parts_usage_log').select('*').eq('part_id', partId).order('created_at', { ascending: false }).limit(100);
+    if (!data?.length) { el.innerHTML = '<div style="padding:10px 14px;color:var(--text-dim);font-size:14px;">No usage recorded yet.</div>'; return; }
+    el.innerHTML = data.map(e => {
+      const ts = fmtPartLogTS(e.created_at);
+      const delta = e.quantity_change > 0 ? `+${e.quantity_change}` : String(e.quantity_change ?? '');
+      const deltaColor = e.quantity_change > 0 ? 'var(--status-available)' : e.quantity_change < 0 ? 'var(--status-active)' : 'var(--text-dim)';
+      return `<div class="inv-custody-row">
+        <div class="inv-custody-meta">${ts}<br><strong>${escHtml(e.actor||'Unknown')}</strong></div>
+        <div style="flex:1;color:var(--text-primary);">
+          ${e.quantity_change != null ? `<span style="font-family:var(--font-data);font-weight:700;color:${deltaColor};">${delta}</span> · ` : ''}${escHtml(e.detail||e.action||'')}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="padding:10px 14px;color:var(--text-dim);font-size:14px;">Error: ${e.message}</div>`;
+  }
+}
+
+// action: 'received' (adds) | 'used' (subtracts)
+async function adjustPartStock(action) {
+  const p = partsInventory.find(x => String(x.id) === String(currentPartId));
+  if (!p) return;
+  const errEl = document.getElementById('pa-error');
+  errEl.textContent = '';
+
+  const qty = parseInt(document.getElementById('pa-qty').value);
+  if (!qty || qty <= 0) { errEl.textContent = 'Enter a quantity greater than 0.'; return; }
+  const reason = document.getElementById('pa-reason').value.trim();
+
+  const delta = action === 'received' ? qty : -qty;
+  const newQty = Math.max(0, (Number(p.quantity_on_hand)||0) + delta);
+  const who = currentUser?.name || 'Unknown';
+
+  const { error } = await sb.from('parts_inventory').update({
+    quantity_on_hand: newQty, updated_by: who, updated_at: new Date().toISOString(),
+  }).eq('id', p.id);
+  if (error) { errEl.textContent = 'Error: ' + error.message; return; }
+
+  const wasStatus = partStockStatus(p);
+
+  try {
+    await sb.from('parts_usage_log').insert({
+      part_id: p.id, action, quantity_change: delta, quantity_after: newQty,
+      detail: reason || (action === 'received' ? 'Stock received' : 'Stock used'),
+      actor: who, agency_id: agencyId(),
+    });
+  } catch(e) { console.warn('parts_usage_log write skipped:', e.message); }
+
+  logEvent('system', action === 'received' ? 'Part Received' : 'Part Used',
+    `${p.name} — ${action === 'received' ? '+' : '-'}${qty} (now ${newQty})${reason ? ' — ' + reason : ''}`,
+    { part: p.name, delta, newQty });
+
+  await loadPartsInventory();
+  const nowP = partsInventory.find(x => String(x.id) === String(p.id));
+  const nowStatus = nowP ? partStockStatus(nowP) : wasStatus;
+
+  // Fire an alert the moment a part crosses into low/out stock — not on every adjustment
+  if (nowStatus !== 'ok' && wasStatus === 'ok') {
+    pushNotification('active', `⚠ <span class="log-ch">${escHtml(nowP.name)}</span> is now ${PART_STATUS_LABELS[nowStatus].toLowerCase()} (${nowQty} on hand)`);
+    sendEmailNotification(
+      `⚠ Low Stock — ${nowP.name}`,
+      `Part: ${nowP.name} (${nowP.part_number||'—'})\nQuantity on hand: ${nowQty}\nReorder threshold: ${nowP.reorder_threshold ?? 0}\nVendor: ${nowP.vendor||'—'}\n\nTime: ${getPacificTimeStr(true)}`,
+      'lowstock'
+    );
+  }
+
+  renderPartsInventory();
+  await openPartModal(p.id);
+}
+
+function fmtPartLogTS(iso) {
+  return new Date(iso).toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  });
+}
+
+// ── Add / edit form ──
+function openPartEditModal(id) {
+  partEditingId = id || null;
+  document.getElementById('pe-error').textContent = '';
+
+  // Ensure category dropdown is populated even if the list view hasn't rendered yet
+  const peCatSel = document.getElementById('pe-category');
+  if (peCatSel && peCatSel.options.length <= 1) {
+    PART_CATEGORIES.forEach(c => {
+      const o = document.createElement('option'); o.value = c; o.textContent = c;
+      peCatSel.appendChild(o);
+    });
+  }
+
+  if (id) {
+    const p = partsInventory.find(x => String(x.id) === String(id));
+    if (!p) return;
+    document.getElementById('partEditTitle').textContent = `Edit — ${p.name}`;
+    document.getElementById('pe-partnum').value        = p.part_number        || '';
+    document.getElementById('pe-category').value       = p.category            || '';
+    document.getElementById('pe-name').value            = p.name               || '';
+    document.getElementById('pe-qty').value              = p.quantity_on_hand   ?? 0;
+    document.getElementById('pe-threshold').value        = p.reorder_threshold  ?? 0;
+    document.getElementById('pe-reorder-qty').value       = p.reorder_quantity   ?? '';
+    document.getElementById('pe-unit-cost').value        = p.unit_cost          ?? '';
+    document.getElementById('pe-location').value         = p.location           || '';
+    document.getElementById('pe-vendor').value           = p.vendor             || '';
+    document.getElementById('pe-vendor-partnum').value    = p.vendor_part_number || '';
+    document.getElementById('pe-notes').value            = p.notes              || '';
+  } else {
+    document.getElementById('partEditTitle').textContent = 'Add Part';
+    ['pe-partnum','pe-name','pe-reorder-qty','pe-unit-cost','pe-location','pe-vendor','pe-vendor-partnum','pe-notes'].forEach(fid => {
+      const el = document.getElementById(fid); if (el) el.value = '';
+    });
+    document.getElementById('pe-category').value  = '';
+    document.getElementById('pe-qty').value        = 0;
+    document.getElementById('pe-threshold').value  = 0;
+  }
+  document.getElementById('partModal').classList.remove('open');
+  document.getElementById('partEditModal').classList.add('open');
+}
+
+function closePartEditModal() {
+  document.getElementById('partEditModal').classList.remove('open');
+  partEditingId = null;
+}
+
+async function savePart() {
+  const name = document.getElementById('pe-name').value.trim();
+  const errEl = document.getElementById('pe-error');
+  if (!name) { errEl.textContent = 'Name / Description is required.'; return; }
+
+  const who = currentUser?.name || 'Unknown';
+  const row = {
+    part_number:        document.getElementById('pe-partnum').value.trim()        || null,
+    category:           document.getElementById('pe-category').value               || null,
+    name,
+    quantity_on_hand:   parseInt(document.getElementById('pe-qty').value)          || 0,
+    reorder_threshold:  parseInt(document.getElementById('pe-threshold').value)    || 0,
+    reorder_quantity:   document.getElementById('pe-reorder-qty').value ? parseInt(document.getElementById('pe-reorder-qty').value) : null,
+    unit_cost:          document.getElementById('pe-unit-cost').value ? parseFloat(document.getElementById('pe-unit-cost').value) : null,
+    location:           document.getElementById('pe-location').value.trim()        || null,
+    vendor:             document.getElementById('pe-vendor').value.trim()          || null,
+    vendor_part_number: document.getElementById('pe-vendor-partnum').value.trim()  || null,
+    notes:              document.getElementById('pe-notes').value.trim()           || null,
+    updated_by:         who,
+    updated_at:          new Date().toISOString(),
+    agency_id:           agencyId(),
+  };
+
+  if (partEditingId) {
+    const { error } = await sb.from('parts_inventory').update(row).eq('id', partEditingId);
+    if (error) { errEl.textContent = 'Error: ' + error.message; return; }
+    logEvent('system', 'Part Updated', name, { part: name });
+  } else {
+    const { data: inserted, error } = await sb.from('parts_inventory').insert(row).select('id').single();
+    if (error) { errEl.textContent = 'Error: ' + error.message; return; }
+    logEvent('system', 'Part Added', `${name} — qty ${row.quantity_on_hand}`, { part: name });
+    if (inserted?.id) {
+      try {
+        await sb.from('parts_usage_log').insert({
+          part_id: inserted.id, action: 'added', quantity_change: row.quantity_on_hand, quantity_after: row.quantity_on_hand,
+          detail: 'Part added to inventory', actor: who, agency_id: agencyId(),
+        });
+      } catch(e) {}
+    }
+  }
+
+  await loadPartsInventory();
+  closePartEditModal();
+  renderPartsInventory();
+  if (partEditingId) await openPartModal(partEditingId);
+}
+
+async function deletePart() {
+  const p = partsInventory.find(x => String(x.id) === String(currentPartId));
+  if (!p || !confirm(`Remove "${p.name}" from parts inventory? This also removes its usage history.`)) return;
+  const { error } = await sb.from('parts_inventory').delete().eq('id', p.id);
+  if (error) { alert('Error deleting part: ' + error.message); return; }
+  logEvent('system', 'Part Deleted', p.name, { part: p.name });
+  await loadPartsInventory();
+  closePartModal();
+  renderPartsInventory();
+}
+
+// ── Global usage log tab (across all parts) ──
+async function loadPartsUsageLog() {
+  const body = document.getElementById('partsUsageLogBody');
+  if (body) body.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:14px;">Loading…</div>';
+  try {
+    const { data } = await sb.from('parts_usage_log').select('*, parts_inventory(name, part_number)').order('created_at', { ascending: false }).limit(300);
+    partsUsageLogCache = data || [];
+    renderPartsUsageLog();
+  } catch(e) {
+    if (body) body.innerHTML = `<div style="padding:16px;color:var(--text-dim);font-size:14px;">Error: ${e.message}</div>`;
+  }
+}
+
+function renderPartsUsageLog() {
+  const query = (document.getElementById('partsLogSearch')?.value || '').toLowerCase();
+  const body  = document.getElementById('partsUsageLogBody');
+  if (!body) return;
+  const filtered = partsUsageLogCache.filter(r => !query ||
+    [r.action, r.detail, r.actor, r.parts_inventory?.name, r.parts_inventory?.part_number].some(f => (f||'').toLowerCase().includes(query))
+  );
+  if (!filtered.length) { body.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:14px;">No entries.</div>'; return; }
+  const ACTION_COLORS = { added:'var(--status-available)', received:'var(--status-available)', used:'var(--status-active)', adjusted:'var(--accent)' };
+  body.innerHTML = filtered.map(r => {
+    const ts   = fmtPartLogTS(r.created_at);
+    const col  = ACTION_COLORS[r.action] || 'var(--text-dim)';
+    const partLabel = r.parts_inventory?.name || '—';
+    return `<div style="display:grid;grid-template-columns:150px 150px 100px 1fr 120px;gap:0;padding:7px 14px;border-bottom:1px solid var(--border);font-size:13px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);">${ts}</div>
+      <div style="font-family:var(--font-data);font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(partLabel)}</div>
+      <div><span style="font-family:var(--font-data);font-size:11px;padding:1px 5px;border-radius:2px;border:1px solid ${col}44;color:${col};">${(r.action||'—').toUpperCase()}</span></div>
+      <div style="color:var(--text-secondary);padding-right:8px;">${escHtml(r.detail||'')}</div>
+      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);">${escHtml(r.actor||'—')}</div>
+    </div>`;
+  }).join('');
+}
+
+function exportPartsCSV() {
+  if (!partsInventory.length) { alert('No parts to export.'); return; }
+  const header = ['Part Number','Name','Category','Qty On Hand','Reorder Threshold','Reorder Qty','Unit Cost','Vendor','Vendor Part #','Location','Status','Notes'];
+  const rows = partsInventory.map(p => [
+    p.part_number||'', p.name||'', p.category||'', p.quantity_on_hand ?? 0, p.reorder_threshold ?? 0,
+    p.reorder_quantity ?? '', p.unit_cost != null ? Number(p.unit_cost).toFixed(2) : '',
+    p.vendor||'', p.vendor_part_number||'', p.location||'',
+    PART_STATUS_LABELS[partStockStatus(p)], p.notes||''
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv = [header.join(','), ...rows].join('\n');
+  const a = Object.assign(document.createElement('a'), {
+    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
+    download: `parts-inventory-${new Date().toLocaleDateString('en-CA')}.csv`,
+  });
+  a.click();
 }
 
 // ─────────────────────────────────────────────
@@ -20218,6 +20944,7 @@ const ALL_MODULES = [
   { key: 'rfanalyzer', label: 'RF Deconflicter',       icon: '📡', desc: 'Point-to-point terrain & LOS analysis' },
   { key: 'triggers',   label: 'Trigger Lookup',        icon: '🔔', desc: 'MDC1200 emergency trigger registry' },
   { key: 'inventory',  label: 'Radio Inventory',       icon: '📦', desc: 'Full radio lifecycle & chain of custody' },
+  { key: 'parts',      label: 'Parts & Supplies',      icon: '🧰', desc: 'Consumable parts, supplies, cost & low-stock alerts' },
   { key: 'incidents',  label: 'Incident Management',   icon: '🚨', desc: 'Named incidents tying all resources together' },
   { key: 'commreq',    label: 'Comm Plan Req',         icon: '📝', desc: 'Public communications plan request intake' },
   { key: 'resources',  label: 'Resources',             icon: '🚒', desc: 'Vehicles, equipment, cache tracking' },
@@ -20362,6 +21089,7 @@ async function loadAllData() {
     loadPersonnelRoster(),
     loadResources(),
     loadRidRanges(),
+    loadPartsInventory(),
   ]);
 }
 
@@ -23056,6 +23784,125 @@ if ('serviceWorker' in navigator) {
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeRidRangeForm()">Cancel</button>
       <button class="btn-primary"   onclick="saveRidRange()">Save Range</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PART DETAIL MODAL ── -->
+<div class="modal-overlay" id="partModal">
+  <div class="modal" style="max-width:640px;max-height:85vh;display:flex;flex-direction:column;">
+    <div class="modal-header" style="flex-shrink:0;">
+      <div class="modal-title" id="partModalTitle">Part Detail</div>
+      <button class="modal-close" onclick="closePartModal()">✕</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;">
+      <div id="partDetailSection"></div>
+
+      <!-- Quick stock adjust -->
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Adjust Stock</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="form-field" style="flex:0 0 100px;">
+            <label class="form-label">Quantity</label>
+            <input class="form-input" id="pa-qty" type="number" min="1" value="1" style="text-align:center;">
+          </div>
+          <div class="form-field" style="flex:1;min-width:160px;">
+            <label class="form-label">Reason / Note</label>
+            <input class="form-input" id="pa-reason" placeholder="e.g. New order arrived, Used on E51 antenna repair">
+          </div>
+          <button class="btn-success" style="padding:8px 14px;flex-shrink:0;margin-bottom:1px;" onclick="adjustPartStock('received')">+ Receive</button>
+          <button class="btn-warning" style="padding:8px 14px;flex-shrink:0;margin-bottom:1px;" onclick="adjustPartStock('used')">− Use</button>
+        </div>
+        <div id="pa-error" style="font-size:13px;color:var(--status-active);font-family:var(--font-data);min-height:16px;margin-top:4px;"></div>
+      </div>
+
+      <!-- Usage history for this part -->
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Usage History</div>
+        <div id="partUsageDetail" style="max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;">
+      <button class="btn-danger" style="font-size:14px;" onclick="deletePart()">✕ Delete</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-secondary" onclick="openPartEditModal(currentPartId)">✏ Edit</button>
+        <button class="btn-secondary" onclick="closePartModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PART ADD / EDIT MODAL ── -->
+<div class="modal-overlay" id="partEditModal">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title" id="partEditTitle">Add Part</div>
+      <button class="modal-close" onclick="closePartEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Part Number</label>
+          <input class="form-input" id="pe-partnum" placeholder="Internal or vendor part #" style="font-family:var(--font-data);">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="pe-category">
+            <option value="">— Select category —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-field">
+          <label class="form-label">Name / Description *</label>
+          <input class="form-input" id="pe-name" placeholder="e.g. APX8000 Antenna, UHF Stubby">
+        </div>
+      </div>
+      <div class="form-row triple">
+        <div class="form-field">
+          <label class="form-label">Qty on Hand *</label>
+          <input class="form-input" id="pe-qty" type="number" min="0" value="0">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Reorder Threshold</label>
+          <input class="form-input" id="pe-threshold" type="number" min="0" value="0">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Reorder Qty</label>
+          <input class="form-input" id="pe-reorder-qty" type="number" min="0" placeholder="e.g. 10">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Unit Cost</label>
+          <input class="form-input" id="pe-unit-cost" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Storage Location</label>
+          <input class="form-input" id="pe-location" placeholder="e.g. Shelf B3, Cabinet 2">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Vendor</label>
+          <input class="form-input" id="pe-vendor" placeholder="Supplier name">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Vendor Part #</label>
+          <input class="form-input" id="pe-vendor-partnum" style="font-family:var(--font-data);">
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-field">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="pe-notes" placeholder="Additional details…" style="height:56px;"></textarea>
+        </div>
+      </div>
+      <div id="pe-error" style="font-size:14px;color:var(--status-active);font-family:var(--font-data);min-height:16px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closePartEditModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePart()">Save Part</button>
     </div>
   </div>
 </div>
