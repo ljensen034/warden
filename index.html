@@ -5474,22 +5474,13 @@
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
               <div style="font-family:var(--font-data);font-size:13px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Systems</div>
-              <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Named systems used by RID Ranges — each ties to one Inventory System ID field, and more than one System can share a field (e.g. two LARICS networks)</div>
+              <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Reference list of known system codes — available as autocomplete when entering a RID range's System ID Code(s)</div>
             </div>
             <div id="radioSystemList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
-            <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;">
-              <input class="form-input" id="newRadioSystemLabel" placeholder="System name…" style="font-size:14px;" onkeydown="if(event.key==='Enter')addRadioSystem()">
-              <div style="display:flex;gap:6px;">
-                <select class="form-select" id="newRadioSystemFieldType" style="flex:1;font-size:13px;padding:5px 8px;">
-                  <option value="mdc_id">MDC ID</option>
-                  <option value="larics_id">LARICS</option>
-                  <option value="ici_id">ICI</option>
-                  <option value="cwirs_id">CWIRS</option>
-                  <option value="cris_id">CRIS</option>
-                </select>
-                <input class="form-input" id="newRadioSystemCode" placeholder="Code (optional)" style="flex:1;font-size:13px;font-family:var(--font-data);">
-                <button class="btn-primary" style="font-size:14px;padding:5px 12px;flex-shrink:0;" onclick="addRadioSystem()">+ Add</button>
-              </div>
+            <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:6px;">
+              <input class="form-input" id="newRadioSystemLabel" placeholder="System name…" style="flex:1;font-size:14px;" onkeydown="if(event.key==='Enter')document.getElementById('newRadioSystemCode').focus()">
+              <input class="form-input" id="newRadioSystemCode" placeholder="Code…" style="flex:1;font-size:14px;font-family:var(--font-data);" onkeydown="if(event.key==='Enter')addRadioSystem()">
+              <button class="btn-primary" style="font-size:14px;padding:5px 12px;flex-shrink:0;" onclick="addRadioSystem()">+ Add</button>
             </div>
           </div>
           <!-- Radio Models -->
@@ -17748,13 +17739,12 @@ function renderInventoryStatusOptions() {
   if (radioStatuses.some(s => s.key === cur)) sel.value = cur;
 }
 
-// ── RADIO SYSTEMS — admin-managed named systems (add/edit/remove).
-// Each System ties to one of the 5 real Inventory System ID fields —
-// that link is what makes range validation possible — but more than
-// one named System can point at the same field (e.g. two different
-// LARICS networks), which is why this is a free list, not a fixed 5. ──
+// ── RADIO SYSTEMS — a simple admin-managed reference list: Name + Code.
+// Not tied to Inventory fields — that's what RID Range's own "System"
+// selector handles directly. This list exists purely so the admin has
+// somewhere to keep known system codes, surfaced as autocomplete
+// suggestions when entering a range's System ID Code(s). ──
 let radioSystems = [];
-const RID_FIELD_TYPE_LABELS = { mdc_id:'MDC ID', larics_id:'LARICS', ici_id:'ICI', cwirs_id:'CWIRS', cris_id:'CRIS' };
 
 async function loadRadioSystems() {
   try {
@@ -17769,19 +17759,16 @@ function renderRadioSystemList() {
   if (!el) return;
   el.innerHTML = radioSystems.length
     ? radioSystems.map(s => `
-        <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
           <span style="flex:1;font-family:var(--font-data);font-size:14px;color:var(--text-primary);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="renameRadioSystem(${s.id},'${escHtml(s.label).replace(/'/g,"\\'")}')" title="Click to rename">${escHtml(s.label)}</span>
-          <select onchange="updateRadioSystemFieldType(${s.id}, this.value)" style="font-family:var(--font-data);font-size:11px;background:var(--bg-deep);color:var(--text-dim);border:1px solid var(--border);border-radius:2px;padding:2px 4px;flex-shrink:0;">
-            ${Object.entries(RID_FIELD_TYPE_LABELS).map(([ft, label]) => `<option value="${ft}"${s.field_type===ft?' selected':''}>${label}</option>`).join('')}
-          </select>
-          <span style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);cursor:pointer;min-width:60px;text-align:right;flex-shrink:0;" onclick="editRadioSystemCode(${s.id},'${escHtml(s.default_code||'').replace(/'/g,"\\'")}')" title="Click to set default code">${s.default_code ? escHtml(s.default_code) : '— code —'}</span>
+          <span style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);cursor:pointer;min-width:70px;text-align:right;flex-shrink:0;" onclick="editRadioSystemCode(${s.id},'${escHtml(s.default_code||'').replace(/'/g,"\\'")}')" title="Click to edit code">${escHtml(s.default_code||'')}</span>
           <button onclick="deleteRadioSystem(${s.id},'${escHtml(s.label).replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:15px;padding:0 2px;flex-shrink:0;" title="Delete">✕</button>
         </div>`).join('')
     : '<div style="color:var(--text-dim);font-size:14px;">No systems yet — add one below.</div>';
 
-  // Also keep the RID Range form's System dropdown in sync with the
-  // latest labels, in case it's already open behind this panel.
-  populateRrSystemDropdown();
+  // Keep the RID Range form's code-autocomplete list fresh too, in case
+  // that form is already open behind this panel.
+  populateRrSystemCodeSuggestions();
 }
 
 function renameRadioSystem(id, currentLabel) {
@@ -17791,13 +17778,9 @@ function renameRadioSystem(id, currentLabel) {
 }
 
 function editRadioSystemCode(id, currentCode) {
-  const next = prompt('Default System ID Code (e.g. 069F) — auto-fills new RID ranges for this system. Leave blank to clear:', currentCode || '');
-  if (next === null) return;
-  saveRadioSystemField(id, { default_code: next.trim() || null });
-}
-
-function updateRadioSystemFieldType(id, newFieldType) {
-  saveRadioSystemField(id, { field_type: newFieldType });
+  const next = prompt('System Code:', currentCode || '');
+  if (next === null || !next.trim()) return;
+  saveRadioSystemField(id, { default_code: next.trim() });
 }
 
 async function saveRadioSystemField(id, patch) {
@@ -17810,13 +17793,13 @@ async function saveRadioSystemField(id, patch) {
 
 async function addRadioSystem() {
   const labelInp = document.getElementById('newRadioSystemLabel');
-  const fieldSel = document.getElementById('newRadioSystemFieldType');
   const codeInp  = document.getElementById('newRadioSystemCode');
   const label = labelInp?.value.trim();
-  if (!label) return;
+  const code  = codeInp?.value.trim();
+  if (!label) { labelInp?.focus(); return; }
+  if (!code)  { alert('System Code is required.'); codeInp?.focus(); return; }
   const { error } = await sb.from('radio_systems').insert({
-    label, field_type: fieldSel?.value || 'mdc_id',
-    default_code: codeInp?.value.trim() || null,
+    label, default_code: code,
     sort_order: radioSystems.length, agency_id: agencyId(),
   });
   if (error) { alert(error.message); return; }
@@ -17824,13 +17807,11 @@ async function addRadioSystem() {
   codeInp.value = '';
   await loadRadioSystems();
   renderRadioSystemList();
-  logEvent('system', 'Radio System Added', label);
+  logEvent('system', 'Radio System Added', `${label} (${code})`);
 }
 
 async function deleteRadioSystem(id, label) {
-  const inUse = ridRanges.filter(r => r.system_id === id).length;
-  const warn = inUse ? `\n\n⚠ ${inUse} RID range(s) currently use this System — they'll fall back to unrestricted (checked against no specific field) until reassigned.` : '';
-  if (!confirm(`Delete System "${label}"?${warn}`)) return;
+  if (!confirm(`Delete System "${label}"?`)) return;
   const { error } = await sb.from('radio_systems').delete().eq('id', id);
   if (error) { alert(error.message); return; }
   await loadRadioSystems();
@@ -17838,29 +17819,14 @@ async function deleteRadioSystem(id, label) {
   logEvent('system', 'Radio System Deleted', label);
 }
 
-// Populates the RID Range edit form's System dropdown from radioSystems.
-// Called both from Radio Config (to keep it fresh) and from
-// openRidRangeForm() right before it's actually used.
-function populateRrSystemDropdown() {
-  const sel = document.getElementById('rr-system');
-  if (!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">— Unrestricted (any System ID field) —</option>' +
-    radioSystems.map(s => `<option value="${s.id}">${escHtml(s.label)} (${RID_FIELD_TYPE_LABELS[s.field_type]||s.field_type})</option>`).join('');
-  sel.value = cur;
-}
-
-// When the admin picks a System on the RID Range form, auto-fill its
-// default code — but only if the codes field hasn't been hand-edited
-// this session, so we never clobber something they typed themselves.
-let rrCodesManuallyEdited = false;
-function onRrSystemChange() {
-  const sel = document.getElementById('rr-system');
-  const codesEl = document.getElementById('rr-system-codes');
-  if (!sel || !codesEl) return;
-  if (rrCodesManuallyEdited || codesEl.value.trim()) return;
-  const sys = radioSystems.find(s => String(s.id) === sel.value);
-  if (sys?.default_code) codesEl.value = sys.default_code;
+// Populates the RID Range form's code-autocomplete <datalist> from the
+// admin-managed Systems reference list. Called from Radio Config (to
+// keep it fresh) and from openRidRangeForm() right before it's used.
+function populateRrSystemCodeSuggestions() {
+  const dl = document.getElementById('rrSystemCodeSuggestions');
+  if (!dl) return;
+  dl.innerHTML = radioSystems.filter(s => s.default_code)
+    .map(s => `<option value="${escHtml(s.default_code)}">${escHtml(s.label)}</option>`).join('');
 }
 
 
@@ -19243,9 +19209,7 @@ function renderAdminRidRanges() {
   }
   el.innerHTML = ridRanges.map(r => {
     const count = r.end_id - r.start_id + 1;
-    const sysLabel = r.system_id
-      ? (radioSystems.find(s => s.id === r.system_id)?.label || 'Unknown System')
-      : r.system ? (radioSystems.find(s => s.field_type === r.system)?.label || RID_SYSTEM_LABELS[r.system] || r.system) : 'Any';
+    const sysLabel = r.system ? (RID_SYSTEM_LABELS[r.system] || r.system) : 'Any';
     const codes = (r.system_codes || []).join(', ');
     return `<div style="display:grid;grid-template-columns:1fr 90px 90px 110px 100px 80px;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
       <div>
@@ -19269,8 +19233,7 @@ function renderAdminRidRanges() {
 
 function openRidRangeForm(id) {
   ridRangeEditingId = id || null;
-  rrCodesManuallyEdited = false;
-  populateRrSystemDropdown();
+  populateRrSystemCodeSuggestions();
   if (id) {
     const r = ridRanges.find(x => String(x.id) === String(id));
     if (!r) return;
@@ -19279,16 +19242,8 @@ function openRidRangeForm(id) {
     document.getElementById('rr-start').value       = r.start_id    || '';
     document.getElementById('rr-end').value         = r.end_id      || '';
     document.getElementById('rr-description').value = r.description || '';
-    // Prefer the real system_id link; fall back to matching the legacy
-    // field-type string for any range saved before this rebuild.
-    let systemVal = r.system_id ? String(r.system_id) : '';
-    if (!systemVal && r.system) {
-      const matched = radioSystems.find(s => s.field_type === r.system);
-      if (matched) systemVal = String(matched.id);
-    }
-    document.getElementById('rr-system').value      = systemVal;
+    document.getElementById('rr-system').value      = r.system      || '';
     document.getElementById('rr-system-codes').value = (r.system_codes || []).join(', ');
-    if (document.getElementById('rr-system-codes').value) rrCodesManuallyEdited = true;
   } else {
     document.getElementById('ridRangeModalTitle').textContent = 'Add Range';
     ['rr-name','rr-start','rr-end','rr-description','rr-system-codes'].forEach(fid => document.getElementById(fid).value = '');
@@ -19307,8 +19262,7 @@ async function saveRidRange() {
   const start = parseInt(document.getElementById('rr-start').value);
   const end   = parseInt(document.getElementById('rr-end').value);
   const desc  = document.getElementById('rr-description').value.trim();
-  const systemIdVal = document.getElementById('rr-system').value || null;
-  const selectedSystem = systemIdVal ? radioSystems.find(s => String(s.id) === systemIdVal) : null;
+  const system = document.getElementById('rr-system').value || null;
   const systemCodes = document.getElementById('rr-system-codes').value.trim()
     ? document.getElementById('rr-system-codes').value.split(',').map(s => s.trim()).filter(Boolean)
     : null;
@@ -19323,9 +19277,7 @@ async function saveRidRange() {
 
   const row = {
     name, start_id: start, end_id: end, description: desc || null,
-    system_id: selectedSystem ? selectedSystem.id : null,
-    system: selectedSystem ? selectedSystem.field_type : null, // legacy text column, kept in sync
-    system_codes: systemCodes,
+    system, system_codes: systemCodes,
     updated_by: currentUser?.name || 'Unknown', updated_at: new Date().toISOString(),
     agency_id: agencyId(),
   };
@@ -19710,16 +19662,7 @@ function checkIdOutOfRange(fieldSystem, value) {
   if (!val) return null;
   const num = parseInt(val, 10);
   if (isNaN(num) || String(num) !== val) return null;
-  // A range applies to this field if either its system_id points at a
-  // System whose field_type matches, or (for ranges saved before the
-  // system_id column existed) its legacy system text matches directly.
-  const applicable = ridRanges.filter(r => {
-    if (r.system_id) {
-      const sys = radioSystems.find(s => s.id === r.system_id);
-      return sys?.field_type === fieldSystem;
-    }
-    return r.system === fieldSystem;
-  });
+  const applicable = ridRanges.filter(r => r.system === fieldSystem);
   if (!applicable.length) return null;
   const inRange = applicable.some(r => num >= r.start_id && num <= r.end_id);
   if (inRange) return null;
@@ -24093,14 +24036,20 @@ if ('serviceWorker' in navigator) {
       <div class="form-row">
         <div class="form-field">
           <label class="form-label">System</label>
-          <select class="form-select" id="rr-system" onchange="onRrSystemChange()">
+          <select class="form-select" id="rr-system">
             <option value="">— Unrestricted (any System ID field) —</option>
+            <option value="mdc_id">MDC ID</option>
+            <option value="larics_id">LARICS</option>
+            <option value="ici_id">ICI</option>
+            <option value="cwirs_id">CWIRS</option>
+            <option value="cris_id">CRIS</option>
           </select>
           <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Ties this range to one Inventory System ID field. Radio Inventory will warn if that field's entered value falls outside every range configured for it.</div>
         </div>
         <div class="form-field">
           <label class="form-label">System ID Code(s) <span style="font-weight:400;color:var(--text-dim);font-size:11px;text-transform:none;letter-spacing:0;">optional</span></label>
-          <input class="form-input" id="rr-system-codes" placeholder="e.g. 069F, 0376" style="font-family:var(--font-data);" onchange="rrCodesManuallyEdited=true;">
+          <input class="form-input" id="rr-system-codes" list="rrSystemCodeSuggestions" placeholder="e.g. 069F, 0376" style="font-family:var(--font-data);">
+          <datalist id="rrSystemCodeSuggestions"></datalist>
           <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Reference only — comma-separated. Not used in the numeric check.</div>
         </div>
       </div>
