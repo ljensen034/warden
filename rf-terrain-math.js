@@ -84,14 +84,28 @@ function fresnelRadius1(d1Miles, d2Miles, freqMHz) {
   return Math.sqrt(lambda * d1 * d2 / D);        // feet
 }
 
+// ── Earth curvature bulge at a point along a path ──
+// Standard engineering approximation: bulge_ft ≈ (0.667 × d1 × d2) / K,
+// with d1/d2 in miles and K the effective-Earth-radius factor (4/3 for
+// the standard atmosphere — this is the same K used throughout FCC/ham
+// VHF-UHF path engineering references). This bulge is added to terrain
+// elevation (not subtracted from the LOS line) since it represents how
+// much higher the ground effectively appears due to the Earth curving
+// away beneath a straight sightline.
+function earthCurvatureFt(d1Miles, d2Miles, k = 4/3) {
+  return (0.667 * d1Miles * d2Miles) / k;
+}
+
 // ── Terrain + Fresnel path analysis ──
 // Returns { losStatus, fresnelStatus, blockedAt, fresnelDetail, profile }
 // losStatus: 'clear' | 'blocked' | 'marginal'
 // fresnelStatus: 'clear' | 'partial' | 'obstructed'
-async function analyzeTerrainPath(lat1, lon1, elev1Ft, lat2, lon2, elev2Ft, freqMHz, antennaFt = 10) {
-  const ANTENNA_FT = antennaFt;
-  const hA = elev1Ft + ANTENNA_FT;
-  const hB = elev2Ft + ANTENNA_FT;
+// antennaFtA/antennaFtB are independent per-endpoint heights — real
+// paths aren't symmetric (e.g. a portable at 5-6ft AGL working a
+// repeater on an 80ft tower), so this no longer assumes one shared height.
+async function analyzeTerrainPath(lat1, lon1, elev1Ft, lat2, lon2, elev2Ft, freqMHz, antennaFtA = 10, antennaFtB = 10) {
+  const hA = elev1Ft + antennaFtA;
+  const hB = elev2Ft + antennaFtB;
   const D  = haversineMiles(lat1, lon1, lat2, lon2);
 
   if (D < 0.1) {
@@ -99,7 +113,15 @@ async function analyzeTerrainPath(lat1, lon1, elev1Ft, lat2, lon2, elev2Ft, freq
              fresnelDetail:'Same location', profile:[], D };
   }
 
-  const profile = await fetchElevationProfile(lat1, lon1, lat2, lon2, 12);
+  // Sample density scales with path length instead of a fixed count —
+  // a fixed 12 samples over a 20-mile VHF path (this tool's own "safe"
+  // distance threshold) leaves samples ~1.7 miles apart, easily coarse
+  // enough to step over a ridge or a cluster of buildings. One sample
+  // per ~0.5 mile, floor of 12 for short paths, capped at 80 so a very
+  // long path doesn't fire off an excessive number of parallel USGS
+  // EPQS point lookups.
+  const nSamples = Math.min(80, Math.max(12, Math.ceil(D / 0.5)));
+  const profile = await fetchElevationProfile(lat1, lon1, lat2, lon2, nSamples);
 
   // Fill in nulls with linear interpolation between known points
   for (let i = 0; i < profile.length; i++) {
@@ -129,8 +151,13 @@ async function analyzeTerrainPath(lat1, lon1, elev1Ft, lat2, lon2, elev2Ft, freq
     // LOS height at this point on the straight line between A and B antennas
     const losHeight = hA + (hB - hA) * p.t;
 
+    // Effective terrain height including the Earth-curvature bulge —
+    // the ground effectively sits higher relative to a straight sightline
+    // the farther out along the path you are from both endpoints.
+    const effectiveElevFt = p.elevFt + earthCurvatureFt(d1, d2);
+
     // Check direct LOS
-    if (p.elevFt > losHeight) {
+    if (effectiveElevFt > losHeight) {
       losBlocked = true;
       if (!blockedAt) blockedAt = p;
     }
@@ -138,7 +165,7 @@ async function analyzeTerrainPath(lat1, lon1, elev1Ft, lat2, lon2, elev2Ft, freq
     // Check Fresnel clearance
     const r1  = fresnelRadius1(d1, d2, freqMHz);             // ft
     const clr = FRESNEL_CLEARANCE * r1;                       // required clearance ft
-    const headroom = losHeight - p.elevFt;                    // terrain below LOS line
+    const headroom = losHeight - effectiveElevFt;              // terrain below LOS line
     if (headroom < clr) fresnelViolations++;
   }
 
@@ -153,3 +180,4 @@ async function analyzeTerrainPath(lat1, lon1, elev1Ft, lat2, lon2, elev2Ft, freq
 
   return { losStatus, fresnelStatus, blockedAt, fresnelViolations, interiorCount, profile, D, freqMHz };
 }
+  
