@@ -1392,61 +1392,6 @@
 
   .login-error.visible { display: block; }
 
-  .login-demo-accounts {
-    padding: 16px 32px 24px;
-    border-top: 1px solid var(--border);
-  }
-
-  .demo-label {
-    font-family: var(--font-data);
-    font-size: 12px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 10px;
-  }
-
-  .demo-users {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .demo-user-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: var(--transition);
-    text-align: left;
-    width: 100%;
-  }
-
-  .demo-user-btn:hover { border-color: var(--border-lit); background: var(--bg-hover); }
-
-  .demo-role-badge {
-    font-family: var(--font-data);
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 2px 7px;
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-
-  .role-admin   { background: rgba(255,82,82,0.15);  color: var(--status-active);    border: 1px solid rgba(255,82,82,0.3); }
-  .role-comms   { background: rgba(30,136,229,0.15); color: var(--accent);           border: 1px solid rgba(30,136,229,0.3); }
-  .role-viewer  { background: rgba(0,230,118,0.1);   color: var(--status-available); border: 1px solid rgba(0,230,118,0.25); }
-
-  .demo-user-info { flex: 1; }
-  .demo-user-name { font-size: 15px; color: var(--text-primary); font-family: var(--font-data); }
-  .demo-user-creds { font-size: 13px; color: var(--text-dim); font-family: var(--font-data); }
-
   /* topbar user display */
   .topbar-user {
     display: flex;
@@ -2223,7 +2168,6 @@
     .login-card { max-width: 100%; border-radius: 0; }
     .login-card-header { padding: 24px 24px 16px; }
     .login-body { padding: 20px 24px; }
-    .login-demo-accounts { padding: 12px 24px 20px; }
 
     /* ── READONLY BANNER ── */
     .readonly-banner { font-size: 12px; padding: 4px 8px; }
@@ -4233,7 +4177,7 @@
   <button class="btn-secondary" onclick="openShiftHandoff();toggleMobileMenu()">📋 Shift Handoff</button>
   <button class="btn-secondary" onclick="openMorningReport();toggleMobileMenu()">📋 Morning Report</button>
   <button class="btn-secondary" onclick="openBigBoard();toggleMobileMenu()">⛶ Big Board</button>
-  <button class="btn-secondary" onclick="mobileNav('notes');toggleMobileMenu()">📝 Release Notes</button>
+  <button class="btn-secondary" onclick="try{localStorage.setItem('warden_last_seen_build',BUILD_VERSION);}catch(e){};mobileNav('notes');toggleMobileMenu()">📝 Release Notes</button>
   <div class="menu-divider"></div>
   <button id="mobileAdminBtn" class="btn-secondary" onclick="openUserAdmin();toggleMobileMenu()" style="display:none;border-color:rgba(255,82,82,0.4);color:var(--status-active);">👥 User Administration</button>
   <div class="menu-divider"></div>
@@ -4282,8 +4226,12 @@
       👤 My Items <span class="nav-badge" id="myItemsBadge" style="display:none;margin-left:4px;">0</span>
     </button>
     <div class="topbar-dropdown-wrap" id="reportsDropdownWrap">
-      <button class="btn-secondary" onclick="toggleReportsDropdown(event)">🛠 Tools &amp; Reports <span style="font-size:11px;opacity:0.6;">▾</span></button>
+      <button class="btn-secondary" onclick="toggleReportsDropdown(event)">🛠 Tools &amp; Reports <span class="nav-badge" id="whatsNewDot" style="display:none;margin-left:2px;">•</span> <span style="font-size:11px;opacity:0.6;">▾</span></button>
       <div class="topbar-dropdown" id="reportsDropdown">
+        <div class="nav-group-item" onclick="openWhatsNew();" style="position:relative;">
+          <span class="nav-item-icon">📝</span>What's New
+          <span class="nav-badge" id="whatsNewBadge" style="display:none;margin-left:auto;">•</span>
+        </div>
         <div class="nav-group-item" onclick="closeReportsDropdown();openICS205();">
           <span class="nav-item-icon">⬇</span>ICS 205 Export
         </div>
@@ -4502,17 +4450,6 @@
       <button class="main-view-tab" id="mvtab-personnel" onclick="switchMainTab('personnel')" style="display:none;">👥 Personnel</button>
       <button class="main-view-tab" id="mvtab-resources" onclick="switchMainTab('resources')" style="display:none;">🚒 Resources</button>
       <button class="main-view-tab" id="mvtab-admin" onclick="switchMainTab('admin')" style="display:none;border-color:transparent;color:var(--status-active);">⚙ Admin</button>
-
-      <!-- Hidden legacy tab anchors kept for switchMainTab()'s generic active-state toggling -->
-      <span id="mvtab-channels" style="display:none;"></span>
-      <span id="mvtab-talkgroups" style="display:none;"></span>
-      <span id="mvtab-schedule" style="display:none;"></span>
-      <span id="mvtab-incidents" style="display:none;"></span>
-      <span id="mvtab-commreq" style="display:none;"></span>
-      <span id="mvtab-triggers" style="display:none;"></span>
-      <span id="mvtab-inventory" style="display:none;"></span>
-      <span id="mvtab-rid" style="display:none;"></span>
-      <span id="mvtab-parts" style="display:none;"></span>
     </div>
 
     <!-- ── OVERVIEW VIEW ── -->
@@ -5471,8 +5408,8 @@
             <button onclick="closeAdminUserForm()" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;line-height:1;">✕</button>
           </div>
           <div style="background:rgba(30,136,229,0.08);border:1px solid rgba(30,136,229,0.2);border-radius:4px;padding:10px 14px;margin-bottom:14px;font-size:14px;color:var(--text-secondary);line-height:1.6;" id="adminUfInstructions">
-            <strong style="color:var(--accent);">Step 1:</strong> Create the auth account in <strong>Supabase → Authentication → Users → Add User</strong> (set email + password there).<br>
-            <strong style="color:var(--accent);">Step 2:</strong> Fill this form — the app links the profile automatically by email.
+            <strong style="color:var(--accent);">Step 1:</strong> Create the auth account in <strong>Supabase → Authentication → Users → Add User</strong> (set email + password there), then copy the UUID shown on that user's row.<br>
+            <strong style="color:var(--accent);">Step 2:</strong> Fill this form and paste that UUID when prompted — the browser can't look it up automatically, since that requires a key that never ships to the client.
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
             <div class="form-field"><label class="form-label">Full Name *</label><input class="form-input" id="auf-name" placeholder="First Last"></div>
@@ -5612,7 +5549,7 @@
 
       <!-- CSV Import panel -->
       <div id="admin-import-panel" style="display:none;">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">
 
           <!-- Channel import -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
@@ -5670,6 +5607,20 @@
             </div>
           </div>
 
+          <!-- Parts & Supplies import -->
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+              <div style="font-family:var(--font-data);font-size:13px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">🧰 Import Parts &amp; Supplies</div>
+              <div style="font-size:13px;color:var(--text-dim);margin-top:3px;">CSV with headers matching the parts template</div>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+              <button class="btn-secondary" style="font-size:14px;" onclick="downloadTemplate('parts')">⬇ Download Template</button>
+              <input type="file" id="csvPartsFile" accept=".csv" style="font-size:14px;color:var(--text-secondary);">
+              <button class="btn-primary"   style="font-size:14px;" onclick="importCSV('parts')">📥 Import</button>
+              <div id="importPartsResult" style="font-size:13px;color:var(--text-dim);min-height:18px;font-family:var(--font-data);"></div>
+            </div>
+          </div>
+
         </div>
         <!-- Import notes -->
         <div style="margin-top:14px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text-dim);line-height:1.7;">
@@ -5690,6 +5641,18 @@
             </div>
           </div>
           <div id="presenceListAdmin" style="padding:12px 18px;font-size:14px;color:var(--text-secondary);">Loading…</div>
+        </div>
+
+        <!-- Full Data Backup -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
+          <div style="padding:12px 18px;border-bottom:1px solid var(--border);">
+            <div style="font-family:var(--font-data);font-size:13px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">💾 Full Data Backup</div>
+            <div style="font-size:13px;color:var(--text-dim);margin-top:4px;">Downloads every table this agency can read as a single JSON file — channels, inventory, personnel, logs, everything. Per-module CSV exports above only cover one table at a time; this is the full picture for disaster recovery.</div>
+          </div>
+          <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <button class="btn-primary" style="font-size:14px;" onclick="exportFullBackup()">⬇ Export Full Backup (JSON)</button>
+            <span id="fullBackupStatus" style="font-size:13px;color:var(--text-dim);font-family:var(--font-data);"></span>
+          </div>
         </div>
 
         <!-- Viewer Account configuration -->
@@ -6300,6 +6263,51 @@ if (typeof supabase === 'undefined') {
 }
 </script>
 <script>
+// ── LOCALSTORAGE KEY MIGRATION — runs once, before anything else reads
+// or writes a preference key. Older builds used a mix of "rf*" (a
+// leftover from this app's pre-WARDEN name) and bare key names; this
+// consolidates everything under a single "warden_*" namespace without
+// losing any existing user's saved preferences. Safe to leave in
+// permanently — once migrated, the old keys are gone and each check
+// below is a fast no-op.
+(function migrateLocalStorageKeys() {
+  const RENAMES = {
+    rfTheme:            'warden_theme',
+    rfMode:              'warden_mode',
+    rfNotifSettings:     'warden_notif_settings',
+    rfReleaseNotes:      'warden_release_notes',
+    rfTickerHidden:      'warden_ticker_hidden',
+    rfEmailServiceUrl:   'warden_email_service_url',
+    pubReqTheme:         'warden_pubreq_theme',
+  };
+  try {
+    Object.entries(RENAMES).forEach(([oldKey, newKey]) => {
+      const val = localStorage.getItem(oldKey);
+      if (val !== null && localStorage.getItem(newKey) === null) {
+        localStorage.setItem(newKey, val);
+      }
+      if (val !== null) localStorage.removeItem(oldKey);
+    });
+    // Onboarding-callout flags are dynamically keyed (rfOnboardSeen_<name>) —
+    // migrate every matching key rather than a fixed list.
+    const toMove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('rfOnboardSeen_')) toMove.push(k);
+    }
+    toMove.forEach(oldKey => {
+      const newKey = 'warden_onboard_seen_' + oldKey.slice('rfOnboardSeen_'.length);
+      const val = localStorage.getItem(oldKey);
+      if (val !== null && localStorage.getItem(newKey) === null) {
+        localStorage.setItem(newKey, val);
+      }
+      localStorage.removeItem(oldKey);
+    });
+  } catch(e) { /* localStorage unavailable — nothing to migrate */ }
+})();
+</script>
+<script src="rf-terrain-math.js"></script>
+<script>
 // ── SERVICE WORKER CACHE-BUST ──
 // Forces any cached stale build to be discarded immediately.
 // Runs synchronously before anything else so a bad cached version
@@ -6366,6 +6374,27 @@ const BUILD_VERSION = '20260705-031606'; // injected at deploy time
     setTimeout(tick, CHECK_INTERVAL);
   }, CHECK_INTERVAL);
 })();
+
+// ── "What's new" badge — reuses BUILD_VERSION above rather than tracking
+// release-note versions separately. If the build the user last acknowledged
+// differs from the one currently running, show a badge until they open
+// Release Notes. ──
+function checkForNewRelease() {
+  try {
+    const lastSeen = localStorage.getItem('warden_last_seen_build');
+    if (lastSeen === BUILD_VERSION) return;
+    document.getElementById('whatsNewDot')?.style.setProperty('display', 'inline-flex');
+    document.getElementById('whatsNewBadge')?.style.setProperty('display', 'inline-flex');
+  } catch(e) {}
+}
+function openWhatsNew() {
+  try { localStorage.setItem('warden_last_seen_build', BUILD_VERSION); } catch(e) {}
+  document.getElementById('whatsNewDot')?.style.setProperty('display', 'none');
+  document.getElementById('whatsNewBadge')?.style.setProperty('display', 'none');
+  closeReportsDropdown();
+  toggleSidePanel('notes');
+}
+
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpqbmh3bWtramdvZ3R5aWR6cmptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDMyNzcsImV4cCI6MjA5NjYxOTI3N30.AFILeKWgnKQNV1igRsZIFKxqTpCW-PwNLtN6ct2NPFo';
 
 if (typeof supabase === 'undefined') {
@@ -6378,6 +6407,41 @@ if (typeof supabase === 'undefined') {
   throw new Error('Supabase library not loaded — check CDN connectivity');
 }
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ─────────────────────────────────────────────
+// CLIENT-SIDE ERROR REPORTING
+// Catches uncaught exceptions and unhandled promise rejections and writes
+// them to the same activity_log table the System Log already reads, so an
+// admin can actually see when something broke in someone's browser instead
+// of it vanishing silently. Rate-limited per session so a repeating error
+// (e.g. a broken render loop) can't flood the log — each unique message
+// logs once per page load.
+const _clientErrorSeen = new Set();
+function reportClientError(kind, message, detail) {
+  const key = `${kind}:${message}`;
+  if (_clientErrorSeen.has(key)) return;
+  _clientErrorSeen.add(key);
+  console.error(`[${kind}]`, message, detail || '');
+  try {
+    sb.from('activity_log').insert({
+      message:    `[CLIENT ERROR] ${kind}: ${message}`,
+      category:   'system',
+      action:     'Client Error',
+      detail:     (detail || '').toString().slice(0, 2000),
+      actor:      (typeof currentUser !== 'undefined' && currentUser?.name) || 'Unknown (client error)',
+      actor_role: (typeof currentUser !== 'undefined' && currentUser?.role) || null,
+      extra:      JSON.stringify({ kind, url: location.href, ua: navigator.userAgent }),
+      agency_id:  (typeof agencyId === 'function') ? agencyId() : null,
+    }).then(() => {}, () => {}); // never let the error reporter itself throw
+  } catch(e) { /* reporting failed — nothing further we can do */ }
+}
+window.addEventListener('error', e => {
+  reportClientError('Uncaught Exception', e.message || String(e.error), e.error?.stack);
+});
+window.addEventListener('unhandledrejection', e => {
+  const reason = e.reason;
+  reportClientError('Unhandled Promise Rejection', reason?.message || String(reason), reason?.stack);
+});
 
 // ─────────────────────────────────────────────
 // DATA STORE
@@ -6645,7 +6709,7 @@ let tickerBuffer = []; // holds the most recent channel status changes, newest f
 const TICKER_MAX_ITEMS = 12; // enough to fill the ticker width on most screens without unbounded growth
 
 function loadTickerHiddenState() {
-  try { return localStorage.getItem('rfTickerHidden') === '1'; } catch(e) { return false; }
+  try { return localStorage.getItem('warden_ticker_hidden') === '1'; } catch(e) { return false; }
 }
 
 // A log row counts as a "channel status change" for ticker purposes if either:
@@ -6694,13 +6758,13 @@ function renderTicker(flash) {
 
 function hideTicker() {
   document.getElementById('liveTicker')?.classList.add('hidden');
-  try { localStorage.setItem('rfTickerHidden', '1'); } catch(e) {}
+  try { localStorage.setItem('warden_ticker_hidden', '1'); } catch(e) {}
   updateTickerVisibilityLabel();
 }
 
 function showTicker() {
   document.getElementById('liveTicker')?.classList.remove('hidden');
-  try { localStorage.removeItem('rfTickerHidden'); } catch(e) {}
+  try { localStorage.removeItem('warden_ticker_hidden'); } catch(e) {}
   updateTickerVisibilityLabel();
 }
 
@@ -7976,13 +8040,8 @@ function exportAuditCSV() {
     r.new_value || '',
     r.changed_by || '',
     r.note || '',
-  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv = [header.join(','), ...rows].join('\n');
-  const a = Object.assign(document.createElement('a'), {
-    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
-    download: `channel-audit-${new Date().toLocaleDateString('en-CA')}.csv`,
-  });
-  a.click();
+  ]);
+  downloadCSV(`channel-audit-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
 }
 
 function renderLog() {
@@ -9460,7 +9519,7 @@ function setTheme(name, el) {
   closeThemeDropdown();
 
   // Persist preference
-  try { localStorage.setItem('rfTheme', name); } catch(e) {}
+  try { localStorage.setItem('warden_theme', name); } catch(e) {}
 }
 
 function toggleThemeDropdown(e) {
@@ -9482,7 +9541,7 @@ document.addEventListener('click', function(e) {
 // Load saved theme
 (function() {
   try {
-    const saved = localStorage.getItem('rfTheme');
+    const saved = localStorage.getItem('warden_theme');
     if (saved && THEMES[saved]) {
       const opt = document.querySelector(`.theme-option[data-theme="${saved}"]`);
       setTheme(saved, opt);
@@ -9510,7 +9569,7 @@ function setMode(name, el) {
   currentMode = name;
   closeModeDropdown();
 
-  try { localStorage.setItem('rfMode', name); } catch(e) {}
+  try { localStorage.setItem('warden_mode', name); } catch(e) {}
 }
 
 function toggleModeDropdown(e) {
@@ -9531,7 +9590,7 @@ document.addEventListener('click', function(e) {
 // Load saved mode
 (function() {
   try {
-    const saved = localStorage.getItem('rfMode');
+    const saved = localStorage.getItem('warden_mode');
     if (saved && MODES[saved]) {
       const opt = document.querySelector(`.mode-option[data-mode="${saved}"]`);
       setMode(saved, opt);
@@ -9639,6 +9698,7 @@ async function doLogout() {
 async function onLoginSuccess() {
   const match = currentUser;
   document.getElementById('loginScreen').classList.add('hidden');
+  checkForNewRelease();
 
   if (match.role === 'viewer') document.body.classList.add('readonly');
 
@@ -10062,36 +10122,20 @@ async function saveUserForm() {
         errEl.textContent = '⚠ A profile with this email already exists.'; return;
       }
 
-      // Step 2: check if an auth user exists for this email via a lookup
-      // Since we can't call auth.admin from the browser, we ask the admin to have
-      // pre-created the auth user. We look up the UUID by matching against auth.users
-      // via the profiles.email column, or we accept a manual UUID entry.
+      // Step 2: the browser has no way to look up an auth user's UUID by email
+      // with only the anon key — that lookup requires the service_role key,
+      // which must never ship to the client. The admin pastes the UUID from
+      // Supabase Dashboard → Authentication → Users instead.
       const manualUUID = document.getElementById('uf-uuid')?.value.trim();
-      
       let userId = null;
 
       if (manualUUID && /^[0-9a-f-]{36}$/i.test(manualUUID)) {
-        // Admin supplied the UUID from Supabase dashboard
         userId = manualUUID;
-      } else {
-        // Try to discover the UUID: sign in temporarily won't work (would kick the admin out)
-        // Instead, attempt a direct profiles lookup to find any existing auth user with this email
-        // by checking the Supabase auth metadata endpoint
-        try {
-          const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-            headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
-          });
-          if (res.ok) {
-            const authData = await res.json();
-            const match = (authData.users || []).find(u => u.email === email);
-            if (match) userId = match.id;
-          }
-        } catch(e) { /* admin endpoint not accessible with anon key, expected */ }
       }
 
       if (!userId) {
         errEl.style.color = 'var(--status-reserved)';
-        errEl.textContent = '⚠ Auth user not found. Please create this user in Supabase Dashboard → Authentication → Users first, then paste their UUID below.';
+        errEl.textContent = '⚠ Paste this user\'s UUID from Supabase Dashboard → Authentication → Users below.';
         // Show the UUID input
         const uuidRow = document.getElementById('uf-uuid-row');
         if (uuidRow) uuidRow.style.display = 'flex';
@@ -10895,8 +10939,6 @@ function _syncBigBoardToWindow() {
   });
 }
 
-function _writeBigBoardWindow() {} // kept for safety, no longer used
-
 function _startBigBoardTimers() {
   bigBoardCountdown = 15;
   clearInterval(bigBoardInterval);
@@ -11532,7 +11574,7 @@ const NOTIF_COLORS = {
 
 function loadNotifSettings() {
   try {
-    const s = localStorage.getItem('rfNotifSettings');
+    const s = localStorage.getItem('warden_notif_settings');
     return s ? JSON.parse(s) : {
       added: true, updated: true, active: true, available: true,
       reserved: true, removed: true, sound: true, toast: true,
@@ -11563,7 +11605,7 @@ function saveNotifSettings() {
     emailResOverdue: document.getElementById('nt-email-res-overdue')?.checked ?? false,
     emailLowStock: document.getElementById('nt-email-lowstock')?.checked ?? false,
   };
-  try { localStorage.setItem('rfNotifSettings', JSON.stringify(notifSettings)); } catch(e) {}
+  try { localStorage.setItem('warden_notif_settings', JSON.stringify(notifSettings)); } catch(e) {}
 }
 
 function openNotifSettings() {
@@ -11653,21 +11695,17 @@ async function sendEmailNotification(subject, body, type) {
     
     // Replace this URL with your backend email service
     // Examples: Firebase Functions, AWS Lambda, SendGrid, Mailgun, etc.
-    const emailServiceUrl = localStorage.getItem('rfEmailServiceUrl') || '';
+    const emailServiceUrl = localStorage.getItem('warden_email_service_url') || '';
     
     if (emailServiceUrl) {
-      const response = await fetch(emailServiceUrl, {
+      await fetch(emailServiceUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailPayload)
       });
-      if (response.ok) {
-        console.log('📧 Email notification sent:', subject);
-      }
-    } else {
-      // Fallback: log to console for debugging
-      console.log('📧 Email notification ready (no service configured):', emailPayload);
     }
+    // If no email service URL is configured, there's nothing further to do —
+    // this function's job is just to relay to that webhook when one exists.
   } catch(e) {
     console.error('Email send error:', e);
   }
@@ -12296,7 +12334,7 @@ let editingNoteId = null;
 
 function loadReleaseNotes() {
   try {
-    const s = localStorage.getItem('rfReleaseNotes');
+    const s = localStorage.getItem('warden_release_notes');
     return s ? JSON.parse(s) : getDefaultNotes();
   } catch(e) { return getDefaultNotes(); }
 }
@@ -12314,7 +12352,7 @@ function getDefaultNotes() {
 }
 
 function saveReleaseNotes() {
-  try { localStorage.setItem('rfReleaseNotes', JSON.stringify(releaseNotes)); } catch(e) {}
+  try { localStorage.setItem('warden_release_notes', JSON.stringify(releaseNotes)); } catch(e) {}
 }
 
 function renderReleaseNotes() {
@@ -12347,6 +12385,19 @@ function renderReleaseNotes() {
 
 function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Shared CSV-download helper — every export*CSV function builds a header
+// array + an array of row-value-arrays and hands them here, instead of
+// each one re-implementing quote-escaping and the Blob-download dance.
+function downloadCSV(filename, header, rows) {
+  const csvRows = rows.map(row => row.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(','));
+  const csv = [header.join(','), ...csvRows].join('\n');
+  const a = Object.assign(document.createElement('a'), {
+    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
+    download: filename,
+  });
+  a.click();
 }
 
 // ─────────────────────────────────────────────
@@ -13002,24 +13053,14 @@ async function saveAdminUserForm() {
     const { data: existing } = await sb.from('profiles').select('id').eq('email', email);
     if (existing?.length) { errEl.textContent = '⚠ A profile with this email already exists.'; return; }
 
-    // Look up UUID from Supabase auth users endpoint (anon key only)
+    // The browser has no way to look up an auth user's UUID by email with
+    // only the anon key — that requires the service_role key, which must
+    // never ship to the client. Require the manually-pasted UUID.
     let userId = document.getElementById('auf-uuid')?.value.trim();
-    if (!userId || !/^[0-9a-f-]{36}$/i.test(userId)) {
-      userId = null;
-      try {
-        const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-          headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
-        });
-        if (res.ok) {
-          const d = await res.json();
-          const match = (d.users||[]).find(u => u.email === email);
-          if (match) userId = match.id;
-        }
-      } catch(e) {}
-    }
+    if (!userId || !/^[0-9a-f-]{36}$/i.test(userId)) userId = null;
     if (!userId) {
       errEl.style.color = 'var(--status-reserved)';
-      errEl.textContent = '⚠ Auth user not found. Create in Supabase → Auth → Users first, then paste UUID:';
+      errEl.textContent = '⚠ Paste this user\'s UUID from Supabase → Auth → Users below.';
       document.getElementById('auf-uuid-row').style.display = 'block';
       return;
     }
@@ -13376,13 +13417,58 @@ function exportSysLogCSV() {
     r.actor    || '',
     r.actor_role || '',
     r.extra    || '',
-  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv = [header.join(','), ...rows].join('\n');
+  ]);
+  downloadCSV(`comm-center-log-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
+}
+
+// ── FULL DATA BACKUP ──
+// Downloads every table this agency can read as one JSON file. Relies on
+// RLS to scope rows per-agency, same as every other query in this app —
+// there's no client-side agency_id filter here because none of the load*()
+// functions elsewhere use one either; this tool is only as safe as the RLS
+// policies behind it.
+const FULL_BACKUP_TABLES = [
+  'channels', 'talkgroups', 'reservations', 'incidents',
+  'comm_plan_requests', 'internal_channel_requests',
+  'radio_ids', 'radio_inventory', 'inventory_custody', 'trigger_log', 'inventory_log',
+  'record_history', 'resources',
+  'uas_aircraft', 'uas_personnel', 'uas_missions',
+  'personnel', 'personnel_teams',
+  'parts_inventory', 'parts_usage_log',
+  'rid_ranges', 'tro_zones', 'radio_models', 'radio_bands', 'channel_functions',
+  'system_notices', 'activity_log',
+];
+
+async function exportFullBackup() {
+  if (!confirm(`Export a full JSON backup covering ${FULL_BACKUP_TABLES.length} tables? This can take a moment on a large dataset.`)) return;
+  const statusEl = document.getElementById('fullBackupStatus');
+  const backup = {
+    exported_at: new Date().toISOString(),
+    exported_by: currentUser?.name || 'Unknown',
+    agency:      currentAgency?.name || null,
+    build:       BUILD_VERSION,
+    tables:      {},
+  };
+  let done = 0;
+  for (const t of FULL_BACKUP_TABLES) {
+    if (statusEl) statusEl.textContent = `Fetching ${t}… (${done}/${FULL_BACKUP_TABLES.length})`;
+    try {
+      const { data, error } = await sb.from(t).select('*');
+      backup.tables[t] = error ? { error: error.message } : (data || []);
+    } catch(e) {
+      backup.tables[t] = { error: e.message };
+    }
+    done++;
+  }
+  const json = JSON.stringify(backup, null, 2);
   const a = Object.assign(document.createElement('a'), {
-    href:     'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
-    download: `comm-center-log-${new Date().toLocaleDateString('en-CA')}.csv`,
+    href: 'data:application/json;charset=utf-8,' + encodeURIComponent(json),
+    download: `warden-backup-${new Date().toLocaleDateString('en-CA')}.json`,
   });
   a.click();
+  const rowCount = Object.values(backup.tables).reduce((sum, v) => sum + (Array.isArray(v) ? v.length : 0), 0);
+  if (statusEl) statusEl.textContent = `✓ Exported ${rowCount.toLocaleString()} rows across ${FULL_BACKUP_TABLES.length} tables`;
+  logEvent('admin', 'Full Backup Exported', `${FULL_BACKUP_TABLES.length} tables, ${rowCount} rows`, { tables: FULL_BACKUP_TABLES.length, rows: rowCount });
 }
 
 async function renderAdminSystem() {
@@ -13600,7 +13686,7 @@ async function loadResources() {
     const { data, error } = await sb.from('resources').select('*').order('name', { ascending: true });
     if (error) { console.warn('loadResources:', error.message); return; }
     resources = (data || []).map(rowToResource);
-  } catch(e) {}
+  } catch(e) { console.warn('loadResources exception:', e.message); }
 }
 
 function renderResources() {
@@ -13696,7 +13782,7 @@ async function quickStatusCycle(id) {
   logActivity(`Resource <span class="log-ch">${r.name}</span> → ${RES_STATUS_LABELS[next]}`);
 }
 
-function openResourceModal(id) {
+async function openResourceModal(id) {
   resourceEditingId = id;
   const deleteBtn = document.getElementById('rm-delete-btn');
 
@@ -13717,6 +13803,9 @@ function openResourceModal(id) {
     document.getElementById('rm-home').value             = r.home            || '';
     document.getElementById('rm-notes').value            = r.notes           || '';
     if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+    const histWrap = document.getElementById('resourceFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'block';
+    renderRecordHistoryPanel('resourceFieldHistory', 'resources', id);
   } else {
     document.getElementById('resourceModalTitle').textContent = 'Add Resource';
     ['rm-name','rm-unit-id','rm-assigned-to','rm-location','rm-signed-out-by','rm-home','rm-notes'].forEach(id => document.getElementById(id).value = '');
@@ -13726,6 +13815,8 @@ function openResourceModal(id) {
     document.getElementById('rm-quantity').value  = 1;
     document.getElementById('rm-expected-return').value = '';
     if (deleteBtn) deleteBtn.style.display = 'none';
+    const histWrap = document.getElementById('resourceFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'none';
   }
   toggleReturnFields();
   document.getElementById('resourceModal').classList.add('open');
@@ -13776,6 +13867,10 @@ async function saveResource() {
     const { error } = await sb.from('resources').update(row).eq('id', resourceEditingId);
     if (error) { alert('Error saving resource: ' + error.message); return; }
     logActivity(`Resource <span class="log-ch">${name}</span> updated — ${RES_STATUS_LABELS[status]}`);
+    if (prev) {
+      const fieldDiffs = diffRecordFields(prev, data, RESOURCE_TRACKED_FIELDS);
+      await logRecordHistory('resources', resourceEditingId, name, 'edited', fieldDiffs);
+    }
     // Email on sign-out
     if ((status === 'signed-out' || status === 'deployed') && prevStatus !== status) {
       sendEmailNotification(
@@ -13785,9 +13880,10 @@ async function saveResource() {
       );
     }
   } else {
-    const { error } = await sb.from('resources').insert(row);
+    const { data: inserted, error } = await sb.from('resources').insert(row).select('id').single();
     if (error) { alert('Error saving resource: ' + error.message); return; }
     logActivity(`Resource <span class="log-ch">${name}</span> added — ${RES_STATUS_LABELS[status]}`);
+    if (inserted?.id) await logRecordHistory('resources', inserted.id, name, 'created', null);
   }
 
   await loadResources();
@@ -14232,13 +14328,8 @@ function exportPartsCSV() {
     p.reorder_quantity ?? '', p.unit_cost != null ? Number(p.unit_cost).toFixed(2) : '',
     p.vendor||'', p.vendor_part_number||'', p.location||'',
     PART_STATUS_LABELS[partStockStatus(p)], p.notes||''
-  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv = [header.join(','), ...rows].join('\n');
-  const a = Object.assign(document.createElement('a'), {
-    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
-    download: `parts-inventory-${new Date().toLocaleDateString('en-CA')}.csv`,
-  });
-  a.click();
+  ]);
+  downloadCSV(`parts-inventory-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
 }
 
 // ─────────────────────────────────────────────
@@ -14655,6 +14746,9 @@ function openSchedModal(id) {
     const tgIds = r.talkgroupIds || [];
     [...tgSel.options].forEach(o => { o.selected = tgIds.map(String).includes(String(o.value)); });
     if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+    const histWrap = document.getElementById('reservationFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'block';
+    renderRecordHistoryPanel('reservationFieldHistory', 'reservations', id);
   } else {
     document.getElementById('schedModalTitle').textContent   = 'New Reservation';
     document.getElementById('sr-title').value                = '';
@@ -14682,6 +14776,8 @@ function openSchedModal(id) {
     document.getElementById('sr-start').value = `${ds}T08:00`;
     document.getElementById('sr-end').value   = `${ds}T17:00`;
     if (deleteBtn) deleteBtn.style.display = 'none';
+    const histWrap = document.getElementById('reservationFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'none';
   }
   renderChecklistFromSelect('sr-channel', 'sr-channel-checklist'); const _srS = document.getElementById('sr-channel-search'); if (_srS) _srS.value = '';
   renderChecklistFromSelect('sr-talkgroup', 'sr-talkgroup-checklist'); const _srTgS = document.getElementById('sr-talkgroup-search'); if (_srTgS) _srTgS.value = '';
@@ -14994,20 +15090,11 @@ function checkTimeConflicts() {
 // ─────────────────────────────────────────────
 // SIMPLEX REUSE RISK ENGINE
 // ─────────────────────────────────────────────
-
-// Haversine distance between two lat/lon points in miles
-// ─────────────────────────────────────────────
-// SIMPLEX REUSE RISK ENGINE  — v2
-// USGS 3DEP EPQS elevation  +  Fresnel zone
-// ─────────────────────────────────────────────
-
-function haversineMiles(lat1, lon1, lat2, lon2) {
-  const R    = 3958.8;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a    = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
+// haversineMiles(), bandFreqMHz(), BAND_THRESHOLDS, fetchElevationUSGS(),
+// fetchElevationProfile(), fresnelRadius1(), and analyzeTerrainPath() —
+// all shared with the RF Deconflicter Tool — now live in
+// rf-terrain-math.js, loaded via <script src> before this script. They
+// remain ordinary globals here, so every call site below is unchanged.
 
 // ─────────────────────────────────────────────
 // CA STANDARD CTCSS / NAC TONE TABLE
@@ -15126,136 +15213,6 @@ function detectBand(freqStr) {
   return 'UHF';
 }
 
-// Effective frequency (MHz) for Fresnel/propagation math — mid-band representative
-function bandFreqMHz(band) {
-  return { VHF: 155, UHF: 460, '700': 769, '800': 851 }[band] || 460;
-}
-
-const BAND_THRESHOLDS = {
-  VHF:  { safe: 20, caution: 8  },
-  UHF:  { safe: 12, caution: 4  },
-  '700':{ safe: 8,  caution: 3  },
-  '800':{ safe: 8,  caution: 3  },
-};
-
-// ── USGS 3DEP EPQS — single point elevation (feet) ──
-async function fetchElevationUSGS(lat, lon) {
-  try {
-    const url = `https://epqs.nationalmap.gov/v1/json?x=${lon}&y=${lat}&units=Feet&includeDate=false`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!r.ok) return null;
-    const d = await r.json();
-    // EPQS returns { value: "1234.56" } or { value: -1000000 } for ocean/error
-    const v = parseFloat(d.value);
-    return (isFinite(v) && v > -9000) ? Math.round(v) : null;
-  } catch(e) { return null; }
-}
-
-// ── USGS 3DEP EPQS — elevation profile along a path ──
-// Returns array of { lat, lon, elevFt, distMiles } sampled evenly between A and B
-async function fetchElevationProfile(lat1, lon1, lat2, lon2, nSamples = 12) {
-  const points = [];
-  const totalDist = haversineMiles(lat1, lon1, lat2, lon2);
-  for (let i = 0; i <= nSamples; i++) {
-    const t   = i / nSamples;
-    const lat = lat1 + t * (lat2 - lat1);
-    const lon = lon1 + t * (lon2 - lon1);
-    points.push({ lat, lon, t, distMiles: t * totalDist });
-  }
-
-  // Fetch all points in parallel (EPQS has no batch endpoint — parallel point queries)
-  const results = await Promise.all(
-    points.map(async p => {
-      const elev = await fetchElevationUSGS(p.lat, p.lon);
-      return { ...p, elevFt: elev ?? null };
-    })
-  );
-
-  return results;
-}
-
-// ── Fresnel zone first-radius at a point along a path ──
-// d1 = distance from point to site A (miles), d2 = distance to site B (miles)
-// freqMHz = operating frequency, returns radius in feet
-function fresnelRadius1(d1Miles, d2Miles, freqMHz) {
-  // r1 = sqrt(λ * d1 * d2 / D)  where all in same units
-  // λ = c / f;  using miles for distance then convert to feet
-  const d1 = d1Miles * 5280; // feet
-  const d2 = d2Miles * 5280;
-  const D  = d1 + d2;
-  const lambda = 984_000_000 / (freqMHz * 1e6); // feet  (c = 984,000,000 ft/s)
-  return Math.sqrt(lambda * d1 * d2 / D);        // feet
-}
-
-// ── Terrain + Fresnel path analysis ──
-// Returns { losStatus, fresnelStatus, blockedAt, fresnelDetail, profile }
-// losStatus: 'clear' | 'blocked' | 'marginal'
-// fresnelStatus: 'clear' | 'partial' | 'obstructed'
-async function analyzeTerrainPath(lat1, lon1, elev1Ft, lat2, lon2, elev2Ft, freqMHz, antennaFt = 10) {
-  const ANTENNA_FT = antennaFt;
-  const hA = elev1Ft + ANTENNA_FT;
-  const hB = elev2Ft + ANTENNA_FT;
-  const D  = haversineMiles(lat1, lon1, lat2, lon2);
-
-  if (D < 0.1) {
-    return { losStatus:'clear', fresnelStatus:'clear', blockedAt:null,
-             fresnelDetail:'Same location', profile:[], D };
-  }
-
-  const profile = await fetchElevationProfile(lat1, lon1, lat2, lon2, 12);
-
-  // Fill in nulls with linear interpolation between known points
-  for (let i = 0; i < profile.length; i++) {
-    if (profile[i].elevFt === null) {
-      // find nearest known neighbors
-      let prev = i - 1, next = i + 1;
-      while (prev >= 0 && profile[prev].elevFt === null) prev--;
-      while (next < profile.length && profile[next].elevFt === null) next++;
-      if (prev >= 0 && next < profile.length) {
-        const span = next - prev;
-        profile[i].elevFt = profile[prev].elevFt +
-          ((profile[next].elevFt - profile[prev].elevFt) / span) * (i - prev);
-      } else if (prev >= 0) profile[i].elevFt = profile[prev].elevFt;
-      else if (next < profile.length) profile[i].elevFt = profile[next].elevFt;
-      else profile[i].elevFt = (elev1Ft + elev2Ft) / 2;
-    }
-  }
-
-  let losBlocked = false, fresnelViolations = 0, blockedAt = null;
-  const FRESNEL_CLEARANCE = 0.6; // 60% first Fresnel zone clearance required
-
-  for (const p of profile) {
-    if (p.t === 0 || p.t === 1) continue; // skip endpoints
-    const d1 = p.t * D;
-    const d2 = (1 - p.t) * D;
-
-    // LOS height at this point on the straight line between A and B antennas
-    const losHeight = hA + (hB - hA) * p.t;
-
-    // Check direct LOS
-    if (p.elevFt > losHeight) {
-      losBlocked = true;
-      if (!blockedAt) blockedAt = p;
-    }
-
-    // Check Fresnel clearance
-    const r1  = fresnelRadius1(d1, d2, freqMHz);             // ft
-    const clr = FRESNEL_CLEARANCE * r1;                       // required clearance ft
-    const headroom = losHeight - p.elevFt;                    // terrain below LOS line
-    if (headroom < clr) fresnelViolations++;
-  }
-
-  const interiorCount = profile.length - 2;
-  const fresnelRatio  = fresnelViolations / Math.max(interiorCount, 1);
-
-  const losStatus     = losBlocked ? 'blocked' : 'clear';
-  let fresnelStatus;
-  if (fresnelRatio === 0)       fresnelStatus = 'clear';
-  else if (fresnelRatio < 0.4)  fresnelStatus = 'partial';
-  else                          fresnelStatus = 'obstructed';
-
-  return { losStatus, fresnelStatus, blockedAt, fresnelViolations, interiorCount, profile, D, freqMHz };
-}
 
 // ── Main risk engine (async, DEM-backed) ──
 async function runSimplexRiskEngine() {
@@ -15540,12 +15497,17 @@ async function saveReservation() {
   const row = reservationToRow(data);
 
   if (schedEditingId) {
+    const prev = reservations.find(r => r.id === schedEditingId);
     const { error } = await sb.from('reservations').update(row).eq('id', schedEditingId);
     if (error) { errEl.textContent = '⚠ Error saving: ' + error.message; errEl.style.display='block'; return; }
     logEvent('reservation', 'Updated', `"${title}" · ${resourceLabel} · ${data.start} → ${data.end}`, {
       channels: channelDesignators, talkgroups: talkgroupLabels, requestor: data.requestor, agency: data.agency,
       priority: data.priority, lat: data.lat, lon: data.lon, city: data.city
     });
+    if (prev) {
+      const fieldDiffs = diffRecordFields(prev, data, RESERVATION_TRACKED_FIELDS);
+      await logRecordHistory('reservations', schedEditingId, title, 'edited', fieldDiffs);
+    }
   } else {
     const recurType  = document.getElementById('sr-recur-type').value;
     const recurUntil = document.getElementById('sr-recur-until').value;
@@ -15564,12 +15526,13 @@ async function saveReservation() {
         channels: channelDesignators, talkgroups: talkgroupLabels, count: occurrences.length, recurType
       });
     } else {
-      const { error } = await sb.from('reservations').insert(row);
+      const { data: inserted, error } = await sb.from('reservations').insert(row).select('id').single();
       if (error) { errEl.textContent = '⚠ Error saving: ' + error.message; errEl.style.display='block'; return; }
       logEvent('reservation', 'Created', `"${title}" · ${resourceLabel} · ${data.start} → ${data.end}`, {
         channels: channelDesignators, talkgroups: talkgroupLabels, requestor: data.requestor, agency: data.agency,
         priority: data.priority, lat: data.lat, lon: data.lon, city: data.city, coml: data.coml
       });
+      if (inserted?.id) await logRecordHistory('reservations', inserted.id, title, 'created', null);
     }
   }
 
@@ -16319,7 +16282,7 @@ let recommendSourceId   = null;
 // browser/device (localStorage), never shown again. Kept deliberately simple —
 // no tour library, no multi-step sequence, just "explain it once, then get out
 // of the way."
-const ONBOARDING_KEY_PREFIX = 'rfOnboardSeen_';
+const ONBOARDING_KEY_PREFIX = 'warden_onboard_seen_';
 
 function shouldShowOnboarding(key) {
   try { return !localStorage.getItem(ONBOARDING_KEY_PREFIX + key); } catch(e) { return true; }
@@ -17242,13 +17205,8 @@ function exportChannelsCSV() {
     ch.designator||'', ch.freq||'', ch.rxTone||'', ch.rxFreq||ch.freq||'', ch.txTone||'',
     ch.bandwidth||'', ch.power||'', ch.adm||'', ch.status||'', ch.function&&ch.function!=='—'?ch.function:'',
     ch.activeFor||'', ch.warning||'', ch.agency&&ch.agency!=='—'?ch.agency:'', ch.notes||''
-  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv = [header.join(','), ...rows].join('\n');
-  const a = Object.assign(document.createElement('a'), {
-    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
-    download: `channel-plan-${new Date().toLocaleDateString('en-CA')}.csv`,
-  });
-  a.click();
+  ]);
+  downloadCSV(`channel-plan-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
   logEvent('channel', 'CSV Export', `${channels.length} channels exported`);
 }
 
@@ -17257,13 +17215,8 @@ function exportTalkgroupsCSV() {
   const header = ['tg_id','system','name','agency','status','encryption','priority','notes'];
   const rows = talkgroups.map(tg => [
     tg.tgId||'', tg.system||'', tg.name||'', tg.agency||'', tg.status||'', tg.encryption||'', tg.priority||'', tg.notes||''
-  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv = [header.join(','), ...rows].join('\n');
-  const a = Object.assign(document.createElement('a'), {
-    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
-    download: `talkgroups-${new Date().toLocaleDateString('en-CA')}.csv`,
-  });
-  a.click();
+  ]);
+  downloadCSV(`talkgroups-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
   logEvent('talkgroup', 'CSV Export', `${talkgroups.length} talkgroups exported`);
 }
 
@@ -17273,13 +17226,8 @@ function exportTriggersCSV() {
   const rows = triggers.map(t => [
     t.mdc_id||'', t.assignment||'', t.serial_number||'', t.radio_model||'', t.radio_band||'',
     t.larics_id||'', t.ici_id||'', t.cwirs_id||'', t.cris_id||'', t.notes||''
-  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv = [header.join(','), ...rows].join('\n');
-  const a = Object.assign(document.createElement('a'), {
-    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
-    download: `trigger-lookup-${new Date().toLocaleDateString('en-CA')}.csv`,
-  });
-  a.click();
+  ]);
+  downloadCSV(`trigger-lookup-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
   logEvent('trigger', 'CSV Export', `${triggers.length} trigger records exported`);
 }
 
@@ -17413,33 +17361,41 @@ function copyLaricsToOthers() {
   }
 }
 
-async function checkTriggerDuplicates() {
-  const serial = document.getElementById('te-serial')?.value.trim();
-  const larics = document.getElementById('te-larics')?.value.trim();
-  const ici    = document.getElementById('te-ici')?.value.trim();
-  const cwirs  = document.getElementById('te-cwirs')?.value.trim();
-  const cris   = document.getElementById('te-cris')?.value.trim();
-
-  const checkField = (val, field, warnId) => {
+// Shared duplicate-ID checker — used by both the Trigger Lookup form and
+// the Radio Inventory form, since both need to warn "this ID is already
+// assigned somewhere else" against one or more record arrays.
+function checkDuplicateFields(fields, sources) {
+  fields.forEach(({ inputId, dbCol, warnId }) => {
+    const val = document.getElementById(inputId)?.value.trim();
     const warnEl = document.getElementById(warnId);
     if (!warnEl) return;
     if (!val) { warnEl.textContent = ''; return; }
-    const dup = triggers.find(t =>
-      String(t.id) !== String(triggerEditingId) &&
-      t[field] && t[field].toLowerCase() === val.toLowerCase()
-    );
-    if (dup) {
-      warnEl.innerHTML = `🚨 DUPLICATE — already assigned to MDC <strong>${dup.mdc_id}</strong> (${dup.assignment||'—'})`;
-    } else {
-      warnEl.textContent = '';
-    }
-  };
 
-  checkField(serial, 'serial_number', 'te-serial-warn');
-  checkField(larics, 'larics_id',     'te-larics-warn');
-  checkField(ici,    'ici_id',        'te-ici-warn');
-  checkField(cwirs,  'cwirs_id',      'te-cwirs-warn');
-  checkField(cris,   'cris_id',       'te-cris-warn');
+    for (const src of sources) {
+      const dup = src.records.find(r =>
+        String(r.id) !== String(src.excludeId) &&
+        (r[dbCol] || '').trim().toLowerCase() === val.toLowerCase()
+      );
+      if (dup) { warnEl.innerHTML = src.describe(dup); return; }
+    }
+    warnEl.textContent = '';
+  });
+}
+
+function checkTriggerDuplicates() {
+  checkDuplicateFields(
+    [
+      { inputId:'te-serial', dbCol:'serial_number' , warnId:'te-serial-warn' },
+      { inputId:'te-larics', dbCol:'larics_id',       warnId:'te-larics-warn' },
+      { inputId:'te-ici',    dbCol:'ici_id',           warnId:'te-ici-warn' },
+      { inputId:'te-cwirs',  dbCol:'cwirs_id',         warnId:'te-cwirs-warn' },
+      { inputId:'te-cris',   dbCol:'cris_id',          warnId:'te-cris-warn' },
+    ],
+    [{
+      records: triggers, excludeId: triggerEditingId,
+      describe: dup => `🚨 DUPLICATE — already assigned to MDC <strong>${dup.mdc_id}</strong> (${dup.assignment||'—'})`,
+    }]
+  );
 }
 
 async function openTriggerEditForm(id) {
@@ -17647,10 +17603,8 @@ function exportTriggerLogCSV() {
   const rows = trlogCache.map(r => [
     new Date(r.created_at).toLocaleString('en-US',{timeZone:'America/Los_Angeles'}),
     r.action||'', r.mdc_id||'', r.detail||'', r.actor||'', r.actor_role||''
-  ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv = [header.join(','),...rows].join('\n');
-  const a = Object.assign(document.createElement('a'),{href:'data:text/csv;charset=utf-8,'+encodeURIComponent(csv),download:`trigger-log-${new Date().toLocaleDateString('en-CA')}.csv`});
-  a.click();
+  ]);
+  downloadCSV(`trigger-log-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
 }
 
 // ─────────────────────────────────────────────
@@ -17786,6 +17740,87 @@ const TRIGGER_TRACKED_FIELDS = [
   { key:'cris_id',       label:'CRIS' },
 ];
 
+// ── Tracked-field maps for the four modules getting audit trail this pass:
+// Resources, UAS (fleet/personnel/missions), Personnel (roster/teams),
+// and Reservations. Same diffRecordFields()/logRecordHistory() engine as
+// Inventory and Trigger Lookup above — nothing new to build, just new
+// field maps and new call sites in each module's save function.
+const RESOURCE_TRACKED_FIELDS = [
+  { key:'name',           label:'Name' },
+  { key:'unitId',         label:'Unit ID' },
+  { key:'category',       label:'Category' },
+  { key:'status',         label:'Status', fmt: v => RES_STATUS_LABELS[v] || v },
+  { key:'assignedTo',     label:'Assigned To' },
+  { key:'location',       label:'Location' },
+  { key:'signedOutBy',    label:'Signed Out By' },
+  { key:'condition',      label:'Condition' },
+  { key:'quantity',       label:'Quantity' },
+  { key:'home',           label:'Home Station' },
+];
+
+const UAS_AIRCRAFT_TRACKED_FIELDS = [
+  { key:'tail_number',           label:'Tail Number' },
+  { key:'make',                   label:'Make' },
+  { key:'model',                  label:'Model' },
+  { key:'serial_number',          label:'Serial' },
+  { key:'status',                 label:'Status', fmt: v => UAS_FLEET_STATUS_LABELS[v] || v },
+  { key:'flight_hours',           label:'Flight Hours' },
+  { key:'battery_pct',            label:'Battery %' },
+  { key:'next_maintenance_date',  label:'Next Maintenance' },
+  { key:'payload',                label:'Payload' },
+];
+
+const UAS_PERSON_TRACKED_FIELDS = [
+  { key:'name',             label:'Name' },
+  { key:'role',              label:'Role', fmt: v => UAS_ROLE_LABELS[v] || v },
+  { key:'unit',               label:'Unit' },
+  { key:'cert_number',        label:'Cert #' },
+  { key:'cert_expires',       label:'Cert Expires' },
+  { key:'medical_expires',    label:'Medical Expires' },
+  { key:'status',             label:'Status', fmt: v => UAS_PERSON_STATUS_LABELS[v] || v },
+  { key:'phone',              label:'Phone' },
+];
+
+const UAS_MISSION_TRACKED_FIELDS = [
+  { key:'title',       label:'Title' },
+  { key:'status',        label:'Status', fmt: v => UAS_MISSION_STATUS_LABELS[v] || v },
+  { key:'start_time',    label:'Start' },
+  { key:'end_time',      label:'End' },
+  { key:'location',      label:'Location' },
+  { key:'aircraft_id',   label:'Aircraft' },
+  { key:'pic_id',        label:'PIC' },
+  { key:'vo_id',         label:'Visual Observer' },
+  { key:'objective',     label:'Objective' },
+];
+
+const PERSON_TRACKED_FIELDS = [
+  { key:'name',          label:'Name' },
+  { key:'role_title',     label:'Role / Title' },
+  { key:'team_id',         label:'Team' },
+  { key:'phone',           label:'Phone' },
+  { key:'email',           label:'Email' },
+  { key:'cert_number',     label:'Cert #' },
+  { key:'cert_expires',    label:'Cert Expires' },
+  { key:'status',          label:'Status', fmt: v => PERSON_STATUS_LABELS[v] || v },
+];
+
+const PERSONNEL_TEAM_TRACKED_FIELDS = [
+  { key:'name',         label:'Team Name' },
+  { key:'description',   label:'Description' },
+  { key:'color',          label:'Color' },
+];
+
+const RESERVATION_TRACKED_FIELDS = [
+  { key:'title',              label:'Title' },
+  { key:'start',                label:'Start' },
+  { key:'end',                  label:'End' },
+  { key:'channelDesignator',    label:'Channel(s)' },
+  { key:'requestor',            label:'Requestor' },
+  { key:'agency',                label:'Agency' },
+  { key:'coml',                   label:'COML' },
+  { key:'priority',               label:'Priority' },
+];
+
 async function loadInventory() {
   try {
     const { data, error } = await sb.from('radio_inventory').select('*').order('serial_number');
@@ -17840,7 +17875,7 @@ async function loadUasFleet() {
     const { data, error } = await sb.from('uas_aircraft').select('*').order('tail_number', { ascending: true });
     if (error) { console.warn('loadUasFleet:', error.message); return; }
     uasFleet = data || [];
-  } catch(e) {}
+  } catch(e) { console.warn('loadUasFleet exception:', e.message); }
 }
 
 async function loadUasPersonnel() {
@@ -17848,7 +17883,7 @@ async function loadUasPersonnel() {
     const { data, error } = await sb.from('uas_personnel').select('*').order('name', { ascending: true });
     if (error) { console.warn('loadUasPersonnel:', error.message); return; }
     uasPersonnel = data || [];
-  } catch(e) {}
+  } catch(e) { console.warn('loadUasPersonnel exception:', e.message); }
 }
 
 async function loadUasMissions() {
@@ -17856,7 +17891,7 @@ async function loadUasMissions() {
     const { data, error } = await sb.from('uas_missions').select('*').order('start_time', { ascending: false });
     if (error) { console.warn('loadUasMissions:', error.message); return; }
     uasMissions = data || [];
-  } catch(e) {}
+  } catch(e) { console.warn('loadUasMissions exception:', e.message); }
 }
 
 // ── Tab switching ──
@@ -17948,11 +17983,16 @@ async function openUasAircraftForm(id) {
     document.getElementById('uas-payload').value        = a.payload || '';
     document.getElementById('uas-acnotes').value        = a.notes || '';
     document.getElementById('uasAircraftDeleteBtn').style.display = 'inline-flex';
+    const histWrap = document.getElementById('uasAircraftFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'block';
+    renderRecordHistoryPanel('uasAircraftFieldHistory', 'uas_aircraft', id);
   } else {
     document.getElementById('uasAircraftModalTitle').textContent = 'Add Aircraft';
     ['uas-tail','uas-make','uas-model','uas-serial','uas-flighthours','uas-battpct','uas-nextmaint','uas-payload','uas-acnotes'].forEach(fid => document.getElementById(fid).value = '');
     document.getElementById('uas-status').value = 'available';
     document.getElementById('uasAircraftDeleteBtn').style.display = 'none';
+    const histWrap = document.getElementById('uasAircraftFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'none';
   }
   document.getElementById('uasAircraftModal').classList.add('open');
 }
@@ -17983,13 +18023,19 @@ async function saveUasAircraft() {
   };
 
   if (uasFleetEditingId) {
+    const prev = uasFleet.find(x => String(x.id) === String(uasFleetEditingId));
     const { error } = await sb.from('uas_aircraft').update(row).eq('id', uasFleetEditingId);
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('uas', 'Aircraft Updated', `${tail}`, { tail });
+    if (prev) {
+      const fieldDiffs = diffRecordFields(prev, row, UAS_AIRCRAFT_TRACKED_FIELDS);
+      await logRecordHistory('uas_aircraft', uasFleetEditingId, tail, 'edited', fieldDiffs);
+    }
   } else {
-    const { error } = await sb.from('uas_aircraft').insert(row);
+    const { data: inserted, error } = await sb.from('uas_aircraft').insert(row).select('id').single();
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('uas', 'Aircraft Added', `${tail}`, { tail });
+    if (inserted?.id) await logRecordHistory('uas_aircraft', inserted.id, tail, 'created', null);
   }
   await loadUasFleet();
   closeUasAircraftForm();
@@ -18089,12 +18135,17 @@ async function openUasPersonForm(id) {
     document.getElementById('uas-p-phone').value     = p.phone || '';
     document.getElementById('uas-p-notes').value     = p.notes || '';
     document.getElementById('uasPersonDeleteBtn').style.display = 'inline-flex';
+    const histWrap = document.getElementById('uasPersonFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'block';
+    renderRecordHistoryPanel('uasPersonFieldHistory', 'uas_personnel', id);
   } else {
     document.getElementById('uasPersonModalTitle').textContent = 'Add Person';
     ['uas-p-name','uas-p-unit','uas-p-certnum','uas-p-certexp','uas-p-medical','uas-p-phone','uas-p-notes'].forEach(fid => document.getElementById(fid).value = '');
     document.getElementById('uas-p-role').value   = 'pilot';
     document.getElementById('uas-p-status').value = 'active';
     document.getElementById('uasPersonDeleteBtn').style.display = 'none';
+    const histWrap = document.getElementById('uasPersonFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'none';
   }
   document.getElementById('uasPersonModal').classList.add('open');
 }
@@ -18124,13 +18175,19 @@ async function saveUasPerson() {
   };
 
   if (uasPersonEditingId) {
+    const prev = uasPersonnel.find(x => String(x.id) === String(uasPersonEditingId));
     const { error } = await sb.from('uas_personnel').update(row).eq('id', uasPersonEditingId);
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('uas', 'Personnel Updated', name, { name });
+    if (prev) {
+      const fieldDiffs = diffRecordFields(prev, row, UAS_PERSON_TRACKED_FIELDS);
+      await logRecordHistory('uas_personnel', uasPersonEditingId, name, 'edited', fieldDiffs);
+    }
   } else {
-    const { error } = await sb.from('uas_personnel').insert(row);
+    const { data: inserted, error } = await sb.from('uas_personnel').insert(row).select('id').single();
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('uas', 'Personnel Added', name, { name });
+    if (inserted?.id) await logRecordHistory('uas_personnel', inserted.id, name, 'created', null);
   }
   await loadUasPersonnel();
   closeUasPersonForm();
@@ -18223,6 +18280,9 @@ async function openUasMissionForm(id) {
     document.getElementById('uas-m-incident').value  = m.incident_id || '';
     document.getElementById('uas-m-notes').value     = m.notes || '';
     document.getElementById('uasMissionDeleteBtn').style.display = 'inline-flex';
+    const histWrap = document.getElementById('uasMissionFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'block';
+    renderRecordHistoryPanel('uasMissionFieldHistory', 'uas_missions', id);
   } else {
     document.getElementById('uasMissionModalTitle').textContent = 'New Mission';
     ['uas-m-title','uas-m-start','uas-m-end','uas-m-location','uas-m-objective','uas-m-notes'].forEach(fid => document.getElementById(fid).value = '');
@@ -18232,6 +18292,8 @@ async function openUasMissionForm(id) {
     document.getElementById('uas-m-vo').value       = '';
     document.getElementById('uas-m-incident').value = '';
     document.getElementById('uasMissionDeleteBtn').style.display = 'none';
+    const histWrap = document.getElementById('uasMissionFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'none';
   }
   document.getElementById('uasMissionModal').classList.add('open');
 }
@@ -18268,13 +18330,19 @@ async function saveUasMission() {
   };
 
   if (uasMissionEditingId) {
+    const prev = uasMissions.find(x => String(x.id) === String(uasMissionEditingId));
     const { error } = await sb.from('uas_missions').update(row).eq('id', uasMissionEditingId);
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('uas', 'Mission Updated', title, { title, status: row.status });
+    if (prev) {
+      const fieldDiffs = diffRecordFields(prev, row, UAS_MISSION_TRACKED_FIELDS);
+      await logRecordHistory('uas_missions', uasMissionEditingId, title, 'edited', fieldDiffs);
+    }
   } else {
-    const { error } = await sb.from('uas_missions').insert(row);
+    const { data: inserted, error } = await sb.from('uas_missions').insert(row).select('id').single();
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('uas', 'Mission Created', title, { title, status: row.status });
+    if (inserted?.id) await logRecordHistory('uas_missions', inserted.id, title, 'created', null);
   }
   await loadUasMissions();
   closeUasMissionForm();
@@ -18313,7 +18381,7 @@ async function loadPersonnelTeams() {
     const { data, error } = await sb.from('personnel_teams').select('*').order('name', { ascending: true });
     if (error) { console.warn('loadPersonnelTeams:', error.message); return; }
     personnelTeams = data || [];
-  } catch(e) {}
+  } catch(e) { console.warn('loadPersonnelTeams exception:', e.message); }
 }
 
 async function loadPersonnelRoster() {
@@ -18321,7 +18389,7 @@ async function loadPersonnelRoster() {
     const { data, error } = await sb.from('personnel').select('*').order('name', { ascending: true });
     if (error) { console.warn('loadPersonnelRoster:', error.message); return; }
     personnelRoster = data || [];
-  } catch(e) {}
+  } catch(e) { console.warn('loadPersonnelRoster exception:', e.message); }
 }
 
 // ── Tab switching ──
@@ -18451,11 +18519,9 @@ function exportPersonnelCSV() {
     return [
       p.name||'', p.role_title||'', team?.name||'', p.phone||'', p.email||'',
       p.cert_number||'', p.cert_expires||'', PERSON_STATUS_LABELS[p.status]||p.status||'', p.notes||''
-    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+    ];
   });
-  const csv = [header.join(','), ...rows].join('\n');
-  const a = Object.assign(document.createElement('a'), { href:'data:text/csv;charset=utf-8,'+encodeURIComponent(csv), download:`personnel-roster-${new Date().toLocaleDateString('en-CA')}.csv` });
-  a.click();
+  downloadCSV(`personnel-roster-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
 }
 
 function exportPersonnelPDF() {
@@ -18520,12 +18586,17 @@ async function openUasPersonnelForm(id) {
     document.getElementById('per-p-status').value   = p.status || 'active';
     document.getElementById('per-p-notes').value    = p.notes || '';
     document.getElementById('personDeleteBtn').style.display = 'inline-flex';
+    const histWrap = document.getElementById('personFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'block';
+    renderRecordHistoryPanel('personFieldHistory', 'personnel', id);
   } else {
     document.getElementById('personModalTitle').textContent = 'Add Person';
     ['per-p-name','per-p-roletitle','per-p-phone','per-p-email','per-p-certnum','per-p-certexp','per-p-notes'].forEach(fid => document.getElementById(fid).value = '');
     document.getElementById('per-p-team').value   = '';
     document.getElementById('per-p-status').value = 'active';
     document.getElementById('personDeleteBtn').style.display = 'none';
+    const histWrap = document.getElementById('personFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'none';
   }
   document.getElementById('personModal').classList.add('open');
 }
@@ -18556,13 +18627,19 @@ async function savePerson() {
   };
 
   if (personEditingId) {
+    const prev = personnelRoster.find(x => String(x.id) === String(personEditingId));
     const { error } = await sb.from('personnel').update(row).eq('id', personEditingId);
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('personnel', 'Person Updated', name, { name });
+    if (prev) {
+      const fieldDiffs = diffRecordFields(prev, row, PERSON_TRACKED_FIELDS);
+      await logRecordHistory('personnel', personEditingId, name, 'edited', fieldDiffs);
+    }
   } else {
-    const { error } = await sb.from('personnel').insert(row);
+    const { data: inserted, error } = await sb.from('personnel').insert(row).select('id').single();
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('personnel', 'Person Added', name, { name });
+    if (inserted?.id) await logRecordHistory('personnel', inserted.id, name, 'created', null);
   }
   await loadPersonnelRoster();
   closePersonForm();
@@ -18624,6 +18701,9 @@ function openTeamForm(id) {
     document.getElementById('per-t-color').value = t.color || '#1e88e5';
     document.getElementById('per-t-logo').value  = t.logo_url || '';
     document.getElementById('teamDeleteBtn').style.display = 'inline-flex';
+    const histWrap = document.getElementById('teamFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'block';
+    renderRecordHistoryPanel('teamFieldHistory', 'personnel_teams', id);
   } else {
     document.getElementById('teamModalTitle').textContent = 'Add Team';
     document.getElementById('per-t-name').value  = '';
@@ -18631,6 +18711,8 @@ function openTeamForm(id) {
     document.getElementById('per-t-color').value = '#1e88e5';
     document.getElementById('per-t-logo').value  = '';
     document.getElementById('teamDeleteBtn').style.display = 'none';
+    const histWrap = document.getElementById('teamFieldHistoryWrap');
+    if (histWrap) histWrap.style.display = 'none';
   }
   document.getElementById('teamModal').classList.add('open');
 }
@@ -18656,13 +18738,19 @@ async function saveTeam() {
   };
 
   if (personTeamEditingId) {
+    const prev = personnelTeams.find(x => String(x.id) === String(personTeamEditingId));
     const { error } = await sb.from('personnel_teams').update(row).eq('id', personTeamEditingId);
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('personnel', 'Team Updated', name, { name });
+    if (prev) {
+      const fieldDiffs = diffRecordFields(prev, row, PERSONNEL_TEAM_TRACKED_FIELDS);
+      await logRecordHistory('personnel_teams', personTeamEditingId, name, 'edited', fieldDiffs);
+    }
   } else {
-    const { error } = await sb.from('personnel_teams').insert(row);
+    const { data: inserted, error } = await sb.from('personnel_teams').insert(row).select('id').single();
     if (error) { alert('Error saving: ' + error.message); return; }
     logEvent('personnel', 'Team Added', name, { name });
+    if (inserted?.id) await logRecordHistory('personnel_teams', inserted.id, name, 'created', null);
   }
   await loadPersonnelTeams();
   closeTeamForm();
@@ -18704,7 +18792,7 @@ async function loadRidRanges() {
       .select('*').order('start_id', { ascending: true });
     if (error) { console.warn('loadRidRanges:', error.message); return; }
     ridRanges = data || [];
-  } catch(e) {}
+  } catch(e) { console.warn('loadRidRanges exception:', e.message); }
 }
 
 // Classify a single numeric ID against triggers + inventory.
@@ -18921,21 +19009,17 @@ function ridAssignToInventory(numericId) {
 
 // Export free IDs as CSV with range and neighbor context
 function exportFreeRidsCsv() {
-  const rows = [['Radio ID','Range','Range Start','Range End']];
+  const header = ['Radio ID','Range','Range Start','Range End'];
+  const rows = [];
   for (const range of ridRanges) {
     for (let id = range.start_id; id <= range.end_id; id++) {
       const { state } = classifyRid(id);
       if (state === 'free') rows.push([id, range.name, range.start_id, range.end_id]);
     }
   }
-  if (rows.length <= 1) { alert('No free IDs found.'); return; }
-  const csv = rows.map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a = Object.assign(document.createElement('a'),{
-    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
-    download: `free-radio-ids-${new Date().toLocaleDateString('en-CA')}.csv`
-  });
-  a.click();
-  logEvent('rid', 'Free IDs Exported', `${rows.length-1} free IDs exported to CSV`);
+  if (!rows.length) { alert('No free IDs found.'); return; }
+  downloadCSV(`free-radio-ids-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
+  logEvent('rid', 'Free IDs Exported', `${rows.length} free IDs exported to CSV`);
 }
 
 // ── ADMIN: RID Ranges ──
@@ -19426,30 +19510,21 @@ function copyIelaricsToOthers() {
 
 // Duplicate check across all radios in inventory for system IDs
 function checkInventorySystemIdDuplicates() {
-  const checks = [
-    { field: 'ie-larics', dbCol: 'larics_id', warn: 'ie-larics-warn', label: 'LARICS' },
-    { field: 'ie-ici',    dbCol: 'ici_id',    warn: 'ie-ici-warn',    label: 'ICI' },
-    { field: 'ie-cwirs',  dbCol: 'cwirs_id',  warn: 'ie-cwirs-warn',  label: 'CWIRS' },
-    { field: 'ie-cris',   dbCol: 'cris_id',   warn: 'ie-cris-warn',   label: 'CRIS' },
-  ];
-  checks.forEach(({ field, dbCol, warn, label }) => {
-    const val  = document.getElementById(field)?.value.trim();
-    const warnEl = document.getElementById(warn);
-    if (!val || !warnEl) { if (warnEl) warnEl.textContent = ''; return; }
-    // Check for duplicate in inventory
-    const dupInv = inventory.find(r =>
-      String(r.id) !== String(inventoryEditingId) &&
-      (r[dbCol] || '').trim().toLowerCase() === val.toLowerCase()
-    );
-    // Check for duplicate in trigger lookup
-    const dupTrig = triggers.find(t => {
-      const linked = inventoryEditingId ? inventory.find(x => String(x.id) === String(inventoryEditingId))?.radio_id : null;
-      return String(t.id) !== String(linked) && (t[dbCol === 'larics_id' ? 'larics_id' : dbCol] || '').trim().toLowerCase() === val.toLowerCase();
-    });
-    if (dupInv) warnEl.innerHTML = `⚠ DUPLICATE — already on <strong>${dupInv.serial_number || 'another radio'}</strong>`;
-    else if (dupTrig) warnEl.innerHTML = `⚠ DUPLICATE in Trigger Lookup — MDC ${dupTrig.mdc_id || '?'} (${dupTrig.assignment || 'unassigned'})`;
-    else warnEl.textContent = '';
-  });
+  const linkedTriggerId = inventoryEditingId ? inventory.find(x => String(x.id) === String(inventoryEditingId))?.radio_id : null;
+  checkDuplicateFields(
+    [
+      { inputId:'ie-larics', dbCol:'larics_id' },
+      { inputId:'ie-ici',    dbCol:'ici_id' },
+      { inputId:'ie-cwirs',  dbCol:'cwirs_id' },
+      { inputId:'ie-cris',   dbCol:'cris_id' },
+    ].map(f => ({ ...f, warnId: `${f.inputId}-warn` })),
+    [
+      { records: inventory, excludeId: inventoryEditingId,
+        describe: dup => `⚠ DUPLICATE — already on <strong>${dup.serial_number || 'another radio'}</strong>` },
+      { records: triggers, excludeId: linkedTriggerId,
+        describe: dup => `⚠ DUPLICATE in Trigger Lookup — MDC ${dup.mdc_id || '?'} (${dup.assignment || 'unassigned'})` },
+    ]
+  );
 }
 
 // ── UNIQUE ID CONFLICT ENFORCEMENT ──
@@ -19861,10 +19936,8 @@ function exportInventoryCSV() {
     r.purchase_date||'', r.firmware_version||'', r.codeplug_version||'', r.last_programmed_date||'',
     getMDC(r), r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
     r.control_top_replaced ? 'Yes' : 'No', r.notes||''
-  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv = [header.join(','),...rows].join('\n');
-  const a = Object.assign(document.createElement('a'),{href:'data:text/csv;charset=utf-8,'+encodeURIComponent(csv),download:`radio-inventory-${new Date().toLocaleDateString('en-CA')}.csv`});
-  a.click();
+  ]);
+  downloadCSV(`radio-inventory-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
 }
 
 // ── BULK SYSTEM ID IMPORT ──
@@ -19992,10 +20065,8 @@ function exportCustodyCSV() {
   const rows = custodyCache.map(r => [
     new Date(r.created_at).toLocaleString('en-US',{timeZone:'America/Los_Angeles'}),
     r.radio_inventory?.serial_number||'', r.action||'', r.detail||'', r.actor||''
-  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv = [header.join(','),...rows].join('\n');
-  const a = Object.assign(document.createElement('a'),{href:'data:text/csv;charset=utf-8,'+encodeURIComponent(csv),download:`chain-of-custody-${new Date().toLocaleDateString('en-CA')}.csv`});
-  a.click();
+  ]);
+  downloadCSV(`chain-of-custody-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
 }
 
 // ─────────────────────────────────────────────
@@ -20281,6 +20352,12 @@ const CSV_TEMPLATES = {
     sample: ['A1B2','Engine 51','ABC123456','APX8000','VHF','LAR-0451','ICI-0451','CW-0451','CR-0451','Primary control station'],
     note: '# mdc_id: 1-4 characters, digits 0-9 or letters A-D only | each MDC ID must be unique',
   },
+  parts: {
+    filename: 'parts-import-template.csv',
+    headers: ['part_number','name','category','quantity_on_hand','reorder_threshold','reorder_quantity','unit_cost','vendor','vendor_part_number','location','notes'],
+    sample: ['ANT-UHF-01','APX8000 Antenna, UHF Stubby','Antenna','12','4','10','24.50','RF Supply Co','RFS-4402','Shelf B3','Standard replacement stubby'],
+    note: '# category: Antenna | Battery | Connector / Cable | Mounting Hardware | Case / Pouch | Programming Cable | Consumable | Other | quantity/threshold/reorder_quantity: whole numbers | unit_cost: decimal, no currency symbol',
+  },
 };
 
 function downloadTemplate(type) {
@@ -20425,6 +20502,43 @@ async function importCSV(type) {
     }
     await loadTriggers(); renderTriggers();
     logEvent('trigger', 'CSV Import', `${imported} radio IDs imported, ${skipped} skipped, ${errors} errors`);
+
+  } else if (type === 'parts') {
+    for (const r of rows) {
+      if (!r.name) { skipped++; continue; }
+      if (r.part_number) {
+        const dup = partsInventory.find(p => (p.part_number||'').toLowerCase() === r.part_number.toLowerCase());
+        if (dup) { skipped++; continue; }
+      }
+      const row = {
+        part_number:        r.part_number || null,
+        name:                r.name,
+        category:            r.category || null,
+        quantity_on_hand:    parseInt(r.quantity_on_hand) || 0,
+        reorder_threshold:   parseInt(r.reorder_threshold) || 0,
+        reorder_quantity:    r.reorder_quantity ? parseInt(r.reorder_quantity) : null,
+        unit_cost:           r.unit_cost ? parseFloat(r.unit_cost) : null,
+        vendor:              r.vendor || null,
+        vendor_part_number:  r.vendor_part_number || null,
+        location:            r.location || null,
+        notes:               r.notes || null,
+        updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
+        agency_id: agencyId(),
+      };
+      const { data: inserted, error } = await sb.from('parts_inventory').insert(row).select('id').single();
+      if (error) { errors++; continue; }
+      imported++;
+      if (inserted?.id) {
+        try {
+          await sb.from('parts_usage_log').insert({
+            part_id: inserted.id, action: 'added', quantity_change: row.quantity_on_hand, quantity_after: row.quantity_on_hand,
+            detail: 'Part added via CSV import', actor: currentUser?.name || 'Import', agency_id: agencyId(),
+          });
+        } catch(e) { console.warn('parts_usage_log write skipped during import:', e.message); }
+      }
+    }
+    await loadPartsInventory(); renderPartsInventory();
+    logEvent('system', 'Parts CSV Import', `${imported} parts imported, ${skipped} skipped, ${errors} errors`);
   }
 
   if (resEl) resEl.innerHTML = `<span style="color:var(--status-available);">✓ ${imported} imported</span>${skipped?` · ${skipped} skipped`:''}${errors?` · <span style="color:var(--status-active);">${errors} errors</span>`:''}`;
@@ -20445,7 +20559,7 @@ async function loadIncidents() {
     const { data, error } = await sb.from('incidents').select('*').order('created_at', { ascending: false });
     if (error) { console.warn('loadIncidents:', error.message); return; }
     incidents = data || [];
-  } catch(e) {}
+  } catch(e) { console.warn('loadIncidents exception:', e.message); }
 }
 
 function renderIncidents() {
@@ -21025,7 +21139,6 @@ async function loadAgencies() {
       return;
     }
     agencies = (data || []).map(rowToAgency);
-    console.log('loadAgencies: loaded', agencies.length, 'agencies', data);
   } catch(e) {
     console.error('loadAgencies exception:', e.message);
   }
@@ -21482,7 +21595,7 @@ function checkPublicReqRoute() {
   window._pubReqAgencySlug = slug;
 
   // Restore previously chosen color theme for this device/browser
-  const savedTheme = localStorage.getItem('pubReqTheme') || 'default';
+  const savedTheme = localStorage.getItem('warden_pubreq_theme') || 'default';
   setPubTheme(savedTheme, true);
 
   // Pre-fill operational dates to tomorrow as a convenience default
@@ -21509,7 +21622,7 @@ function setPubTheme(theme, skipSave) {
     sw.classList.toggle('active', sw.dataset.theme === theme);
   });
 
-  if (!skipSave) localStorage.setItem('pubReqTheme', theme);
+  if (!skipSave) localStorage.setItem('warden_pubreq_theme', theme);
 }
 
 // ── Public form submission (no auth — uses anon key with permissive insert policy) ──
@@ -22030,10 +22143,10 @@ function convertCprToReservation() {
 
 function renderAdminImport() {
   // Reset file inputs on open so previous selections don't persist
-  ['csvChannelsFile','csvTalkgroupsFile','csvInventoryFile','csvTriggersFile'].forEach(id => {
+  ['csvChannelsFile','csvTalkgroupsFile','csvInventoryFile','csvTriggersFile','csvPartsFile'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  ['importChannelsResult','importTalkgroupsResult','importInventoryResult','importTriggersResult'].forEach(id => {
+  ['importChannelsResult','importTalkgroupsResult','importInventoryResult','importTriggersResult','importPartsResult'].forEach(id => {
     const el = document.getElementById(id); if (el) el.textContent = '';
   });
 }
@@ -22117,10 +22230,9 @@ if ('serviceWorker' in navigator) {
         <!-- New-user instructions (only shown when adding, not editing) -->
         <div id="uf-instructions" style="background:rgba(30,136,229,0.08);border:1px solid rgba(30,136,229,0.25);border-radius:4px;padding:10px 14px;margin-bottom:14px;font-size:14px;color:var(--text-secondary);line-height:1.6;">
           <strong style="color:var(--accent);font-family:var(--font-data);">Step 1 — Create the auth account first:</strong><br>
-          Go to <strong>Supabase Dashboard → Authentication → Users → Add User</strong> and enter the email + password.<br>
-          Then come back here and fill in this form — the app will link the profile automatically by email.
+          Go to <strong>Supabase Dashboard → Authentication → Users → Add User</strong>, enter the email + password, then copy the UUID shown for that user.
           <br><br>
-          <strong style="color:var(--accent);font-family:var(--font-data);">Step 2 — If the email lookup fails</strong>, paste the user's UUID from the Supabase Users list into the field that appears.
+          <strong style="color:var(--accent);font-family:var(--font-data);">Step 2 — Paste that UUID</strong> into the field below when prompted. The browser can't look it up automatically — that lookup needs a key that never ships to the client.
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -22629,6 +22741,14 @@ if ('serviceWorker' in navigator) {
       </div>
 
       <div id="sr-conflict-warn" style="display:none;padding:8px 12px;background:rgba(255,82,82,0.1);border:1px solid rgba(255,82,82,0.3);border-radius:4px;font-size:14px;color:var(--status-active);margin-top:4px;"></div>
+
+      <div id="reservationFieldHistoryWrap" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.fh-c').textContent=n.style.display===''?'▴':'▾';">
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Field Change History</div>
+          <span class="fh-c" style="color:var(--text-dim);font-size:12px;">▾</span>
+        </div>
+        <div id="reservationFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
+      </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
       <button class="btn-danger" id="sr-delete-btn" style="display:none;" onclick="deleteReservation(schedEditingId)">Delete</button>
@@ -22782,6 +22902,13 @@ if ('serviceWorker' in navigator) {
           <label class="form-label">Notes / Contents / Special Instructions</label>
           <textarea class="form-textarea" id="rm-notes" placeholder="Maintenance due, special handling, inventory contents, contact info…" style="height:68px;"></textarea>
         </div>
+      </div>
+      <div id="resourceFieldHistoryWrap" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.fh-c').textContent=n.style.display===''?'▴':'▾';">
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Field Change History</div>
+          <span class="fh-c" style="color:var(--text-dim);font-size:12px;">▾</span>
+        </div>
+        <div id="resourceFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
@@ -23512,6 +23639,13 @@ if ('serviceWorker' in navigator) {
           <textarea class="form-textarea" id="uas-acnotes" style="height:60px;" placeholder="Maintenance history, known issues, accessories…"></textarea>
         </div>
       </div>
+      <div id="uasAircraftFieldHistoryWrap" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.fh-c').textContent=n.style.display===''?'▴':'▾';">
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Field Change History</div>
+          <span class="fh-c" style="color:var(--text-dim);font-size:12px;">▾</span>
+        </div>
+        <div id="uasAircraftFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
+      </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
       <button class="btn-danger" id="uasAircraftDeleteBtn" style="display:none;" onclick="deleteUasAircraft()">Delete</button>
@@ -23590,6 +23724,13 @@ if ('serviceWorker' in navigator) {
           <label class="form-label">Notes</label>
           <textarea class="form-textarea" id="uas-p-notes" style="height:60px;" placeholder="Endorsements, specialized training, availability…"></textarea>
         </div>
+      </div>
+      <div id="uasPersonFieldHistoryWrap" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.fh-c').textContent=n.style.display===''?'▴':'▾';">
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Field Change History</div>
+          <span class="fh-c" style="color:var(--text-dim);font-size:12px;">▾</span>
+        </div>
+        <div id="uasPersonFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
@@ -23678,6 +23819,13 @@ if ('serviceWorker' in navigator) {
           <textarea class="form-textarea" id="uas-m-notes" style="height:60px;" placeholder="Findings, issues encountered, follow-up actions…"></textarea>
         </div>
       </div>
+      <div id="uasMissionFieldHistoryWrap" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.fh-c').textContent=n.style.display===''?'▴':'▾';">
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Field Change History</div>
+          <span class="fh-c" style="color:var(--text-dim);font-size:12px;">▾</span>
+        </div>
+        <div id="uasMissionFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
+      </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
       <button class="btn-danger" id="uasMissionDeleteBtn" style="display:none;" onclick="deleteUasMission()">Delete</button>
@@ -23753,6 +23901,13 @@ if ('serviceWorker' in navigator) {
           <textarea class="form-textarea" id="per-p-notes" style="height:60px;" placeholder="Specialized training, availability, endorsements…"></textarea>
         </div>
       </div>
+      <div id="personFieldHistoryWrap" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.fh-c').textContent=n.style.display===''?'▴':'▾';">
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Field Change History</div>
+          <span class="fh-c" style="color:var(--text-dim);font-size:12px;">▾</span>
+        </div>
+        <div id="personFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
+      </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
       <button class="btn-danger" id="personDeleteBtn" style="display:none;" onclick="deletePerson()">Delete</button>
@@ -23795,6 +23950,13 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);">Paste a direct image URL (PNG/JPG/SVG hosted elsewhere). Shown next to team members on the roster and on the team card.</div>
+      <div id="teamFieldHistoryWrap" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.fh-c').textContent=n.style.display===''?'▴':'▾';">
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Field Change History</div>
+          <span class="fh-c" style="color:var(--text-dim);font-size:12px;">▾</span>
+        </div>
+        <div id="teamFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
+      </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
       <button class="btn-danger" id="teamDeleteBtn" style="display:none;" onclick="deleteTeam()">Delete</button>
