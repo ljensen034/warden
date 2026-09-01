@@ -19785,7 +19785,44 @@ async function applyBulkStatusChange() {
 }
 
 // ── SIGN-OUT SLIP ──
-function printSignOutSlip(id) {
+const SIGNOUT_ACCESSORIES = [
+  'Radio Antenna', 'Radio Std Battery', 'Radio High Battery', 'Radio Belt Holster',
+  'Remote Speaker Mic', 'Single Unit Charger', 'Multi Unit Charger',
+];
+let signOutAccessoriesTargetId = null;
+
+function openSignOutAccessoriesModal(id) {
+  signOutAccessoriesTargetId = id;
+  const el = document.getElementById('signOutAccessoriesList');
+  if (el) {
+    el.innerHTML = SIGNOUT_ACCESSORIES.map((label, i) => `
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 4px;cursor:pointer;border-bottom:1px solid var(--border);">
+        <input type="checkbox" id="soa-${i}" style="width:16px;height:16px;flex-shrink:0;">
+        <span style="font-size:15px;color:var(--text-primary);">${escHtml(label)}</span>
+      </label>`).join('');
+  }
+  document.getElementById('signOutAccessoriesModal').classList.add('open');
+}
+
+function closeSignOutAccessoriesModal() {
+  document.getElementById('signOutAccessoriesModal').classList.remove('open');
+  signOutAccessoriesTargetId = null;
+}
+
+async function confirmSignOutAccessories() {
+  const checked = SIGNOUT_ACCESSORIES.filter((label, i) => document.getElementById(`soa-${i}`)?.checked);
+  const id = signOutAccessoriesTargetId;
+  closeSignOutAccessoriesModal();
+  if (!id) return;
+  if (checked.length) {
+    await logCustodyEvent(id, 'NOTE', `Sign-out slip printed — accessories issued: ${checked.join(', ')}`);
+  } else {
+    await logCustodyEvent(id, 'NOTE', 'Sign-out slip printed — no accessories issued');
+  }
+  printSignOutSlip(id, checked);
+}
+
+function printSignOutSlip(id, accessories = []) {
   const r = inventory.find(x => String(x.id) === String(id));
   if (!r) return;
   const agency  = currentAgency?.name || 'Agency';
@@ -19796,6 +19833,13 @@ function printSignOutSlip(id) {
     r.cwirs_id  ? `CWIRS: ${r.cwirs_id}` : '',
     r.cris_id   ? `CRIS: ${r.cris_id}` : '',
   ].filter(Boolean).join(' · ');
+  const accessoriesHtml = `
+    <div style="margin-top:16px;">
+      <div class="label" style="margin-bottom:8px;">Accessories Issued</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;">
+        ${SIGNOUT_ACCESSORIES.map(a => `<div style="font-size:14px;">${accessories.includes(a) ? '☑' : '☐'} ${escHtml(a)}</div>`).join('')}
+      </div>
+    </div>`;
 
   const win = window.open('', '_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>Radio Sign-Out Slip</title>
@@ -19816,12 +19860,13 @@ function printSignOutSlip(id) {
     ${sysIds ? `<div class="field"><div class="label">System IDs</div><div class="value" style="font-size:14px;">${escHtml(sysIds)}</div></div>` : ''}
     <div class="field"><div class="label">Assigned To</div><div class="value">${escHtml(r.assigned_unit||'—')}</div></div>
     <div class="field"><div class="label">Person</div><div class="value">${escHtml(r.assigned_person||'—')}</div></div>
+    ${accessoriesHtml}
     <div style="margin-top:40px;">
       <div class="label" style="margin-bottom:8px;">Received By (Print Name)</div>
       <div class="sig"></div>
       <div class="label" style="margin-top:20px;margin-bottom:8px;">Signature</div>
       <div class="sig"></div>
-      <div class="label" style="margin-top:20px;margin-bottom:8px;">Badge / ID #</div>
+      <div class="label" style="margin-top:20px;margin-bottom:8px;">EMP Number</div>
       <div class="sig"></div>
     </div>
     <div class="footer">WARDEN · ${escHtml(agency)} · Printed ${now} PT</div>
@@ -23138,7 +23183,7 @@ if ('serviceWorker' in navigator) {
       <div id="invModalAdminBtns" style="display:flex;gap:8px;">
         <button class="btn-secondary" style="font-size:14px;" onclick="openInventoryForm(this.dataset.invId || currentInvId)" data-inv-id-holder>✏ Edit</button>
         <button class="btn-secondary" style="font-size:14px;" onclick="openStatusChangeModal()">⇄ Change Status</button>
-        <button class="btn-secondary" style="font-size:14px;" onclick="printSignOutSlip(currentInvId)">🖨 Sign-Out Slip</button>
+        <button class="btn-secondary" style="font-size:14px;" onclick="openSignOutAccessoriesModal(currentInvId)">🖨 Sign-Out Slip</button>
         <button class="btn-danger"    style="font-size:14px;" onclick="deleteInventoryRecord()">✕ Delete</button>
       </div>
       <button class="btn-secondary" style="margin-left:auto;" onclick="closeInventoryModal()">Close</button>
@@ -23923,6 +23968,24 @@ if ('serviceWorker' in navigator) {
         <button class="btn-secondary" onclick="closeTeamForm()">Cancel</button>
         <button class="btn-primary" onclick="saveTeam()">Save Team</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SIGN-OUT ACCESSORIES MODAL ── -->
+<div class="modal-overlay" id="signOutAccessoriesModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Accessories Issued</div>
+      <button class="modal-close" onclick="closeSignOutAccessoriesModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:14px;">Check any accessories going out with this radio — they'll be listed on the sign-out slip for the recipient to confirm.</div>
+      <div id="signOutAccessoriesList" style="display:flex;flex-direction:column;gap:2px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeSignOutAccessoriesModal()">Cancel</button>
+      <button class="btn-primary" onclick="confirmSignOutAccessories()">🖨 Generate Slip</button>
     </div>
   </div>
 </div>
