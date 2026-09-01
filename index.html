@@ -106,87 +106,142 @@
   [data-theme="nightvision"] .channel-row,
   [data-theme="nightvision"] .modal { box-shadow: 0 0 18px rgba(0,255,102,0.04) inset; }
 
-  /* ── THEME: REFINED CONSOLE (tightened night-mode evolution) ── */
-  [data-theme="refined"] {
-    --bg-deep:     #0a0d12;
-    --bg-panel:    #10141b;
-    --bg-card:     #161b24;
-    --bg-hover:    #1c2330;
-    --border:      #212a3a;
-    --border-lit:  #303c52;
-    --status-available: #00e5aa;
-    --status-active:    #ff5252;
-    --status-reserved:  #ffb300;
-    --status-interop:   #a29bfe;
-    --text-primary:  #eef2f9;
-    --text-secondary:#8ba0bd;
-    --text-dim:      #4a5975;
-    --accent:        #3b8fdc;
-    --accent-glow:   rgba(59,143,220,0.15);
-    --radius: 8px;
-  }
-  [data-theme="refined"] .channel-row,
-  [data-theme="refined"] .inv-row,
-  [data-theme="refined"] .res-row,
-  [data-theme="refined"] .part-row { border-left: 3px solid transparent; }
-  [data-theme="refined"] .channel-row:hover,
-  [data-theme="refined"] .inv-row:hover,
-  [data-theme="refined"] .res-row:hover,
-  [data-theme="refined"] .part-row:hover { border-left-color: var(--border-lit); }
+  /* ── MODE FONT IMPORTS ── */
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
-  /* ── THEME: MODERN OPS (elevated cards, softer pill tags) ── */
-  [data-theme="modern"] {
-    --bg-deep:     #14181f;
-    --bg-panel:    #171c25;
-    --bg-card:     #1a2030;
-    --bg-hover:    #212940;
-    --border:      #232a3a;
-    --border-lit:  #303a50;
-    --status-available: #4ade80;
-    --status-active:    #f87171;
-    --status-reserved:  #fbbf24;
-    --status-interop:   #c084fc;
-    --text-primary:  #f1f5f9;
-    --text-secondary:#94a3b8;
-    --text-dim:      #64748b;
-    --accent:        #5b9bf0;
-    --accent-glow:   rgba(91,155,240,0.16);
-    --radius: 12px;
-  }
-  [data-theme="modern"] .status-pill,
-  [data-theme="modern"] .inv-status-chip,
-  [data-theme="modern"] .cpr-status-chip,
-  [data-theme="modern"] .part-status-chip,
-  [data-theme="modern"] .res-pill,
-  [data-theme="modern"] .sched-status-chip { border-radius: 20px; }
-  [data-theme="modern"] .channel-row,
-  [data-theme="modern"] .inv-row,
-  [data-theme="modern"] .res-row,
-  [data-theme="modern"] .part-row,
-  [data-theme="modern"] .tg-row,
-  [data-theme="modern"] .modal { box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset; }
+  /* ═══════════════════════════════════════════════════════════
+     MODE SYSTEM — independent of Theme (color). Themes control
+     color; Modes control structure — typography, density, shape,
+     and layout (list vs. card grid). A mode layers on top of
+     whichever theme is active via [data-mode="X"] alongside
+     [data-theme="X"], so any theme × mode combination works.
+     ═══════════════════════════════════════════════════════════ */
 
-  /* ── THEME: FIELD / GLANCE MODE (high-contrast, oversized, for glare or a
-     quick mid-incident glance — larger type and touch targets throughout,
-     shape-coded status alongside color for colorblind accessibility) ── */
-  [data-theme="field"] {
-    --bg-deep:     #000000;
-    --bg-panel:    #050505;
-    --bg-card:     #0d0d0d;
-    --bg-hover:    #1a1a1a;
-    --border:      #2a2a2a;
-    --border-lit:  #444444;
-    --status-available: #4ade80;
-    --status-active:    #ef4444;
-    --status-reserved:  #eab308;
-    --status-interop:   #a78bfa;
-    --text-primary:  #ffffff;
-    --text-secondary:#d1d5db;
-    --text-dim:      #9ca3af;
-    --accent:        #60a5fa;
-    --accent-glow:   rgba(96,165,250,0.2);
-    --radius: 10px;
+  /* ── MODE: REFINED CONSOLE — tighter, denser, precision dispatch feel.
+     Same list layout as Standard, sharper corners, wider label tracking,
+     more info per screen rather than less. ── */
+  [data-mode="refined"] { --radius: 3px; }
+  [data-mode="refined"] .channel-row,
+  [data-mode="refined"] .inv-row,
+  [data-mode="refined"] .res-row,
+  [data-mode="refined"] .part-row,
+  [data-mode="refined"] .tg-row {
+    border-left: 3px solid transparent;
+    padding-top: 7px; padding-bottom: 7px;
   }
+  [data-mode="refined"] .channel-row:hover,
+  [data-mode="refined"] .inv-row:hover,
+  [data-mode="refined"] .res-row:hover,
+  [data-mode="refined"] .part-row:hover,
+  [data-mode="refined"] .tg-row:hover { border-left-color: var(--accent); background: transparent; }
+  [data-mode="refined"] .ch-designator,
+  [data-mode="refined"] .trigger-id { letter-spacing: 0.06em; }
+  [data-mode="refined"] .status-pill,
+  [data-mode="refined"] .inv-status-chip,
+  [data-mode="refined"] .part-status-chip { letter-spacing: 0.1em; border-radius: 2px; }
+  [data-mode="refined"] .stat-count { font-size: 26px; letter-spacing: 0.02em; }
+  [data-mode="refined"] .stat-cell { border-top: 2px solid transparent; }
+  [data-mode="refined"] .stat-cell:has(.stat-count.available) { border-top-color: var(--status-available); }
+  [data-mode="refined"] .stat-cell:has(.stat-count.active)    { border-top-color: var(--status-active); }
+  [data-mode="refined"] .stat-cell:has(.stat-count.reserved)  { border-top-color: var(--status-reserved); }
+
+  /* ── MODE: MODERN OPS — card-grid layout, humanist sans typeface
+     (Manrope) in place of the technical mono/plex stack, generous
+     radius and spacing. Rows become vertically-stacked mini-cards
+     laid out in a responsive grid rather than a single list. ── */
+  [data-mode="modern"] {
+    --radius: 16px;
+    --font-ui:   'Manrope', sans-serif;
+    --font-data: 'Manrope', sans-serif;
+  }
+  [data-mode="modern"] .channel-grid,
+  [data-mode="modern"] #inventoryGrid,
+  [data-mode="modern"] #resourceGrid,
+  [data-mode="modern"] #partsGrid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+    gap: 10px !important;
+  }
+  [data-mode="modern"] .channel-grid-header,
+  [data-mode="modern"] .inv-grid-header,
+  [data-mode="modern"] .res-grid-header,
+  [data-mode="modern"] .admin-ch-grid-header { display: none !important; }
+  [data-mode="modern"] .channel-row,
+  [data-mode="modern"] .inv-row,
+  [data-mode="modern"] .res-row,
+  [data-mode="modern"] .part-row,
+  [data-mode="modern"] .tg-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 16px !important;
+    border: 1px solid var(--border) !important;
+  }
+  [data-mode="modern"] .channel-row .status-bar,
+  [data-mode="modern"] .inv-row .status-bar,
+  [data-mode="modern"] .res-row-bar {
+    width: 100% !important; height: 4px !important; border-radius: 4px;
+  }
+  [data-mode="modern"] .ch-designator, [data-mode="modern"] .res-name { font-size: 17px; font-weight: 600; }
+  [data-mode="modern"] .status-pill,
+  [data-mode="modern"] .inv-status-chip,
+  [data-mode="modern"] .cpr-status-chip,
+  [data-mode="modern"] .part-status-chip,
+  [data-mode="modern"] .res-pill,
+  [data-mode="modern"] .sched-status-chip { border-radius: 20px; font-weight: 700; }
+  [data-mode="modern"] .btn-primary, [data-mode="modern"] .btn-secondary,
+  [data-mode="modern"] .filter-btn, [data-mode="modern"] .form-input,
+  [data-mode="modern"] .form-select, [data-mode="modern"] .search-input,
+  [data-mode="modern"] .modal { border-radius: 12px; }
+  [data-mode="modern"] .modal-title { font-weight: 700; }
+
+  /* ── MODE: FIELD / GLANCE — maximum legibility at a glance. Bold
+     geometric type (Space Grotesk), secondary/tertiary fields hidden
+     outright rather than shrunk, oversized single-column rows. ── */
+  [data-mode="field"] {
+    --radius: 14px;
+    --font-ui:   'Space Grotesk', sans-serif;
+    --font-data: 'Space Grotesk', sans-serif;
+  }
+  [data-mode="field"] body { font-size: 19px; font-weight: 500; }
+  [data-mode="field"] .channel-grid-header,
+  [data-mode="field"] .inv-grid-header,
+  [data-mode="field"] .res-grid-header,
+  [data-mode="field"] .ch-tone, [data-mode="field"] .ch-mode,
+  [data-mode="field"] .ov-sub, [data-mode="field"] .inv-cond-chip,
+  [data-mode="field"] .res-updated { display: none !important; }
+  [data-mode="field"] .channel-row,
+  [data-mode="field"] .inv-row,
+  [data-mode="field"] .res-row,
+  [data-mode="field"] .part-row,
+  [data-mode="field"] .tg-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+    padding: 16px 18px !important;
+    min-height: 60px;
+  }
+  [data-mode="field"] .status-bar { width: 8px !important; border-radius: 4px; }
+  [data-mode="field"] .ch-designator { font-size: 21px; font-weight: 700; }
+  [data-mode="field"] .status-pill,
+  [data-mode="field"] .inv-status-chip,
+  [data-mode="field"] .part-status-chip,
+  [data-mode="field"] .res-pill {
+    font-size: 15px; font-weight: 700; padding: 7px 14px; border-radius: 30px; letter-spacing: 0.04em;
+  }
+  [data-mode="field"] .btn-primary, [data-mode="field"] .btn-secondary,
+  [data-mode="field"] .btn-danger, [data-mode="field"] .btn-success, [data-mode="field"] .btn-warning {
+    font-size: 18px; font-weight: 700; padding: 14px 20px; min-height: 52px;
+  }
+  [data-mode="field"] .form-input, [data-mode="field"] .form-select,
+  [data-mode="field"] .form-textarea, [data-mode="field"] .search-input {
+    font-size: 18px; padding: 14px 16px; min-height: 52px;
+  }
+  [data-mode="field"] .stat-count { font-size: 30px; }
+  [data-mode="field"] .stat-label { font-size: 14px; font-weight: 600; }
+  [data-mode="field"] .mobile-nav-btn { min-height: 68px; }
+  [data-mode="field"] .mobile-nav-btn .nav-icon { font-size: 26px; }
 
   /* ── THEME SWITCHER UI ── */
   .theme-switcher {
@@ -3509,50 +3564,6 @@
     .form-input, .form-select, .form-textarea { font-size: 15px; }
     .btn-primary, .btn-secondary, .btn-danger { font-size: 15px; }
   }
-
-  /* ═══════════════════════════════════════════════════════════
-     FIELD / GLANCE MODE — readability + touch-target pass
-     Same intent as the GLOBAL READABILITY PASS above, scoped to
-     [data-theme="field"] and pushed further: this mode exists for
-     someone glancing at a phone in sunlight or mid-incident, so it
-     trades density for size everywhere it's cheap to do so.
-     ═══════════════════════════════════════════════════════════ */
-  [data-theme="field"] body { font-size: 18px; }
-  [data-theme="field"] .btn-primary,
-  [data-theme="field"] .btn-secondary,
-  [data-theme="field"] .btn-danger,
-  [data-theme="field"] .btn-success,
-  [data-theme="field"] .btn-warning {
-    font-size: 17px; padding: 12px 18px; min-height: 48px;
-  }
-  [data-theme="field"] .form-input,
-  [data-theme="field"] .form-select,
-  [data-theme="field"] .form-textarea,
-  [data-theme="field"] .search-input {
-    font-size: 17px; padding: 12px 14px; min-height: 48px;
-  }
-  [data-theme="field"] .status-pill,
-  [data-theme="field"] .inv-status-chip,
-  [data-theme="field"] .part-status-chip,
-  [data-theme="field"] .res-pill {
-    font-size: 15px; padding: 6px 12px;
-  }
-  [data-theme="field"] .channel-row,
-  [data-theme="field"] .inv-row,
-  [data-theme="field"] .res-row,
-  [data-theme="field"] .part-row,
-  [data-theme="field"] .tg-row {
-    padding: 14px 16px; min-height: 56px;
-  }
-  [data-theme="field"] .ch-designator   { font-size: 19px; }
-  [data-theme="field"] .ch-freq,
-  [data-theme="field"] .ch-function,
-  [data-theme="field"] .ch-assignment  { font-size: 17px; }
-  [data-theme="field"] .status-bar     { width: 6px; }
-  [data-theme="field"] .stat-count     { font-size: 26px; }
-  [data-theme="field"] .stat-label     { font-size: 13px; }
-  [data-theme="field"] .mobile-nav-btn { min-height: 64px; }
-  [data-theme="field"] .mobile-nav-btn .nav-icon { font-size: 24px; }
 </style>
 </head>
 <body>
@@ -4339,41 +4350,42 @@
         </div>
         <span class="theme-check" style="display:none;" id="check-nightvision">✓</span>
       </div>
-      <div class="theme-option" data-theme="refined" onclick="setTheme('refined',this)">
-        <div class="theme-swatch">
-          <span style="background:#0a0d12;border:1px solid #212a3a;"></span>
-          <span style="background:#161b24;border:1px solid #212a3a;"></span>
-          <span style="background:#3b8fdc;"></span>
+    </div>
+  </div>
+  <div class="theme-switcher" id="modeSwitcher">
+    <button class="theme-btn" onclick="toggleModeDropdown(event)" title="Change mode">
+      <span id="modeIcon">▤</span>
+      <span id="modeLabel">Standard</span>
+      <span style="font-size:11px;opacity:0.5;">▾</span>
+    </button>
+    <div class="theme-dropdown" id="modeDropdown">
+      <div class="theme-option mode-option active" data-mode="standard" onclick="setMode('standard',this)">
+        <div class="theme-option-info">
+          <div class="theme-option-name">Standard</div>
+          <div class="theme-option-desc">The default WARDEN layout</div>
         </div>
+        <span class="theme-check" id="mcheck-standard">✓</span>
+      </div>
+      <div class="theme-option mode-option" data-mode="refined" onclick="setMode('refined',this)">
         <div class="theme-option-info">
           <div class="theme-option-name">Refined Console</div>
-          <div class="theme-option-desc">Tightened night mode — subtler cards, more breathing room</div>
+          <div class="theme-option-desc">Denser, sharper-cornered precision layout</div>
         </div>
-        <span class="theme-check" style="display:none;" id="check-refined">✓</span>
+        <span class="theme-check" style="display:none;" id="mcheck-refined">✓</span>
       </div>
-      <div class="theme-option" data-theme="modern" onclick="setTheme('modern',this)">
-        <div class="theme-swatch">
-          <span style="background:#14181f;border:1px solid #232a3a;"></span>
-          <span style="background:#1a2030;border:1px solid #232a3a;"></span>
-          <span style="background:#5b9bf0;"></span>
-        </div>
+      <div class="theme-option mode-option" data-mode="modern" onclick="setMode('modern',this)">
         <div class="theme-option-info">
           <div class="theme-option-name">Modern Ops</div>
-          <div class="theme-option-desc">Elevated cards, rounder pill tags</div>
+          <div class="theme-option-desc">Card-grid layout, humanist typeface, rounder shapes</div>
         </div>
-        <span class="theme-check" style="display:none;" id="check-modern">✓</span>
+        <span class="theme-check" style="display:none;" id="mcheck-modern">✓</span>
       </div>
-      <div class="theme-option" data-theme="field" onclick="setTheme('field',this)">
-        <div class="theme-swatch">
-          <span style="background:#000000;border:1px solid #2a2a2a;"></span>
-          <span style="background:#0d0d0d;border:1px solid #2a2a2a;"></span>
-          <span style="background:#60a5fa;"></span>
-        </div>
+      <div class="theme-option mode-option" data-mode="field" onclick="setMode('field',this)">
         <div class="theme-option-info">
           <div class="theme-option-name">Field / Glance Mode</div>
-          <div class="theme-option-desc">Larger type and touch targets for glare or a quick glance</div>
+          <div class="theme-option-desc">Oversized type, minimal fields, big touch targets</div>
         </div>
-        <span class="theme-check" style="display:none;" id="check-field">✓</span>
+        <span class="theme-check" style="display:none;" id="mcheck-field">✓</span>
       </div>
     </div>
   </div>
@@ -9414,9 +9426,13 @@ const THEMES = {
   night:       { icon: '🌙', label: 'Night Mode'   },
   day:         { icon: '☀️',  label: 'Day Mode'     },
   nightvision: { icon: '🟢', label: 'Night Vision' },
-  refined:     { icon: '🔷', label: 'Refined Console' },
-  modern:      { icon: '⬦',  label: 'Modern Ops'    },
-  field:       { icon: '🔲', label: 'Field / Glance Mode' },
+};
+
+const MODES = {
+  standard: { icon: '▤',  label: 'Standard' },
+  refined:  { icon: '◈',  label: 'Refined Console' },
+  modern:   { icon: '◍',  label: 'Modern Ops' },
+  field:    { icon: '◼',  label: 'Field / Glance Mode' },
 };
 
 let currentTheme = 'night';
@@ -9433,7 +9449,7 @@ function setTheme(name, el) {
   });
 
   // Update active class on options
-  document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
+  document.querySelectorAll('#themeDropdown .theme-option').forEach(o => o.classList.remove('active'));
   if (el) el.classList.add('active');
 
   // Update button label/icon
@@ -9470,6 +9486,55 @@ document.addEventListener('click', function(e) {
     if (saved && THEMES[saved]) {
       const opt = document.querySelector(`.theme-option[data-theme="${saved}"]`);
       setTheme(saved, opt);
+    }
+  } catch(e) {}
+})();
+
+let currentMode = 'standard';
+
+function setMode(name, el) {
+  document.documentElement.removeAttribute('data-mode');
+  if (name !== 'standard') document.documentElement.setAttribute('data-mode', name);
+
+  Object.keys(MODES).forEach(m => {
+    const chk = document.getElementById(`mcheck-${m}`);
+    if (chk) chk.style.display = (m === name) ? 'block' : 'none';
+  });
+
+  document.querySelectorAll('.mode-option').forEach(o => o.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  document.getElementById('modeIcon').textContent = MODES[name].icon;
+  document.getElementById('modeLabel').textContent = MODES[name].label;
+
+  currentMode = name;
+  closeModeDropdown();
+
+  try { localStorage.setItem('rfMode', name); } catch(e) {}
+}
+
+function toggleModeDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('modeDropdown').classList.toggle('open');
+}
+
+function closeModeDropdown() {
+  document.getElementById('modeDropdown').classList.remove('open');
+}
+
+document.addEventListener('click', function(e) {
+  if (!document.getElementById('modeSwitcher')?.contains(e.target)) {
+    closeModeDropdown();
+  }
+});
+
+// Load saved mode
+(function() {
+  try {
+    const saved = localStorage.getItem('rfMode');
+    if (saved && MODES[saved]) {
+      const opt = document.querySelector(`.mode-option[data-mode="${saved}"]`);
+      setMode(saved, opt);
     }
   } catch(e) {}
 })();
@@ -10928,9 +10993,6 @@ function renderBigBoard() {
     night:       { bgDeep:'#0b0e13', bgPanel:'#12161e', bgCard:'#181d28', border:'#232c3d', borderLit:'#34415c', textPrimary:'#e3eaf5', textSecondary:'#7e94b3', textDim:'#44546e', accent:'#3b8fdc' },
     day:         { bgDeep:'#f0f2f5', bgPanel:'#ffffff', bgCard:'#f7f9fc', border:'#d0d8e4', borderLit:'#aab8cc', textPrimary:'#1a2332', textSecondary:'#4a5f7a', textDim:'#8fa0b8', accent:'#1565c0' },
     nightvision: { bgDeep:'#000000', bgPanel:'#030a03', bgCard:'#061206', border:'#133313', borderLit:'#1f5c1f', textPrimary:'#4dff7a', textSecondary:'#2eb84f', textDim:'#1a5c2a', accent:'#00ff66' },
-    refined:     { bgDeep:'#0a0d12', bgPanel:'#10141b', bgCard:'#161b24', border:'#212a3a', borderLit:'#303c52', textPrimary:'#eef2f9', textSecondary:'#8ba0bd', textDim:'#4a5975', accent:'#3b8fdc' },
-    modern:      { bgDeep:'#14181f', bgPanel:'#171c25', bgCard:'#1a2030', border:'#232a3a', borderLit:'#303a50', textPrimary:'#f1f5f9', textSecondary:'#94a3b8', textDim:'#64748b', accent:'#5b9bf0' },
-    field:       { bgDeep:'#000000', bgPanel:'#050505', bgCard:'#0d0d0d', border:'#2a2a2a', borderLit:'#444444', textPrimary:'#ffffff', textSecondary:'#d1d5db', textDim:'#9ca3af', accent:'#60a5fa' },
   };
   const t = themeVars[theme] || themeVars.night;
 
@@ -10947,11 +11009,6 @@ function renderBigBoard() {
     SC.active.color='#ff3b3b';   SC.active.bg='rgba(255,59,59,0.10)';   SC.active.border='rgba(255,59,59,0.3)';
     SC.reserved.color='#d4ff39'; SC.reserved.bg='rgba(212,255,57,0.10)'; SC.reserved.border='rgba(212,255,57,0.3)';
     SC.available.color='#39ff6a';SC.available.bg='rgba(57,255,106,0.10)';SC.available.border='rgba(57,255,106,0.3)';
-  }
-  if (theme === 'modern' || theme === 'field') {
-    SC.active.color='#f87171';    SC.active.bg='rgba(248,113,113,0.10)';    SC.active.border='rgba(248,113,113,0.28)';
-    SC.reserved.color='#fbbf24';  SC.reserved.bg='rgba(251,191,36,0.10)';   SC.reserved.border='rgba(251,191,36,0.28)';
-    SC.available.color='#4ade80'; SC.available.bg='rgba(74,222,128,0.10)';  SC.available.border='rgba(74,222,128,0.28)';
   }
 
   const groups = { active:[], reserved:[], available:[] };
