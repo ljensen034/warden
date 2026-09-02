@@ -2089,11 +2089,20 @@
        with !important so every text-entry field is zoom-safe on mobile. */
     #adminChGroupFilter, #auditActionFilter, #auditChannelFilter, #auditDateFilter,
     #auditSearch, #auf-uuid, #cprStatusFilter,
-    #incStatusFilter, #invModelFilter, #invStatusFilter,
+    #icr-channel, #icr-talkgroup,
+    #inc-channels, #inc-channels-search, #inc-command-ch, #inc-talkgroups,
+    #incStatusFilter, #invBandFilter, #invBulkStatus, #invModelFilter, #invStatusFilter,
     #lav-active, #lav-available, #lav-reserved,
-    #newRadioBand, #newRadioModel, #newChannelFunction, #resCategoryFilter, #resStatusFilter,
-    #saUserAgencyFilter, #syslogCategory, #syslogDateFilter,
-    #syslogSearch, #toneTableSearch, #trlogSearch, #uf-uuid {
+    #newRadioBand, #newRadioModel, #newChannelFunction, #newRadioStatusLabel,
+    #newRadioSystemCode, #newRadioSystemLabel, #newTroZone,
+    #partCategoryFilter, #partStockFilter,
+    #perStatusFilter, #perTeamFilter,
+    #resCategoryFilter, #resStatusFilter, #rfa-link-incident, #ridRangeFilter,
+    #saUserAgencyFilter, #sitesTypeFilter,
+    #sr-channel, #sr-channel-search, #sr-talkgroup, #sr-talkgroup-search,
+    #syslogCategory, #syslogDateFilter,
+    #syslogSearch, #toneTableSearch, #trlogSearch, #uf-uuid,
+    #uasFleetStatusFilter, #uasMissionStatusFilter, #uasPersonnelRoleFilter {
       font-size: 16px !important;
     }
     .modal-footer { padding: 12px 14px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
@@ -2865,6 +2874,14 @@
     .inv-grid-header { display: none; }
     .inv-row { grid-template-columns: 24px 100px 1fr auto; }
     .inv-row > *:nth-child(n+5) { display: none; }
+  }
+  .sites-row { }
+  @media (max-width: 768px) {
+    .sites-row { grid-template-columns: 28px 1fr auto !important; }
+    .sites-row > *:nth-child(3), .sites-row > *:nth-child(4) { display: none; }
+    .rid-range-header { display: none; }
+    .rid-range-row { grid-template-columns: 1fr auto !important; }
+    .rid-range-row > *:nth-child(n+2):nth-child(-n+5) { display: none; }
   }
   /* ── PARTS & SUPPLIES ── */
   .part-status-chip {
@@ -4123,9 +4140,9 @@
       </div>
 
     </div>
-    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;">
+    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <div id="af-error" style="font-size:14px;color:var(--status-active);font-family:var(--font-data);flex:1;"></div>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeAgencyForm()">Cancel</button>
         <button class="btn-primary" onclick="saveAgency()">Save Agency</button>
       </div>
@@ -5560,7 +5577,7 @@
           <div style="font-size:15px;color:var(--text-secondary);">Define the numeric ranges of Radio IDs managed by this agency. The RID Manager module uses these ranges to show which IDs are free or committed.</div>
           <button class="btn-primary" style="font-size:14px;flex-shrink:0;margin-left:16px;" onclick="openRidRangeForm(null)">+ Add Range</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 90px 90px 110px 100px 80px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--border);">
+        <div class="rid-range-header" style="display:grid;grid-template-columns:1fr 90px 90px 110px 100px 80px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--border);">
           <span>Range Name</span><span>Start ID</span><span>End ID</span><span>Count</span><span>System</span><span></span>
         </div>
         <div id="adminRidRangeList" style="max-height:400px;overflow-y:auto;"></div>
@@ -11158,7 +11175,7 @@ function renderBigBoard() {
       + statusBtn('reserved', 'RESERVED')
       + '</div>'
       + '<input id="' + inputId + '" type="text" placeholder="In use for / event name…" value="' + escHtml(ch.activeFor || '') + '"'
-      + ' style="font-family:var(--font-data);font-size:14px;padding:8px 10px;border-radius:5px;border:1px solid ' + t.border + ';background:' + t.bgDeep + ';color:' + t.textPrimary + ';width:100%;box-sizing:border-box;"'
+      + ' style="font-family:var(--font-data);font-size:16px;padding:8px 10px;border-radius:5px;border:1px solid ' + t.border + ';background:' + t.bgDeep + ';color:' + t.textPrimary + ';width:100%;box-sizing:border-box;"'
       + ' onkeydown="if(event.keyCode===13){event.stopPropagation();' + saveCall + ';}" onclick="event.stopPropagation()">'
       + '<div style="display:flex;gap:6px;">'
       + '<button onclick="event.stopPropagation();' + saveCall + '" style="flex:1;font-family:var(--font-data);font-size:13px;font-weight:700;padding:8px;border-radius:5px;background:' + t.accent + ';color:#fff;border:none;cursor:pointer;">✓ Save</button>'
@@ -11265,7 +11282,7 @@ function renderBigBoard() {
         <button onclick="setBigBoardLayout('status')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='status'?t.accent:'transparent'};color:${bigBoardLayout==='status'?'#fff':t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 10px;cursor:pointer;white-space:nowrap;">By Status</button>
         <button onclick="setBigBoardLayout('tro')" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${bigBoardLayout==='tro'?t.accent:'transparent'};color:${bigBoardLayout==='tro'?'#fff':t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 10px;cursor:pointer;white-space:nowrap;">By TRO</button>
 
-        <select onchange="setBigBoardSort(this.value)" style="font-family:var(--font-data);font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${t.bgCard};color:${t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 8px;cursor:pointer;flex-shrink:0;margin-left:8px;">
+        <select onchange="setBigBoardSort(this.value)" style="font-family:var(--font-data);font-size:16px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:${t.bgCard};color:${t.textSecondary};border:1px solid ${t.border};border-radius:4px;padding:7px 8px;cursor:pointer;flex-shrink:0;margin-left:8px;">
         <option value="designator" ${bigBoardSort==='designator'?'selected':''}>Sort: Designator</option>
         <option value="freq"       ${bigBoardSort==='freq'?'selected':''}>Sort: Frequency</option>
         <option value="function"   ${bigBoardSort==='function'?'selected':''}>Sort: Function</option>
@@ -14719,7 +14736,7 @@ function renderSitesList() {
     return;
   }
   grid.innerHTML = filtered.map(s => `
-    <div style="display:grid;grid-template-columns:32px 1fr 120px 100px 100px;gap:10px;align-items:center;padding:9px 12px;background:var(--bg-card);border:1px solid transparent;border-radius:var(--radius);margin-bottom:3px;cursor:pointer;" onclick="openSiteModal(${s.id})" onmouseover="this.style.borderColor='var(--border-lit)'" onmouseout="this.style.borderColor='transparent'">
+    <div class="sites-row" style="display:grid;grid-template-columns:32px 1fr 120px 100px 100px;gap:10px;align-items:center;padding:9px 12px;background:var(--bg-card);border:1px solid transparent;border-radius:var(--radius);margin-bottom:3px;cursor:pointer;" onclick="openSiteModal(${s.id})" onmouseover="this.style.borderColor='var(--border-lit)'" onmouseout="this.style.borderColor='transparent'">
       <div style="font-size:18px;text-align:center;">${SITE_TYPE_ICONS[s.site_type]||'📍'}</div>
       <div>
         <div style="font-size:15px;color:var(--text-primary);font-weight:500;">${escHtml(s.name)}</div>
@@ -14903,7 +14920,7 @@ function usePointForRfDeconflicter(siteId) {
 // pattern as printSignOutSlip()/ICS 205, so nothing new to maintain
 // per report beyond its own table-building logic.
 // ─────────────────────────────────────────────
-function openReportPrintWindow(title, bodyHtml, subtitle = '') {
+function openReportPrintWindow(title, bodyHtml, subtitle = '', filterDesc = '') {
   const agency = currentAgency?.name || 'Agency';
   const now = new Date().toLocaleString('en-US', { timeZone:'America/Los_Angeles', dateStyle:'full', timeStyle:'short' });
   const win = window.open('', '_blank');
@@ -14912,6 +14929,7 @@ function openReportPrintWindow(title, bodyHtml, subtitle = '') {
       body{font-family:Arial,sans-serif;padding:32px;max-width:900px;margin:0 auto;color:#1a1a1a;}
       h1{font-size:22px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:4px;}
       .rpt-sub{font-size:13px;color:#555;margin-bottom:4px;}
+      .rpt-filters{font-size:12px;color:#1565c0;background:#e8f1fb;border-radius:4px;padding:6px 10px;margin-bottom:10px;display:inline-block;}
       .rpt-meta{font-size:12px;color:#888;margin-bottom:20px;}
       table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px;}
       th{text-align:left;padding:6px 10px;background:#f0f0f0;border-bottom:2px solid #ccc;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#555;}
@@ -14926,6 +14944,7 @@ function openReportPrintWindow(title, bodyHtml, subtitle = '') {
     </style></head><body>
     <h1>${escHtml(title)}</h1>
     ${subtitle ? `<div class="rpt-sub">${escHtml(subtitle)}</div>` : ''}
+    ${filterDesc ? `<div class="rpt-filters">🔎 Filtered — ${escHtml(filterDesc)}</div>` : ''}
     <div class="rpt-meta">${escHtml(agency)} · Generated ${now} PT by ${escHtml(currentUser?.name || 'Unknown')}</div>
     ${bodyHtml}
     <div class="footer">WARDEN · ${escHtml(agency)} · ${now} PT</div>
@@ -14941,39 +14960,82 @@ function rptTable(headers, rows) {
     </tbody></table>`;
 }
 
+function rptTable(headers, rows) {
+  if (!rows.length) return '<div class="rpt-empty">No records.</div>';
+  return `<table><thead><tr>${headers.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map(r => `<tr>${r.map(c => `<td>${escHtml(String(c ?? '—'))}</td>`).join('')}</tr>`).join('')}
+    </tbody></table>`;
+}
+function fmtDateShort(d) { return d ? new Date(d).toLocaleDateString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric'}) : '—'; }
+
+// Builds a human-readable summary of which filters were actually
+// narrowed from their defaults, so the printed report shows exactly
+// what was excluded — never just "filters applied" with no detail.
+function describeReportFilters(spec, values) {
+  const parts = [];
+  spec.forEach(f => {
+    const v = values[f.key];
+    if (f.type === 'checklist') {
+      const all = f.optionsFn().map(o => o.value);
+      if (v && v.length && v.length < all.length) {
+        const labels = f.optionsFn().filter(o => v.includes(o.value)).map(o => o.label);
+        parts.push(`${f.label}: ${labels.join(', ')}`);
+      }
+    } else if (f.type === 'select') {
+      if (v) { const opt = f.optionsFn().find(o => o.value === v); parts.push(`${f.label}: ${opt?.label||v}`); }
+    } else if (f.type === 'text') {
+      if (v) parts.push(`${f.label} contains "${v}"`);
+    } else if (f.type === 'dateSince') {
+      if (v) parts.push(`${f.label} since ${v}`);
+    }
+  });
+  return parts.join(' · ');
+}
+
 // ── 1. Radio Availability Summary ──
-function generateRadioAvailabilityReport() {
+function generateRadioAvailabilityReport(filters = {}) {
+  const statusFilt = filters.status;
+  const modelFilt  = filters.model;
+  const bandFilt   = filters.band;
+  const filtered = inventory.filter(r =>
+    (!statusFilt || statusFilt.length === INV_STATUS_KEYS.length || statusFilt.includes(r.status)) &&
+    (!modelFilt || r.radio_model === modelFilt) &&
+    (!bandFilt  || r.radio_band  === bandFilt)
+  );
+  const keys = statusFilt && statusFilt.length ? statusFilt : INV_STATUS_KEYS;
   const byStatus = {};
-  INV_STATUS_KEYS.forEach(k => { byStatus[k] = inventory.filter(r => r.status === k); });
-  const summaryRows = INV_STATUS_KEYS.filter(k => byStatus[k].length).map(k => [INV_STATUS_LABELS[k], byStatus[k].length]);
+  keys.forEach(k => { byStatus[k] = filtered.filter(r => r.status === k); });
+  const summaryRows = keys.filter(k => byStatus[k].length).map(k => [INV_STATUS_LABELS[k], byStatus[k].length]);
   let body = `<div class="rpt-section">Summary by Status</div>` + rptTable(['Status', 'Count'], summaryRows);
-  body += `<div class="rpt-count">${inventory.length} total radios</div>`;
-  INV_STATUS_KEYS.filter(k => byStatus[k].length).forEach(k => {
+  body += `<div class="rpt-count">${filtered.length} radios matching filters</div>`;
+  keys.filter(k => byStatus[k].length).forEach(k => {
     body += `<div class="rpt-section">${escHtml(INV_STATUS_LABELS[k])} (${byStatus[k].length})</div>`;
     body += rptTable(['Serial', 'Model', 'Band', 'Assigned Unit', 'Assigned Person'],
       byStatus[k].map(r => [r.serial_number, r.radio_model, r.radio_band, r.assigned_unit, r.assigned_person]));
   });
-  openReportPrintWindow('Radio Availability Report', body, `${inventory.length} radios across ${INV_STATUS_KEYS.filter(k=>byStatus[k].length).length} statuses`);
+  openReportPrintWindow('Radio Availability Report', body, `${filtered.length} radios`, describeReportFilters(REPORT_FILTER_SPECS.availability, filters));
 }
 
 // ── 2. Radios Out of Service ──
-function generateOutOfServiceReport() {
-  const oos = inventory.filter(r => r.status && r.status.startsWith('out-of-service')).concat(
-    inventory.filter(r => ['lost','stolen'].includes(r.status))
-  );
+const OOS_SUBSTATUSES = ['out-of-service','out-of-service-fcu','out-of-service-isd','out-of-service-moto','lost','stolen'];
+function generateOutOfServiceReport(filters = {}) {
+  const subFilt = filters.substatus && filters.substatus.length ? filters.substatus : OOS_SUBSTATUSES;
+  const since = filters.since ? new Date(filters.since) : null;
+  const oos = inventory.filter(r => subFilt.includes(r.status) && (!since || new Date(r.updated_at) >= since));
   const rows = oos.map(r => [r.serial_number, r.radio_model, INV_STATUS_LABELS[r.status]||r.status, r.assigned_unit, r.assigned_person, fmtDateShort(r.updated_at)]);
   const body = rptTable(['Serial', 'Model', 'Status', 'Assigned Unit', 'Assigned Person', 'Last Updated'], rows);
-  openReportPrintWindow('Radios Out of Service', body, `${oos.length} radio(s) currently out of service, lost, or stolen`);
+  openReportPrintWindow('Radios Out of Service', body, `${oos.length} radio(s)`, describeReportFilters(REPORT_FILTER_SPECS.oos, filters));
 }
-function fmtDateShort(d) { return d ? new Date(d).toLocaleDateString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric'}) : '—'; }
 
 // ── 3. Radio IDs Available per System ──
-function generateRidAvailabilityReport() {
+function generateRidAvailabilityReport(filters = {}) {
+  const rangeFilt = filters.ranges && filters.ranges.length ? filters.ranges : ridRanges.map(r => String(r.id));
+  const included = ridRanges.filter(r => rangeFilt.includes(String(r.id)));
   let body = '';
-  if (!ridRanges.length) {
-    body = '<div class="rpt-empty">No RID ranges configured — set these up in Admin → Radio IDs.</div>';
+  if (!included.length) {
+    body = '<div class="rpt-empty">No matching RID ranges — adjust filters or add ranges in Admin → Radio IDs.</div>';
   }
-  ridRanges.forEach(range => {
+  included.forEach(range => {
     const total = range.end_id - range.start_id + 1;
     const free = [];
     for (let id = range.start_id; id <= range.end_id && free.length < 500; id++) {
@@ -14984,52 +15046,136 @@ function generateRidAvailabilityReport() {
     body += `<div class="rpt-count">${free.length} of ${total.toLocaleString()} IDs free${free.length>=500?' (showing first 500)':''}</div>`;
     body += free.length ? `<div style="font-family:monospace;font-size:12px;line-height:1.8;word-spacing:8px;">${free.join(', ')}</div>` : '<div class="rpt-empty">No free IDs in this range.</div>';
   });
-  openReportPrintWindow('Radio IDs Available per System', body, `${ridRanges.length} configured range(s)`);
+  openReportPrintWindow('Radio IDs Available per System', body, `${included.length} range(s)`, describeReportFilters(REPORT_FILTER_SPECS.ridavail, filters));
 }
 
 // ── 4. Personnel Roster & Certification Status ──
-function generatePersonnelReport() {
-  const rows = personnelRoster.map(p => {
+function generatePersonnelReport(filters = {}) {
+  const roleFilt = filters.role;
+  const certFilt = filters.certStatus || 'all';
+  const filtered = personnelRoster.filter(p => {
+    if (roleFilt && p.role_title !== roleFilt) return false;
+    if (certFilt === 'all') return true;
+    const d = p.cert_expires ? daysUntil(p.cert_expires) : null;
+    if (certFilt === 'expired') return d !== null && d < 0;
+    if (certFilt === 'expiring') return d !== null && d >= 0 && d < 30;
+    return true;
+  });
+  const rows = filtered.map(p => {
     const d = daysUntil(p.cert_expires);
     const certStatus = !p.cert_expires ? '—' : d < 0 ? `EXPIRED ${Math.abs(d)}d ago` : d < 30 ? `Expires in ${d}d` : fmtDateShort(p.cert_expires);
     return [p.name, p.role_title, p.email, p.phone, certStatus];
   });
   const body = rptTable(['Name', 'Role', 'Email', 'Phone', 'Certification'], rows);
-  openReportPrintWindow('Personnel Roster', body, `${personnelRoster.length} personnel on file`);
+  openReportPrintWindow('Personnel Roster', body, `${filtered.length} personnel`, describeReportFilters(REPORT_FILTER_SPECS.personnel, filters));
 }
 
 // ── 5. Parts & Supplies Low Stock ──
-function generateLowStockReport() {
-  const low = partsInventory.filter(p => partStockStatus(p) !== 'ok');
+function generateLowStockReport(filters = {}) {
+  const catFilt = filters.category;
+  const vendorFilt = filters.vendor;
+  const low = partsInventory.filter(p =>
+    partStockStatus(p) !== 'ok' &&
+    (!catFilt || p.category === catFilt) &&
+    (!vendorFilt || p.vendor === vendorFilt)
+  );
   const rows = low.map(p => [p.name, p.part_number, p.quantity_on_hand, p.reorder_threshold, p.vendor, PART_STATUS_LABELS[partStockStatus(p)]]);
   const body = rptTable(['Part', 'Part #', 'On Hand', 'Reorder At', 'Vendor', 'Status'], rows);
-  openReportPrintWindow('Parts & Supplies — Low Stock', body, `${low.length} part(s) at or below reorder threshold`);
+  openReportPrintWindow('Parts & Supplies — Low Stock', body, `${low.length} part(s)`, describeReportFilters(REPORT_FILTER_SPECS.lowstock, filters));
 }
 
 // ── 6. Sites Directory ──
-function generateSitesReport() {
-  const rows = sites.map(s => [s.name, SITE_TYPE_LABELS[s.site_type]||s.site_type, SITE_STATUS_LABELS[s.status]||s.status, s.elevation_ft?`${s.elevation_ft} ft`:'—', s.antenna_height_ft?`${s.antenna_height_ft} ft`:'—', s.frequency_notes]);
+function generateSitesReport(filters = {}) {
+  const typeFilt = filters.siteType && filters.siteType.length ? filters.siteType : null;
+  const statusFilt = filters.siteStatus && filters.siteStatus.length ? filters.siteStatus : null;
+  const filtered = sites.filter(s =>
+    (!typeFilt || typeFilt.includes(s.site_type)) &&
+    (!statusFilt || statusFilt.includes(s.status))
+  );
+  const rows = filtered.map(s => [s.name, SITE_TYPE_LABELS[s.site_type]||s.site_type, SITE_STATUS_LABELS[s.status]||s.status, s.elevation_ft?`${s.elevation_ft} ft`:'—', s.antenna_height_ft?`${s.antenna_height_ft} ft`:'—', s.frequency_notes]);
   const body = rptTable(['Name', 'Type', 'Status', 'Elevation', 'Antenna Ht', 'Frequency Notes'], rows);
-  openReportPrintWindow('Sites Directory', body, `${sites.length} site(s) on file`);
+  openReportPrintWindow('Sites Directory', body, `${filtered.length} site(s)`, describeReportFilters(REPORT_FILTER_SPECS.sites, filters));
 }
 
 // ── 7. Full Radio Inventory Listing ──
-function generateFullInventoryReport() {
-  const rows = inventory.map(r => [r.serial_number, r.radio_model, r.radio_band, INV_STATUS_LABELS[r.status]||r.status, r.assigned_unit, r.assigned_person, r.mdc_id]);
+function generateFullInventoryReport(filters = {}) {
+  const statusFilt = filters.status;
+  const modelFilt  = filters.model;
+  const bandFilt   = filters.band;
+  const unitFilt   = (filters.unit || '').trim().toLowerCase();
+  const filtered = inventory.filter(r =>
+    (!statusFilt || statusFilt.length === INV_STATUS_KEYS.length || statusFilt.includes(r.status)) &&
+    (!modelFilt || r.radio_model === modelFilt) &&
+    (!bandFilt  || r.radio_band  === bandFilt) &&
+    (!unitFilt  || (r.assigned_unit||'').toLowerCase().includes(unitFilt))
+  );
+  const rows = filtered.map(r => [r.serial_number, r.radio_model, r.radio_band, INV_STATUS_LABELS[r.status]||r.status, r.assigned_unit, r.assigned_person, r.mdc_id]);
   const body = rptTable(['Serial', 'Model', 'Band', 'Status', 'Assigned Unit', 'Assigned Person', 'MDC ID'], rows);
-  openReportPrintWindow('Full Radio Inventory', body, `${inventory.length} radio(s) on file`);
+  openReportPrintWindow('Full Radio Inventory', body, `${filtered.length} radio(s)`, describeReportFilters(REPORT_FILTER_SPECS.fullinv, filters));
 }
 
 // ── 8. UAS Fleet Status ──
-function generateUasFleetReport() {
-  const rows = uasFleet.map(a => {
+function generateUasFleetReport(filters = {}) {
+  const statusFilt = filters.status && filters.status.length ? filters.status : null;
+  const maintFilt = filters.maintenance || 'all';
+  const filtered = uasFleet.filter(a => {
+    if (statusFilt && !statusFilt.includes(a.status)) return false;
+    if (maintFilt === 'all') return true;
+    const d = a.next_maintenance_date ? daysUntil(a.next_maintenance_date) : null;
+    if (maintFilt === 'overdue') return d !== null && d < 0;
+    if (maintFilt === 'soon') return d !== null && d >= 0 && d < 30;
+    return true;
+  });
+  const rows = filtered.map(a => {
     const d = a.next_maintenance_date ? daysUntil(a.next_maintenance_date) : null;
     const maint = d === null ? '—' : d < 0 ? `OVERDUE ${Math.abs(d)}d` : `Due in ${d}d`;
     return [a.tail_number, a.make, a.model, a.status, maint];
   });
   const body = rptTable(['Tail #', 'Make', 'Model', 'Status', 'Maintenance'], rows);
-  openReportPrintWindow('UAS Fleet Status', body, `${uasFleet.length} aircraft on file`);
+  openReportPrintWindow('UAS Fleet Status', body, `${filtered.length} aircraft`, describeReportFilters(REPORT_FILTER_SPECS.uas, filters));
 }
+
+// ── Filter specs — one array per report, drives the generic filter
+// modal below. Each field: key (matches the generator's filters.key),
+// type (checklist | select | text | dateSince), label, optionsFn
+// (checklist/select only — called fresh each time the modal opens so
+// options always reflect current data).
+const REPORT_FILTER_SPECS = {
+  availability: [
+    { key:'status', type:'checklist', label:'Status', optionsFn: () => INV_STATUS_KEYS.map(k => ({ value:k, label:INV_STATUS_LABELS[k] })) },
+    { key:'model',  type:'select', label:'Model', optionsFn: () => [...new Set(inventory.map(r=>r.radio_model).filter(Boolean))].sort().map(m => ({ value:m, label:m })) },
+    { key:'band',   type:'select', label:'Band', optionsFn: () => [...new Set(inventory.map(r=>r.radio_band).filter(Boolean))].sort().map(b => ({ value:b, label:b })) },
+  ],
+  oos: [
+    { key:'substatus', type:'checklist', label:'Status', optionsFn: () => OOS_SUBSTATUSES.map(k => ({ value:k, label:INV_STATUS_LABELS[k]||k })) },
+    { key:'since', type:'dateSince', label:'Updated' },
+  ],
+  ridavail: [
+    { key:'ranges', type:'checklist', label:'Ranges', optionsFn: () => ridRanges.map(r => ({ value:String(r.id), label:r.name })) },
+  ],
+  personnel: [
+    { key:'role', type:'select', label:'Role', optionsFn: () => [...new Set(personnelRoster.map(p=>p.role_title).filter(Boolean))].sort().map(r => ({ value:r, label:r })) },
+    { key:'certStatus', type:'select', label:'Certification', optionsFn: () => [{value:'expired',label:'Expired only'},{value:'expiring',label:'Expiring within 30 days'}] },
+  ],
+  lowstock: [
+    { key:'category', type:'select', label:'Category', optionsFn: () => [...new Set(partsInventory.map(p=>p.category).filter(Boolean))].sort().map(c => ({ value:c, label:c })) },
+    { key:'vendor', type:'select', label:'Vendor', optionsFn: () => [...new Set(partsInventory.map(p=>p.vendor).filter(Boolean))].sort().map(v => ({ value:v, label:v })) },
+  ],
+  sites: [
+    { key:'siteType', type:'checklist', label:'Type', optionsFn: () => Object.entries(SITE_TYPE_LABELS).map(([v,l]) => ({ value:v, label:l })) },
+    { key:'siteStatus', type:'checklist', label:'Status', optionsFn: () => Object.entries(SITE_STATUS_LABELS).map(([v,l]) => ({ value:v, label:l })) },
+  ],
+  fullinv: [
+    { key:'status', type:'checklist', label:'Status', optionsFn: () => INV_STATUS_KEYS.map(k => ({ value:k, label:INV_STATUS_LABELS[k] })) },
+    { key:'model',  type:'select', label:'Model', optionsFn: () => [...new Set(inventory.map(r=>r.radio_model).filter(Boolean))].sort().map(m => ({ value:m, label:m })) },
+    { key:'band',   type:'select', label:'Band', optionsFn: () => [...new Set(inventory.map(r=>r.radio_band).filter(Boolean))].sort().map(b => ({ value:b, label:b })) },
+    { key:'unit',   type:'text', label:'Assigned Unit contains' },
+  ],
+  uas: [
+    { key:'status', type:'checklist', label:'Status', optionsFn: () => [...new Set(uasFleet.map(a=>a.status).filter(Boolean))].map(s => ({ value:s, label:s })) },
+    { key:'maintenance', type:'select', label:'Maintenance', optionsFn: () => [{value:'overdue',label:'Overdue only'},{value:'soon',label:'Due within 30 days'}] },
+  ],
+};
 
 const REPORTS_CATALOG = [
   { id:'availability', icon:'📻', title:'Radio Availability', desc:'Snapshot of every radio grouped by status.', fn:'generateRadioAvailabilityReport' },
@@ -15052,8 +15198,92 @@ function renderReportsCatalog() {
         <div style="font-size:15px;font-weight:600;color:var(--text-primary);">${escHtml(r.title)}</div>
       </div>
       <div style="font-size:13px;color:var(--text-dim);flex:1;">${escHtml(r.desc)}</div>
-      <button class="btn-primary" style="font-size:14px;" onclick="${r.fn}()">🖨 Generate PDF</button>
+      <button class="btn-primary" style="font-size:14px;" onclick="openReportFiltersModal('${r.id}')">🖨 Generate PDF</button>
     </div>`).join('');
+}
+
+// ── Generic filter modal — reads a report's REPORT_FILTER_SPECS entry
+// and renders whatever fields it declares. A report with no spec (or
+// an empty one) skips straight to generating with no filters at all. ──
+let reportFiltersTargetId = null;
+
+function openReportFiltersModal(reportId) {
+  const report = REPORTS_CATALOG.find(r => r.id === reportId);
+  const spec = REPORT_FILTER_SPECS[reportId] || [];
+  if (!report) return;
+  if (!spec.length) { window[report.fn](); return; } // no filters defined — just run it
+
+  reportFiltersTargetId = reportId;
+  document.getElementById('reportFiltersTitle').textContent = `${report.title} — Filters`;
+  document.getElementById('reportFiltersBody').innerHTML = spec.map(f => renderReportFilterField(f)).join('');
+  document.getElementById('reportFiltersModal').classList.add('open');
+}
+
+function closeReportFiltersModal() {
+  document.getElementById('reportFiltersModal').classList.remove('open');
+  reportFiltersTargetId = null;
+}
+
+function renderReportFilterField(f) {
+  const fieldId = `rptf-${f.key}`;
+  if (f.type === 'checklist') {
+    const options = f.optionsFn();
+    if (!options.length) return '';
+    return `<div class="form-field" style="margin-bottom:14px;">
+      <label class="form-label">${escHtml(f.label)} <span style="font-weight:400;color:var(--text-dim);font-size:11px;text-transform:none;letter-spacing:0;">leave all checked for "all"</span></label>
+      <div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-top:4px;">
+        ${options.map(o => `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:14px;color:var(--text-secondary);">
+          <input type="checkbox" class="${fieldId}-opt" value="${escHtml(o.value)}" checked style="width:15px;height:15px;">${escHtml(o.label)}
+        </label>`).join('')}
+      </div>
+    </div>`;
+  }
+  if (f.type === 'select') {
+    const options = f.optionsFn();
+    return `<div class="form-field" style="margin-bottom:14px;">
+      <label class="form-label">${escHtml(f.label)}</label>
+      <select class="form-select" id="${fieldId}">
+        <option value="">— All —</option>
+        ${options.map(o => `<option value="${escHtml(o.value)}">${escHtml(o.label)}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  if (f.type === 'text') {
+    return `<div class="form-field" style="margin-bottom:14px;">
+      <label class="form-label">${escHtml(f.label)}</label>
+      <input class="form-input" id="${fieldId}" placeholder="Leave blank for all">
+    </div>`;
+  }
+  if (f.type === 'dateSince') {
+    return `<div class="form-field" style="margin-bottom:14px;">
+      <label class="form-label">${escHtml(f.label)} <span style="font-weight:400;color:var(--text-dim);font-size:11px;text-transform:none;letter-spacing:0;">optional</span></label>
+      <input class="form-input" id="${fieldId}" type="date">
+    </div>`;
+  }
+  return '';
+}
+
+function collectReportFilterValues(spec) {
+  const values = {};
+  spec.forEach(f => {
+    const fieldId = `rptf-${f.key}`;
+    if (f.type === 'checklist') {
+      const checked = [...document.querySelectorAll(`.${fieldId}-opt:checked`)].map(el => el.value);
+      values[f.key] = checked;
+    } else if (f.type === 'select' || f.type === 'text' || f.type === 'dateSince') {
+      values[f.key] = document.getElementById(fieldId)?.value.trim() || '';
+    }
+  });
+  return values;
+}
+
+function runSelectedReport() {
+  const report = REPORTS_CATALOG.find(r => r.id === reportFiltersTargetId);
+  const spec = REPORT_FILTER_SPECS[reportFiltersTargetId] || [];
+  if (!report) return;
+  const filters = collectReportFilterValues(spec);
+  closeReportFiltersModal();
+  window[report.fn](filters);
 }
 
 // ─────────────────────────────────────────────
@@ -19389,7 +19619,7 @@ function renderAdminRidRanges() {
     const count = r.end_id - r.start_id + 1;
     const sysLabel = r.system ? (RID_SYSTEM_LABELS[r.system] || r.system) : 'Any';
     const codes = (r.system_codes || []).join(', ');
-    return `<div style="display:grid;grid-template-columns:1fr 90px 90px 110px 100px 80px;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
+    return `<div class="rid-range-row" style="display:grid;grid-template-columns:1fr 90px 90px 110px 100px 80px;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
       <div>
         <div style="font-size:15px;font-weight:600;color:var(--text-primary);">${escHtml(r.name)}</div>
         ${r.description ? `<div style="font-size:12px;color:var(--text-dim);">${escHtml(r.description)}</div>` : ''}
@@ -22783,7 +23013,7 @@ if ('serviceWorker' in navigator) {
       </div>
 
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-secondary" onclick="previewMorningReport()">👁 Preview Now</button>
       <div style="display:flex;gap:8px;">
         <button class="btn-secondary" onclick="closeMorningReport()">Close</button>
@@ -22866,9 +23096,9 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-danger" id="tg-delete-btn" style="display:none;" onclick="deleteTalkgroup(tgEditingId)">Delete</button>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeTalkgroupModal()">Cancel</button>
         <button class="btn-primary" onclick="saveTalkgroup()">Save Talkgroup</button>
       </div>
@@ -23096,7 +23326,7 @@ if ('serviceWorker' in navigator) {
         <button class="btn-danger" id="sr-delete-btn" style="display:none;" onclick="deleteReservation(schedEditingId)">Delete</button>
         <button class="btn-secondary" id="sr-ics205-btn" style="display:none;" onclick="exportReservationICS205()">⬇ ICS 205</button>
       </div>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeSchedModal()">Cancel</button>
         <button class="btn-primary" onclick="saveReservation()">Save Reservation</button>
       </div>
@@ -23255,9 +23485,9 @@ if ('serviceWorker' in navigator) {
         <div id="resourceFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-danger" id="rm-delete-btn" style="display:none;" onclick="deleteResource(resourceEditingId)">Delete</button>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeResourceModal()">Cancel</button>
         <button class="btn-primary" onclick="saveResource()">Save Resource</button>
       </div>
@@ -23336,9 +23566,9 @@ if ('serviceWorker' in navigator) {
         </label>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <div id="ne-error" style="font-size:14px;color:var(--status-active);font-family:var(--font-data);"></div>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeNoticeEditor()">Cancel</button>
         <button class="btn-primary" onclick="saveNotice()">Save Notice</button>
       </div>
@@ -23585,9 +23815,9 @@ if ('serviceWorker' in navigator) {
       </div>
 
     </div>
-    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;">
+    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <div id="ie-error" style="font-size:14px;color:var(--status-active);font-family:var(--font-data);flex:1;"></div>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeInventoryForm()">Cancel</button>
         <button class="btn-primary" onclick="saveInventoryRecord()">Save</button>
       </div>
@@ -23849,9 +24079,9 @@ if ('serviceWorker' in navigator) {
         <div id="uasAircraftFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-danger" id="uasAircraftDeleteBtn" style="display:none;" onclick="deleteUasAircraft()">Delete</button>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeUasAircraftForm()">Cancel</button>
         <button class="btn-primary" onclick="saveUasAircraft()">Save Aircraft</button>
       </div>
@@ -23935,9 +24165,9 @@ if ('serviceWorker' in navigator) {
         <div id="uasPersonFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-danger" id="uasPersonDeleteBtn" style="display:none;" onclick="deleteUasPerson()">Delete</button>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeUasPersonForm()">Cancel</button>
         <button class="btn-primary" onclick="saveUasPerson()">Save Person</button>
       </div>
@@ -24029,9 +24259,9 @@ if ('serviceWorker' in navigator) {
         <div id="uasMissionFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-danger" id="uasMissionDeleteBtn" style="display:none;" onclick="deleteUasMission()">Delete</button>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeUasMissionForm()">Cancel</button>
         <button class="btn-primary" onclick="saveUasMission()">Save Mission</button>
       </div>
@@ -24111,9 +24341,9 @@ if ('serviceWorker' in navigator) {
         <div id="personFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-danger" id="personDeleteBtn" style="display:none;" onclick="deletePerson()">Delete</button>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closePersonForm()">Cancel</button>
         <button class="btn-primary" onclick="savePerson()">Save Person</button>
       </div>
@@ -24160,9 +24390,9 @@ if ('serviceWorker' in navigator) {
         <div id="teamFieldHistory" style="display:none;max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-danger" id="teamDeleteBtn" style="display:none;" onclick="deleteTeam()">Delete</button>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeTeamForm()">Cancel</button>
         <button class="btn-primary" onclick="saveTeam()">Save Team</button>
       </div>
@@ -24281,9 +24511,9 @@ if ('serviceWorker' in navigator) {
         <div id="partUsageDetail" style="max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
-    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;">
+    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-danger" style="font-size:14px;" onclick="deletePart()">✕ Delete</button>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="openPartEditModal(currentPartId)">✏ Edit</button>
         <button class="btn-secondary" onclick="closePartModal()">Close</button>
       </div>
@@ -24508,9 +24738,9 @@ if ('serviceWorker' in navigator) {
         <div id="siteFieldHistory" style="max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);"></div>
       </div>
     </div>
-    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;">
+    <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
       <button class="btn-danger" style="font-size:14px;" onclick="deleteSite()">✕ Delete</button>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="openSiteEditModal(currentSiteId)">✏ Edit</button>
         <button class="btn-secondary" onclick="closeSiteModal()">Close</button>
       </div>
@@ -24600,7 +24830,7 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ── GLOBAL SEARCH (Ctrl/Cmd+K) ── -->
-<div id="globalSearchOverlay" style="display:none;position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,0.55);" onclick="if(event.target===this)closeGlobalSearch()">
+<div id="globalSearchOverlay" style="display:none;position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,0.55);padding:0 16px;box-sizing:border-box;" onclick="if(event.target===this)closeGlobalSearch()">
   <div style="max-width:600px;margin:10vh auto 0;background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:8px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,0.4);">
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
       <span style="font-size:16px;color:var(--text-dim);">🔍</span>
@@ -24610,6 +24840,21 @@ if ('serviceWorker' in navigator) {
       <span style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);border:1px solid var(--border);border-radius:3px;padding:2px 6px;">ESC</span>
     </div>
     <div id="globalSearchResults" style="max-height:60vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ── REPORT FILTERS MODAL ── -->
+<div class="modal-overlay" id="reportFiltersModal">
+  <div class="modal" style="max-width:480px;max-height:85vh;display:flex;flex-direction:column;">
+    <div class="modal-header" style="flex-shrink:0;">
+      <div class="modal-title" id="reportFiltersTitle">Report Filters</div>
+      <button class="modal-close" onclick="closeReportFiltersModal()">✕</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;" id="reportFiltersBody"></div>
+    <div class="modal-footer" style="flex-shrink:0;">
+      <button class="btn-secondary" onclick="closeReportFiltersModal()">Cancel</button>
+      <button class="btn-primary" onclick="runSelectedReport()">🖨 Generate PDF</button>
+    </div>
   </div>
 </div>
 
