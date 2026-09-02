@@ -4863,6 +4863,7 @@
             <option value="">— Choose status —</option>
           </select>
           <button class="btn-primary" style="font-size:13px;padding:4px 12px;" onclick="applyBulkStatusChange()">Apply</button>
+          <button class="btn-secondary" style="font-size:13px;padding:4px 10px;" onclick="bulkSignOutSelected()">🖨 Sign Out Selected</button>
           <button class="btn-secondary" style="font-size:13px;padding:4px 10px;margin-left:auto;" onclick="toggleInventoryBulkMode()">Cancel</button>
         </div>
 
@@ -5515,6 +5516,18 @@
               <input class="form-input" id="newRadioSystemLabel" placeholder="System name…" style="flex:1;font-size:14px;" onkeydown="if(event.key==='Enter')document.getElementById('newRadioSystemCode').focus()">
               <input class="form-input" id="newRadioSystemCode" placeholder="Code…" style="flex:1;font-size:14px;font-family:var(--font-data);" onkeydown="if(event.key==='Enter')addRadioSystem()">
               <button class="btn-primary" style="font-size:14px;padding:5px 12px;flex-shrink:0;" onclick="addRadioSystem()">+ Add</button>
+            </div>
+          </div>
+          <!-- Sign-Out Accessories -->
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+              <div style="font-family:var(--font-data);font-size:13px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Sign-Out Accessories</div>
+              <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Checklist options offered when generating a Radio Inventory sign-out slip</div>
+            </div>
+            <div id="signoutAccessoryList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
+            <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
+              <input class="form-input" id="newSignoutAccessory" placeholder="Accessory name…" style="flex:1;font-size:14px;" onkeydown="if(event.key==='Enter')addSignoutAccessory()">
+              <button class="btn-primary" style="font-size:14px;padding:5px 12px;" onclick="addSignoutAccessory()">+ Add</button>
             </div>
           </div>
           <!-- Radio Models -->
@@ -11641,7 +11654,7 @@ function collectGlobalSearchResults(query) {
   });
 
   inventory.forEach(r => {
-    const hay = [r.serial_number, r.alias, r.mdc_id, r.larics_id, r.ici_id, r.cwirs_id, r.cris_id, r.assigned_unit, r.assigned_person].filter(Boolean).join(' ').toLowerCase();
+    const hay = [r.serial_number, r.alias, r.mdc_id, r.larics_id, r.ici_id, r.cwirs_id, r.cris_id, r.assigned_unit, r.assigned_person, r.emp_number].filter(Boolean).join(' ').toLowerCase();
     if (hay.includes(q)) push('Inventory', '📦', r.serial_number || '(no serial)', [r.alias, r.radio_model, r.mdc_id?'MDC '+r.mdc_id:''].filter(Boolean).join(' · '),
       () => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(r.id); });
   });
@@ -13690,10 +13703,23 @@ function daysUntil(dateStr) {
 // so the two never drift into showing different numbers for the same
 // thing.
 function getDataHealthCategories() {
+  const { rangeStats } = computeRidRangeStats();
+  const nearCapacityRanges = ridRanges.filter(r => {
+    const s = rangeStats[r.id];
+    return s && s.total && (s.committed / s.total) >= 0.9;
+  });
+
   return [
     {
-      id: 'oos', title: 'Radios out of service, lost, or stolen', icon: '🔧',
-      items: inventory.filter(r => r.status && (r.status.startsWith('out-of-service') || r.status === 'lost' || r.status === 'stolen')),
+      id: 'ridcapacity', title: 'RID ranges nearing capacity (90%+ committed)', icon: '🆔',
+      items: nearCapacityRanges,
+      describe: r => r.name,
+      sub: r => { const s = rangeStats[r.id]; const pct = Math.round((s.committed/s.total)*100); return `${pct}% committed (${s.committed}/${s.total})`; },
+      jump: r => { switchMainTab('rid'); setTimeout(() => { const sel = document.getElementById('ridRangeFilter'); if (sel) { sel.value = String(r.id); renderRidManager(); } }, 80); },
+    },
+    {
+      id: 'oos', title: 'Radios with an unavailable status', icon: '🔧',
+      items: inventory.filter(r => getOosSubstatuses().includes(r.status)),
       describe: r => r.serial_number || '(no serial)',
       sub: r => INV_STATUS_LABELS[r.status] || r.status,
       jump: r => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(r.id); },
@@ -15077,9 +15103,15 @@ function generateRadioAvailabilityReport(filters = {}) {
 }
 
 // ── 2. Radios Out of Service ──
-const OOS_SUBSTATUSES = ['out-of-service','out-of-service-fcu','out-of-service-isd','out-of-service-moto','lost','stolen'];
+// Derived from radioStatuses' admin-configurable "Unavailable" flag,
+// rather than a hardcoded list — a new custom status only needs that
+// checkbox ticked in Admin → Radio Config to be picked up here, in
+// Data Health, and in the Overview widgets automatically.
+function getOosSubstatuses() {
+  return radioStatuses.filter(s => s.is_unavailable).map(s => s.key);
+}
 function generateOutOfServiceReport(filters = {}) {
-  const subFilt = filters.substatus && filters.substatus.length ? filters.substatus : OOS_SUBSTATUSES;
+  const subFilt = filters.substatus && filters.substatus.length ? filters.substatus : getOosSubstatuses();
   const since = filters.since ? new Date(filters.since) : null;
   const oos = inventory.filter(r => subFilt.includes(r.status) && (!since || new Date(r.updated_at) >= since));
   const rows = oos.map(r => [r.serial_number, r.radio_model, INV_STATUS_LABELS[r.status]||r.status, r.assigned_unit, r.assigned_person, fmtDateShort(r.updated_at)]);
@@ -15235,7 +15267,7 @@ const REPORT_FILTER_SPECS = {
     { key:'band',   type:'select', label:'Band', optionsFn: () => [...new Set(inventory.map(r=>r.radio_band).filter(Boolean))].sort().map(b => ({ value:b, label:b })) },
   ],
   oos: [
-    { key:'substatus', type:'checklist', label:'Status', optionsFn: () => OOS_SUBSTATUSES.map(k => ({ value:k, label:INV_STATUS_LABELS[k]||k })) },
+    { key:'substatus', type:'checklist', label:'Status', optionsFn: () => getOosSubstatuses().map(k => ({ value:k, label:INV_STATUS_LABELS[k]||k })) },
     { key:'since', type:'dateSince', label:'Updated' },
   ],
   ridavail: [
@@ -18137,11 +18169,11 @@ let radioStatuses     = [];
 let INV_STATUS_LABELS = {};
 let INV_STATUS_KEYS   = [];
 const DEFAULT_RADIO_STATUSES = [
-  { key:'in-stock',       label:'In Stock',           color:'#00e676' },
-  { key:'assigned',       label:'Assigned to Unit',   color:'#3b8fdc' },
-  { key:'signed-out',     label:'Assigned to Person', color:'#ffc400' },
-  { key:'out-of-service', label:'Out of Service',     color:'#ff9800' },
-  { key:'retired',        label:'Retired',            color:'#888888' },
+  { key:'in-stock',       label:'In Stock',           color:'#00e676', is_unavailable:false },
+  { key:'assigned',       label:'Assigned to Unit',   color:'#3b8fdc', is_unavailable:false },
+  { key:'signed-out',     label:'Assigned to Person', color:'#ffc400', is_unavailable:false },
+  { key:'out-of-service', label:'Out of Service',     color:'#ff9800', is_unavailable:true },
+  { key:'retired',        label:'Retired',            color:'#888888', is_unavailable:true },
 ];
 
 async function loadRadioStatuses() {
@@ -18173,10 +18205,23 @@ function renderRadioStatusList() {
         <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
           <input type="color" value="${s.color}" style="width:22px;height:22px;padding:0;border:none;flex-shrink:0;cursor:pointer;" onchange="updateRadioStatusColor(${s.id ?? 'null'},'${s.key}',this.value)">
           <span style="flex:1;font-family:var(--font-data);font-size:14px;color:var(--text-primary);cursor:pointer;" onclick="renameRadioStatus(${s.id ?? 'null'},'${s.key}','${escHtml(s.label).replace(/'/g,"\\'")}')" title="Click to rename">${escHtml(s.label)}</span>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-dim);cursor:pointer;flex-shrink:0;" title="Counted as unavailable in Reports, Data Health, and Overview">
+            <input type="checkbox" ${s.is_unavailable?'checked':''} onchange="toggleRadioStatusUnavailable(${s.id ?? 'null'}, this.checked)" style="width:14px;height:14px;">Unavailable
+          </label>
           <span style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);">${escHtml(s.key)}</span>
           <button onclick="deleteRadioStatus(${s.id ?? 'null'},'${s.key}','${escHtml(s.label).replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0;" title="Delete">✕</button>
         </div>`).join('')
     : '<div style="color:var(--text-dim);font-size:14px;">No statuses yet.</div>';
+}
+
+async function toggleRadioStatusUnavailable(id, checked) {
+  if (id) {
+    const { error } = await sb.from('radio_statuses').update({ is_unavailable: checked }).eq('id', id);
+    if (error) { alert(error.message); return; }
+  }
+  await loadRadioStatuses();
+  renderRadioStatusList();
+  logEvent('admin', 'Radio Status Updated', `is_unavailable → ${checked}`);
 }
 
 async function addRadioStatus() {
@@ -18422,6 +18467,7 @@ const INV_TRACKED_FIELDS = [
   { key:'status',               label:'Status', fmt: v => INV_STATUS_LABELS[v] || v },
   { key:'assigned_unit',        label:'Unit' },
   { key:'assigned_person',      label:'Person' },
+  { key:'emp_number',           label:'Employee #' },
   { key:'agency',               label:'Agency' },
   { key:'firmware_version',     label:'Firmware' },
   { key:'codeplug_version',     label:'Codeplug' },
@@ -18493,6 +18539,7 @@ const PERSON_TRACKED_FIELDS = [
   { key:'team_id',         label:'Team' },
   { key:'phone',           label:'Phone' },
   { key:'email',           label:'Email' },
+  { key:'emp_number',      label:'Employee #' },
   { key:'cert_number',     label:'Cert #' },
   { key:'cert_expires',    label:'Cert Expires' },
   { key:'status',          label:'Status', fmt: v => PERSON_STATUS_LABELS[v] || v },
@@ -19275,6 +19322,7 @@ async function openUasPersonnelForm(id) {
     document.getElementById('per-p-team').value     = p.team_id || '';
     document.getElementById('per-p-phone').value    = p.phone || '';
     document.getElementById('per-p-email').value    = p.email || '';
+    document.getElementById('per-p-empnumber').value = p.emp_number || '';
     document.getElementById('per-p-certnum').value  = p.cert_number || '';
     document.getElementById('per-p-certexp').value  = p.cert_expires || '';
     document.getElementById('per-p-status').value   = p.status || 'active';
@@ -19283,16 +19331,50 @@ async function openUasPersonnelForm(id) {
     const histWrap = document.getElementById('personFieldHistoryWrap');
     if (histWrap) histWrap.style.display = 'block';
     renderRecordHistoryPanel('personFieldHistory', 'personnel', id);
+    renderPersonRadiosSection(p);
   } else {
     document.getElementById('personModalTitle').textContent = 'Add Person';
-    ['per-p-name','per-p-roletitle','per-p-phone','per-p-email','per-p-certnum','per-p-certexp','per-p-notes'].forEach(fid => document.getElementById(fid).value = '');
+    ['per-p-name','per-p-roletitle','per-p-phone','per-p-email','per-p-empnumber','per-p-certnum','per-p-certexp','per-p-notes'].forEach(fid => document.getElementById(fid).value = '');
     document.getElementById('per-p-team').value   = '';
     document.getElementById('per-p-status').value = 'active';
     document.getElementById('personDeleteBtn').style.display = 'none';
     const histWrap = document.getElementById('personFieldHistoryWrap');
     if (histWrap) histWrap.style.display = 'none';
+    const radiosWrap = document.getElementById('personRadiosWrap');
+    if (radiosWrap) radiosWrap.style.display = 'none';
   }
   document.getElementById('personModal').classList.add('open');
+}
+
+// Radios are matched to a person by exact name text (assigned_person),
+// not a foreign key — there's no personnel_id column on radio_inventory.
+// A name mismatch (nicknames, "J. Smith" vs "John Smith") means a radio
+// won't show up here even if it's really theirs; this is the best
+// linkage the current data model supports.
+function renderPersonRadiosSection(person) {
+  const wrap = document.getElementById('personRadiosWrap');
+  const list = document.getElementById('personRadiosList');
+  if (!wrap || !list || !person?.name) { if (wrap) wrap.style.display = 'none'; return; }
+  const nameNorm = person.name.trim().toLowerCase();
+  const empNorm = (person.emp_number || '').trim();
+  // Employee # is the reliable match (exact digits, no typo/nickname
+  // risk); name is a fallback for people who don't have one on file
+  // yet. A radio matching both isn't shown twice.
+  const byEmp  = empNorm ? inventory.filter(r => (r.emp_number || '') === empNorm) : [];
+  const byName = inventory.filter(r => (r.assigned_person || '').trim().toLowerCase() === nameNorm && !byEmp.includes(r));
+  const radios = [...byEmp.map(r => ({ r, via: 'emp# ' + empNorm })), ...byName.map(r => ({ r, via: 'name match' }))];
+  wrap.style.display = 'block';
+  list.innerHTML = radios.length
+    ? radios.map(({ r, via }) => `
+        <div onclick="closePersonForm();setTimeout(()=>{switchMainTab('inventory');switchInventoryTab('list');openInventoryModal('${r.id}');},80);" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:var(--radius);cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+          <div style="width:4px;height:24px;border-radius:2px;background:${invStatusColor(r.status)};flex-shrink:0;" class="status-color-swatch"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);">${escHtml(r.serial_number||'—')}</div>
+            <div style="font-size:12px;color:var(--text-dim);">${escHtml(r.radio_model||'')} · <span style="font-style:italic;">matched by ${via}</span></div>
+          </div>
+          <span class="inv-status-chip ${r.status}" style="font-size:12px;">${INV_STATUS_LABELS[r.status]||r.status}</span>
+        </div>`).join('')
+    : '<div style="color:var(--text-dim);font-size:14px;padding:6px 0;">No radios currently show this person\'s name or employee # as Assigned.</div>';
 }
 
 function closePersonForm() {
@@ -19304,6 +19386,8 @@ async function savePerson() {
   if (!canEditPersonnel()) return;
   const name = document.getElementById('per-p-name').value.trim();
   if (!name) { alert('Name is required.'); return; }
+  const empNumber = document.getElementById('per-p-empnumber').value.trim();
+  if (empNumber && !/^\d{6}$/.test(empNumber)) { alert('Employee # must be exactly 6 digits.'); return; }
   const who = currentUser?.name || 'Unknown';
   const row = {
     name,
@@ -19311,6 +19395,7 @@ async function savePerson() {
     team_id:      document.getElementById('per-p-team').value || null,
     phone:        document.getElementById('per-p-phone').value.trim()    || null,
     email:        document.getElementById('per-p-email').value.trim()    || null,
+    emp_number:   empNumber || null,
     cert_number:  document.getElementById('per-p-certnum').value.trim()  || null,
     cert_expires: document.getElementById('per-p-certexp').value         || null,
     status:       document.getElementById('per-p-status').value,
@@ -19538,6 +19623,24 @@ function copyFreeRidsToClipboard() {
 }
 
 // ── Main render ──
+// Shared by RID Manager's own render and the Data Health "nearing
+// capacity" category — one full committed/free pass per range, reused
+// rather than recomputed in two places.
+function computeRidRangeStats() {
+  let totFree = 0, totCommitted = 0;
+  const rangeStats = {};
+  for (const range of ridRanges) {
+    let rFree=0,rCommitted=0;
+    for (let id = range.start_id; id <= range.end_id; id++) {
+      const { state } = classifyRid(id);
+      if (state==='free') { rFree++; totFree++; }
+      else { rCommitted++; totCommitted++; }
+    }
+    rangeStats[range.id] = { free:rFree, committed:rCommitted, total:rFree+rCommitted };
+  }
+  return { rangeStats, totFree, totCommitted };
+}
+
 function renderRidManager() {
   const grid   = document.getElementById('ridGrid');
   const strip  = document.getElementById('ridSummaryStrip');
@@ -19563,17 +19666,7 @@ function renderRidManager() {
   }
 
   // Compute per-range stats and grand totals
-  let totFree = 0, totCommitted = 0;
-  const rangeStats = {};
-  for (const range of ridRanges) {
-    let rFree=0,rCommitted=0;
-    for (let id = range.start_id; id <= range.end_id; id++) {
-      const { state } = classifyRid(id);
-      if (state==='free') { rFree++; totFree++; }
-      else { rCommitted++; totCommitted++; }
-    }
-    rangeStats[range.id] = { free:rFree, committed:rCommitted, total:rFree+rCommitted };
-  }
+  const { rangeStats, totFree, totCommitted } = computeRidRangeStats();
   const total = totFree + totCommitted;
 
   // Summary strip
@@ -19854,7 +19947,7 @@ function renderInventory() {
     if (modelFilt  !== 'all' && r.radio_model !== modelFilt) return false;
     if (bandFilt   !== 'all' && r.radio_band  !== bandFilt)  return false;
     if (query) return [r.serial_number, r.radio_model, r.radio_band, r.assigned_unit,
-      r.assigned_person, r.agency, r.mdc_id,
+      r.assigned_person, r.emp_number, r.agency, r.mdc_id,
       r.larics_id, r.ici_id, r.cwirs_id, r.cris_id]
       .some(f => (f||'').toLowerCase().includes(query));
     return true;
@@ -20107,6 +20200,8 @@ async function openInventoryForm(id) {
     document.getElementById('ie-status').value        = r.status           || 'in-stock';
     document.getElementById('ie-unit').value          = r.assigned_unit    || '';
     document.getElementById('ie-person').value        = r.assigned_person  || '';
+    document.getElementById('ie-emp-number').value    = r.emp_number       || '';
+    checkInventoryEmpNumber();
     document.getElementById('ie-agency').value        = r.agency           || '';
     document.getElementById('ie-purchase-date').value = r.purchase_date    || '';
     document.getElementById('ie-alias').value           = r.alias                 || '';
@@ -20127,7 +20222,7 @@ async function openInventoryForm(id) {
     }, 0);
   } else {
     document.getElementById('invEditTitle').textContent = 'Add Radio';
-    ['ie-serial','ie-agency','ie-unit','ie-person','ie-notes',
+    ['ie-serial','ie-agency','ie-unit','ie-person','ie-emp-number','ie-notes',
      'ie-mdc-id','ie-larics','ie-ici','ie-cwirs','ie-cris',
      'ie-alias','ie-firmware','ie-codeplug','ie-last-programmed'].forEach(fid => {
       const el = document.getElementById(fid); if (el) el.value = '';
@@ -20297,6 +20392,11 @@ function toggleBulkSelect(id, el) {
   if (el) el.checked = invBulkSelected.has(id);
 }
 
+function bulkSignOutSelected() {
+  if (!invBulkSelected.size) { alert('No radios selected.'); return; }
+  openSignOutAccessoriesModal([...invBulkSelected]);
+}
+
 async function applyBulkStatusChange() {
   const newStatus = document.getElementById('invBulkStatus')?.value;
   if (!newStatus) { alert('Choose a status first.'); return; }
@@ -20323,20 +20423,87 @@ async function applyBulkStatusChange() {
 }
 
 // ── SIGN-OUT SLIP ──
-const SIGNOUT_ACCESSORIES = [
+// Sign-out accessories are admin-configurable (Admin → Radio Config →
+// Sign-Out Accessories) rather than a fixed list — DEFAULT_SIGNOUT_ACCESSORIES
+// is only the fallback used if the table is empty or unreachable.
+const DEFAULT_SIGNOUT_ACCESSORIES = [
   'Radio Antenna', 'Radio Std Battery', 'Radio High Battery', 'Radio Belt Holster',
   'Remote Speaker Mic', 'Single Unit Charger', 'Multi Unit Charger',
 ];
-let signOutAccessoriesTargetId = null;
+let signoutAccessories = DEFAULT_SIGNOUT_ACCESSORIES.map((name, i) => ({ id: null, name, sort_order: i }));
 
-function openSignOutAccessoriesModal(id) {
-  signOutAccessoriesTargetId = id;
+async function loadSignoutAccessories() {
+  try {
+    const { data, error } = await sb.from('signout_accessories').select('*').order('sort_order');
+    if (error) { console.warn('loadSignoutAccessories:', error.message); return; }
+    signoutAccessories = (data && data.length) ? data : DEFAULT_SIGNOUT_ACCESSORIES.map((name, i) => ({ id: null, name, sort_order: i }));
+  } catch(e) { console.warn('loadSignoutAccessories exception:', e.message); }
+}
+
+function renderSignoutAccessoryList() {
+  const el = document.getElementById('signoutAccessoryList');
+  if (!el) return;
+  el.innerHTML = signoutAccessories.length
+    ? signoutAccessories.map(a => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);">
+          <span style="font-family:var(--font-data);font-size:14px;color:var(--text-primary);">${escHtml(a.name)}</span>
+          <button onclick="deleteSignoutAccessory(${a.id ?? 'null'},'${escHtml(a.name).replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:16px;padding:0 4px;" title="Delete">✕</button>
+        </div>`).join('')
+    : '<div style="color:var(--text-dim);font-size:14px;">No accessories yet.</div>';
+}
+
+async function addSignoutAccessory() {
+  const inp = document.getElementById('newSignoutAccessory');
+  const name = inp?.value.trim();
+  if (!name) return;
+  const { error } = await sb.from('signout_accessories').insert({ name, sort_order: signoutAccessories.length, agency_id: agencyId() });
+  if (error) { alert(error.message); return; }
+  inp.value = '';
+  await loadSignoutAccessories();
+  renderSignoutAccessoryList();
+  logEvent('admin', 'Sign-Out Accessory Added', name);
+}
+
+async function deleteSignoutAccessory(id, name) {
+  if (!(await themedConfirm(`Delete accessory "${name}"?`))) return;
+  if (id) await sb.from('signout_accessories').delete().eq('id', id);
+  await loadSignoutAccessories();
+  renderSignoutAccessoryList();
+  logEvent('admin', 'Sign-Out Accessory Deleted', name);
+}
+
+let signOutAccessoriesTargetIds = [];
+
+function openSignOutAccessoriesModal(idOrIds) {
+  signOutAccessoriesTargetIds = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+  const radios = signOutAccessoriesTargetIds.map(id => inventory.find(x => String(x.id) === String(id))).filter(Boolean);
+  const errEl = document.getElementById('soa-error');
+  errEl.textContent = '';
+
+  // Pre-fill only when it's unambiguous: one radio, or several that
+  // already all share the same person/emp#. Otherwise leave blank
+  // rather than guess which one's data should "win."
+  const uniquePeople = [...new Set(radios.map(r => r.assigned_person || ''))];
+  const uniqueEmp    = [...new Set(radios.map(r => r.emp_number || ''))];
+  document.getElementById('soa-person').value     = uniquePeople.length === 1 ? uniquePeople[0] : '';
+  document.getElementById('soa-empnumber').value  = uniqueEmp.length === 1 ? uniqueEmp[0] : '';
+
+  document.getElementById('soaModalTitle').textContent = radios.length > 1 ? `Sign Out ${radios.length} Radios` : 'Sign Out Radio';
+  const listEl = document.getElementById('soaRadioList');
+  if (listEl) {
+    listEl.style.display = radios.length > 1 ? 'block' : 'none';
+    listEl.innerHTML = radios.length > 1
+      ? `<div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">${radios.length} radios:</div>` +
+        radios.map(r => `<div style="font-family:var(--font-data);font-size:13px;color:var(--text-secondary);padding:2px 0;">${escHtml(r.serial_number||'—')} — ${escHtml(r.radio_model||'')}</div>`).join('')
+      : '';
+  }
+
   const el = document.getElementById('signOutAccessoriesList');
   if (el) {
-    el.innerHTML = SIGNOUT_ACCESSORIES.map((label, i) => `
+    el.innerHTML = signoutAccessories.map((a, i) => `
       <label style="display:flex;align-items:center;gap:10px;padding:8px 4px;cursor:pointer;border-bottom:1px solid var(--border);">
         <input type="checkbox" id="soa-${i}" style="width:16px;height:16px;flex-shrink:0;">
-        <span style="font-size:15px;color:var(--text-primary);">${escHtml(label)}</span>
+        <span style="font-size:15px;color:var(--text-primary);">${escHtml(a.name)}</span>
       </label>`).join('');
   }
   document.getElementById('signOutAccessoriesModal').classList.add('open');
@@ -20344,40 +20511,98 @@ function openSignOutAccessoriesModal(id) {
 
 function closeSignOutAccessoriesModal() {
   document.getElementById('signOutAccessoriesModal').classList.remove('open');
-  signOutAccessoriesTargetId = null;
+  signOutAccessoriesTargetIds = [];
 }
 
+// Generating the slip is now the actual sign-out action, not just a
+// print dialog — it updates every selected radio's assignment and
+// (when the built-in "signed-out" status still exists) its status,
+// then logs custody per radio and prints one slip covering all of
+// them. If a prior session's admin renamed or deleted that status
+// key, the assignment still updates; only the automatic status flip
+// is skipped, so this never fails outright over that.
 async function confirmSignOutAccessories() {
-  const checked = SIGNOUT_ACCESSORIES.filter((label, i) => document.getElementById(`soa-${i}`)?.checked);
-  const id = signOutAccessoriesTargetId;
-  closeSignOutAccessoriesModal();
-  if (!id) return;
-  if (checked.length) {
-    await logCustodyEvent(id, 'NOTE', `Sign-out slip printed — accessories issued: ${checked.join(', ')}`);
-  } else {
-    await logCustodyEvent(id, 'NOTE', 'Sign-out slip printed — no accessories issued');
+  const ids = signOutAccessoriesTargetIds;
+  const errEl = document.getElementById('soa-error');
+  if (!ids.length) { closeSignOutAccessoriesModal(); return; }
+
+  const person = document.getElementById('soa-person').value.trim();
+  const empNumber = document.getElementById('soa-empnumber').value.trim();
+  if (!person) { errEl.textContent = 'Signed Out To is required.'; return; }
+  if (empNumber && !/^\d{6}$/.test(empNumber)) { errEl.textContent = 'Employee # must be exactly 6 digits.'; return; }
+
+  const checked = signoutAccessories.filter((a, i) => document.getElementById(`soa-${i}`)?.checked).map(a => a.name);
+  const who = currentUser?.name || 'Unknown';
+  const hasSignedOutStatus = radioStatuses.some(s => s.key === 'signed-out');
+  const custodyDetail = `Signed out to ${person}${empNumber ? ' (Emp# '+empNumber+')' : ''} by ${who}` +
+    (checked.length ? ` — accessories: ${checked.join(', ')}` : ' — no accessories issued') +
+    (ids.length > 1 ? ` — batch of ${ids.length}` : '');
+
+  const updateRow = {
+    assigned_person: person,
+    emp_number: empNumber || null,
+    updated_by: who,
+    updated_at: new Date().toISOString(),
+  };
+  if (hasSignedOutStatus) updateRow.status = 'signed-out';
+
+  let errors = 0;
+  for (const id of ids) {
+    const { error } = await sb.from('radio_inventory').update(updateRow).eq('id', id);
+    if (error) { errors++; continue; }
+    await logCustodyEvent(id, 'STATUS_CHANGE', custodyDetail);
   }
-  printSignOutSlip(id, checked);
+  if (errors) { errEl.textContent = `${errors} of ${ids.length} update(s) failed.`; return; }
+
+  await loadInventory();
+  closeSignOutAccessoriesModal();
+  renderInventory();
+  printSignOutSlip(ids, checked);
+  if (ids.length === 1 && inventory.some(r => String(r.id) === String(ids[0]))) openInventoryModal(ids[0]); // refresh the detail view behind the print tab, if it's the one still open
 }
 
-function printSignOutSlip(id, accessories = []) {
-  const r = inventory.find(x => String(x.id) === String(id));
-  if (!r) return;
+function printSignOutSlip(idOrIds, accessories = []) {
+  const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+  const radios = ids.map(id => inventory.find(x => String(x.id) === String(id))).filter(Boolean);
+  if (!radios.length) return;
   const agency  = currentAgency?.name || 'Agency';
   const now = new Date().toLocaleString('en-US', { timeZone:'America/Los_Angeles', dateStyle:'full', timeStyle:'short' });
-  const sysIds = [
-    r.larics_id ? `LARICS: ${r.larics_id}` : '',
-    r.ici_id    ? `ICI: ${r.ici_id}` : '',
-    r.cwirs_id  ? `CWIRS: ${r.cwirs_id}` : '',
-    r.cris_id   ? `CRIS: ${r.cris_id}` : '',
-  ].filter(Boolean).join(' · ');
   const accessoriesHtml = `
     <div style="margin-top:16px;">
       <div class="label" style="margin-bottom:8px;">Accessories Issued</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;">
-        ${SIGNOUT_ACCESSORIES.map(a => `<div style="font-size:14px;">${accessories.includes(a) ? '☑' : '☐'} ${escHtml(a)}</div>`).join('')}
+        ${signoutAccessories.map(a => `<div style="font-size:14px;">${accessories.includes(a.name) ? '☑' : '☐'} ${escHtml(a.name)}</div>`).join('')}
       </div>
     </div>`;
+  const empNumber = [...new Set(radios.map(r => r.emp_number).filter(Boolean))][0] || null; // shown if all share one
+
+  const bodyHtml = radios.length === 1 ? (() => {
+    const r = radios[0];
+    const sysIds = [
+      r.larics_id ? `LARICS: ${r.larics_id}` : '',
+      r.ici_id    ? `ICI: ${r.ici_id}` : '',
+      r.cwirs_id  ? `CWIRS: ${r.cwirs_id}` : '',
+      r.cris_id   ? `CRIS: ${r.cris_id}` : '',
+    ].filter(Boolean).join(' · ');
+    return `
+    <h2>Radio Sign-Out Slip</h2>
+    <div class="field"><div class="label">Date / Time</div><div class="value">${now} PT</div></div>
+    <div class="field"><div class="label">Serial Number</div><div class="value" style="font-family:monospace;font-size:20px;">${escHtml(r.serial_number||'—')}</div></div>
+    <div class="field"><div class="label">Radio Model</div><div class="value">${escHtml(r.radio_model||'—')} · ${escHtml(r.radio_band||'—')}</div></div>
+    ${r.mdc_id ? `<div class="field"><div class="label">MDC ID</div><div class="value" style="font-family:monospace;font-size:20px;letter-spacing:0.15em;">${escHtml(r.mdc_id)}</div></div>` : ''}
+    ${sysIds ? `<div class="field"><div class="label">System IDs</div><div class="value" style="font-size:14px;">${escHtml(sysIds)}</div></div>` : ''}
+    <div class="field"><div class="label">Assigned To</div><div class="value">${escHtml(r.assigned_unit||'—')}</div></div>
+    <div class="field"><div class="label">Person</div><div class="value">${escHtml(r.assigned_person||'—')}</div></div>
+    ${accessoriesHtml}`;
+  })() : `
+    <h2>Radio Sign-Out Slip — ${radios.length} Radios</h2>
+    <div class="field"><div class="label">Date / Time</div><div class="value">${now} PT</div></div>
+    <div class="field"><div class="label">Person</div><div class="value">${escHtml(radios[0].assigned_person||'—')}</div></div>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+      <thead><tr style="border-bottom:2px solid #000;"><th style="text-align:left;padding:6px 8px;">Serial</th><th style="text-align:left;padding:6px 8px;">Model</th><th style="text-align:left;padding:6px 8px;">MDC ID</th></tr></thead>
+      <tbody>${radios.map(r => `<tr style="border-bottom:1px solid #ccc;"><td style="padding:6px 8px;font-family:monospace;">${escHtml(r.serial_number||'—')}</td><td style="padding:6px 8px;">${escHtml(r.radio_model||'—')}</td><td style="padding:6px 8px;font-family:monospace;">${escHtml(r.mdc_id||'—')}</td></tr>`).join('')}</tbody>
+    </table>
+    ${accessoriesHtml}`;
 
   const win = window.open('', '_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>Radio Sign-Out Slip</title>
@@ -20390,22 +20615,14 @@ function printSignOutSlip(id, accessories = []) {
     .footer{margin-top:40px;font-size:12px;color:#888;text-align:center;}
     @media print{button{display:none;}}</style></head><body>
     <div style="text-align:center;margin-bottom:20px;font-size:12px;color:#555;">${escHtml(agency)} — Radio Assignment Record</div>
-    <h2>Radio Sign-Out Slip</h2>
-    <div class="field"><div class="label">Date / Time</div><div class="value">${now} PT</div></div>
-    <div class="field"><div class="label">Serial Number</div><div class="value" style="font-family:monospace;font-size:20px;">${escHtml(r.serial_number||'—')}</div></div>
-    <div class="field"><div class="label">Radio Model</div><div class="value">${escHtml(r.radio_model||'—')} · ${escHtml(r.radio_band||'—')}</div></div>
-    ${r.mdc_id ? `<div class="field"><div class="label">MDC ID</div><div class="value" style="font-family:monospace;font-size:20px;letter-spacing:0.15em;">${escHtml(r.mdc_id)}</div></div>` : ''}
-    ${sysIds ? `<div class="field"><div class="label">System IDs</div><div class="value" style="font-size:14px;">${escHtml(sysIds)}</div></div>` : ''}
-    <div class="field"><div class="label">Assigned To</div><div class="value">${escHtml(r.assigned_unit||'—')}</div></div>
-    <div class="field"><div class="label">Person</div><div class="value">${escHtml(r.assigned_person||'—')}</div></div>
-    ${accessoriesHtml}
+    ${bodyHtml}
     <div style="margin-top:40px;">
       <div class="label" style="margin-bottom:8px;">Received By (Print Name)</div>
       <div class="sig"></div>
       <div class="label" style="margin-top:20px;margin-bottom:8px;">Signature</div>
       <div class="sig"></div>
       <div class="label" style="margin-top:20px;margin-bottom:8px;">EMP Number</div>
-      <div class="sig"></div>
+      ${empNumber ? `<div class="value" style="font-family:monospace;font-size:20px;letter-spacing:0.15em;border-bottom:1px solid #000;padding-bottom:4px;">${escHtml(empNumber)}</div>` : '<div class="sig"></div>'}
     </div>
     <div class="footer">WARDEN · ${escHtml(agency)} · Printed ${now} PT</div>
     <scr\ipt>window.print();</scr\ipt>
@@ -20421,6 +20638,19 @@ function checkInventorySerial() {
   warn.innerHTML = dup ? `🚨 DUPLICATE serial — already registered (${INV_STATUS_LABELS[dup.status]})` : '';
 }
 
+// Informational only, never blocking — one person legitimately having
+// multiple radios (primary + backup, portable + mobile) is normal, so
+// this just surfaces other radios under the same number in case it was
+// actually a typo, without stopping the save.
+function checkInventoryEmpNumber() {
+  const val  = document.getElementById('ie-emp-number').value.trim();
+  const warn = document.getElementById('ie-emp-number-warn');
+  if (!warn) return;
+  if (!val || !/^\d{6}$/.test(val)) { warn.textContent = ''; return; }
+  const others = inventory.filter(r => String(r.id) !== String(inventoryEditingId) && r.emp_number === val);
+  warn.textContent = others.length ? `ℹ Also assigned to: ${others.map(r=>r.serial_number).join(', ')}` : '';
+}
+
 async function saveInventoryRecord() {
   const serial = document.getElementById('ie-serial').value.trim();
   const errEl  = document.getElementById('ie-error');
@@ -20428,6 +20658,9 @@ async function saveInventoryRecord() {
 
   const dup = inventory.find(r => String(r.id) !== String(inventoryEditingId) && (r.serial_number||'').toLowerCase() === serial.toLowerCase());
   if (dup) { errEl.textContent = '⚠ Duplicate serial number. Each radio must have a unique serial.'; return; }
+
+  const empNumber = document.getElementById('ie-emp-number').value.trim();
+  if (empNumber && !/^\d{6}$/.test(empNumber)) { errEl.textContent = 'Employee # must be exactly 6 digits.'; return; }
 
   const who = currentUser?.name || 'Unknown';
   const mdcId = document.getElementById('ie-mdc-id').value.trim().toUpperCase() || null;
@@ -20443,6 +20676,7 @@ async function saveInventoryRecord() {
     status:           document.getElementById('ie-status').value     || 'in-stock',
     assigned_unit:    document.getElementById('ie-unit').value.trim()   || null,
     assigned_person:  document.getElementById('ie-person').value.trim() || null,
+    emp_number:       empNumber || null,
     agency:           document.getElementById('ie-agency').value.trim()   || null,
     purchase_date:    document.getElementById('ie-purchase-date').value   || null,
     alias:                document.getElementById('ie-alias').value.trim()          || null,
@@ -20630,11 +20864,11 @@ function renderInventoryLog() {
 
 function exportInventoryCSV() {
   if (!inventory.length) { alert('No inventory data to export.'); return; }
-  const header = ['Serial Number','Alias','Model','Band','Status','Assigned Unit','Assigned Person','Agency','Purchase Date','Firmware','Codeplug','Last Programmed','MDC ID','LARICS ID','ICI ID','CWIRS ID','CRIS ID','Control Top Replaced','Notes'];
+  const header = ['Serial Number','Alias','Model','Band','Status','Assigned Unit','Assigned Person','Employee #','Agency','Purchase Date','Firmware','Codeplug','Last Programmed','MDC ID','LARICS ID','ICI ID','CWIRS ID','CRIS ID','Control Top Replaced','Notes'];
   const rows = inventory.map(r => [
     r.serial_number||'', r.alias||'', r.radio_model||'', r.radio_band||'',
     INV_STATUS_LABELS[r.status]||r.status,
-    r.assigned_unit||'', r.assigned_person||'', r.agency||'',
+    r.assigned_unit||'', r.assigned_person||'', r.emp_number||'', r.agency||'',
     r.purchase_date||'', r.firmware_version||'', r.codeplug_version||'', r.last_programmed_date||'',
     r.mdc_id||'', r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
     r.control_top_replaced ? 'Yes' : 'No', r.notes||''
@@ -20816,6 +21050,7 @@ function initPresence() {
 async function renderAdminRadioConfig() {
   renderRadioStatusList();
   renderRadioSystemList();
+  renderSignoutAccessoryList();
   await renderRadioModelList();
   await renderRadioBandList();
   await renderChannelFunctionList();
@@ -21046,9 +21281,9 @@ const CSV_TEMPLATES = {
   },
   inventory: {
     filename: 'radio-inventory-template.csv',
-    headers: ['serial_number','radio_model','radio_band','status','assigned_unit','assigned_person','agency','purchase_date','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'],
-    sample: ['ABC123456','APX8000','VHF','in-stock','good','Station 7','','LAFD','2023-01-15','A1B2','LAR-0451','ICI-0451','CW-0451','CR-0451','Primary portable'],
-    note: '# status: in-stock | assigned | signed-out (Assigned to Person) | out-of-service | retired | condition: new | good | fair | poor | dates: YYYY-MM-DD | mdc_id: 1-4 characters, digits 0-9 or letters A-D only',
+    headers: ['serial_number','radio_model','radio_band','status','assigned_unit','assigned_person','emp_number','agency','purchase_date','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'],
+    sample: ['ABC123456','APX8000','VHF','in-stock','Station 7','','123456','LAFD','2023-01-15','A1B2','LAR-0451','ICI-0451','CW-0451','CR-0451','Primary portable'],
+    note: '# status: in-stock | assigned | signed-out (Assigned to Person) | out-of-service | retired | dates: YYYY-MM-DD | mdc_id: 1-4 characters, digits 0-9 or letters A-D only | emp_number: exactly 6 digits',
   },
   parts: {
     filename: 'parts-import-template.csv',
@@ -21163,7 +21398,9 @@ async function importCSV(type) {
         serial_number: r.serial_number, radio_model: r.radio_model || null,
         radio_band: r.radio_band || null, status: r.status || 'in-stock',
         assigned_unit: r.assigned_unit || null,
-        assigned_person: r.assigned_person || null, agency: r.agency || null,
+        assigned_person: r.assigned_person || null,
+        emp_number: (r.emp_number && /^\d{6}$/.test(r.emp_number.trim())) ? r.emp_number.trim() : null,
+        agency: r.agency || null,
         purchase_date: r.purchase_date || null,
         mdc_id: r.mdc_id ? r.mdc_id.trim().toUpperCase() : null,
         larics_id: r.larics_id || null, ici_id: r.ici_id || null,
@@ -21928,6 +22165,7 @@ async function loadAllData() {
     loadSharedReferenceData(),
     loadRadioStatuses(),
     loadRadioSystems(),
+    loadSignoutAccessories(),
     loadInventory(),
     loadIncidents(),
     loadReservations(),
@@ -23893,6 +24131,11 @@ if ('serviceWorker' in navigator) {
           <label class="form-label">Assigned Person</label>
           <input class="form-input" id="ie-person" placeholder="Name if signed out">
         </div>
+        <div class="form-field">
+          <label class="form-label">Employee # <span style="font-weight:400;color:var(--text-dim);font-size:11px;text-transform:none;letter-spacing:0;">optional, 6 digits</span></label>
+          <input class="form-input" id="ie-emp-number" inputmode="numeric" maxlength="6" placeholder="123456" style="font-family:var(--font-data);" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6);checkInventoryEmpNumber();">
+          <div id="ie-emp-number-warn" style="font-size:12px;color:var(--status-reserved);margin-top:3px;font-family:var(--font-data);"></div>
+        </div>
       </div>
 
       <div class="form-row">
@@ -24423,6 +24666,10 @@ if ('serviceWorker' in navigator) {
             <label class="form-label">Email</label>
             <input class="form-input" id="per-p-email" type="email" placeholder="name@agency.gov">
           </div>
+          <div class="form-field">
+            <label class="form-label">Employee # <span style="font-weight:400;color:var(--text-dim);font-size:11px;text-transform:none;letter-spacing:0;">optional, 6 digits</span></label>
+            <input class="form-input" id="per-p-empnumber" inputmode="numeric" maxlength="6" placeholder="123456" style="font-family:var(--font-data);" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+          </div>
         </div>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
@@ -24443,6 +24690,11 @@ if ('serviceWorker' in navigator) {
           <label class="form-label">Notes</label>
           <textarea class="form-textarea" id="per-p-notes" style="height:60px;" placeholder="Specialized training, availability, endorsements…"></textarea>
         </div>
+      </div>
+      <div id="personRadiosWrap" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Radios Assigned to This Person</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">Matched by employee # (reliable) or by name (can miss nicknames/typos) — add an employee # above for the more accurate match.</div>
+        <div id="personRadiosList"></div>
       </div>
       <div id="personFieldHistoryWrap" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
         <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.fh-c').textContent=n.style.display===''?'▴':'▾';">
@@ -24515,16 +24767,28 @@ if ('serviceWorker' in navigator) {
 <div class="modal-overlay" id="signOutAccessoriesModal">
   <div class="modal" style="max-width:440px;">
     <div class="modal-header">
-      <div class="modal-title">Accessories Issued</div>
+      <div class="modal-title" id="soaModalTitle">Sign Out Radio</div>
       <button class="modal-close" onclick="closeSignOutAccessoriesModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:14px;">Check any accessories going out with this radio — they'll be listed on the sign-out slip for the recipient to confirm.</div>
+      <div id="soaRadioList" style="display:none;background:var(--bg-deep);border-radius:var(--radius);padding:8px 12px;max-height:120px;overflow-y:auto;margin-bottom:12px;"></div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Signed Out To</label>
+          <input class="form-input" id="soa-person" placeholder="Name">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Employee # <span style="font-weight:400;color:var(--text-dim);font-size:11px;text-transform:none;letter-spacing:0;">optional, 6 digits</span></label>
+          <input class="form-input" id="soa-empnumber" inputmode="numeric" maxlength="6" placeholder="123456" style="font-family:var(--font-data);" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+        </div>
+      </div>
+      <div style="font-size:14px;color:var(--text-secondary);margin:14px 0;">Check any accessories going out with this radio — they'll be listed on the sign-out slip for the recipient to confirm.</div>
       <div id="signOutAccessoriesList" style="display:flex;flex-direction:column;gap:2px;"></div>
+      <div id="soa-error" style="font-size:13px;color:var(--status-active);font-family:var(--font-data);margin-top:8px;min-height:16px;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeSignOutAccessoriesModal()">Cancel</button>
-      <button class="btn-primary" onclick="confirmSignOutAccessories()">🖨 Generate Slip</button>
+      <button class="btn-primary" onclick="confirmSignOutAccessories()">🖨 Sign Out &amp; Generate Slip</button>
     </div>
   </div>
 </div>
