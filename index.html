@@ -4201,7 +4201,7 @@
   <button class="btn-secondary" onclick="openShiftHandoff();toggleMobileMenu()">📋 Shift Handoff</button>
   <button class="btn-secondary" onclick="openMorningReport();toggleMobileMenu()">📋 Morning Report</button>
   <button class="btn-secondary" onclick="openBigBoard();toggleMobileMenu()">⛶ Big Board</button>
-  <button class="btn-secondary" onclick="try{localStorage.setItem('warden_last_seen_build',BUILD_VERSION);}catch(e){};mobileNav('notes');toggleMobileMenu()">📝 Release Notes</button>
+  <button class="btn-secondary" onclick="openWhatsNew();toggleMobileMenu()">📝 Release Notes</button>
   <div class="menu-divider"></div>
   <button id="mobileAdminBtn" class="btn-secondary" onclick="openUserAdmin();toggleMobileMenu()" style="display:none;border-color:rgba(255,82,82,0.4);color:var(--status-active);">👥 User Administration</button>
   <div class="menu-divider"></div>
@@ -5818,7 +5818,6 @@
       <button class="side-tab active" id="tab-detail"  onclick="switchSideTab('detail')">📻 Detail</button>
       <button class="side-tab"        id="tab-history" onclick="switchSideTab('history')">🕐 History</button>
       <button class="side-tab"        id="tab-log"     onclick="switchSideTab('log')">📋 Log</button>
-      <button class="side-tab"        id="tab-notes"   onclick="switchSideTab('notes')">📝 Release Notes</button>
       <button class="panel-toggle-btn" onclick="toggleSidePanel()" title="Close panel" style="margin:6px 8px 6px 4px;flex-shrink:0;">✕</button>
     </div>
 
@@ -5847,14 +5846,6 @@
       <div id="activityLog"></div>
     </div>
 
-    <!-- Release Notes tab -->
-    <div class="side-tab-content" id="tabcontent-notes" style="flex-direction:column;">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
-        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;">Version History</div>
-        <button class="btn-primary" style="font-size:13px;padding:4px 10px;" onclick="openReleaseNoteEditor(null)">+ Add Entry</button>
-      </div>
-      <div id="releaseNotesList" style="flex:1;overflow-y:auto;"></div>
-    </div>
   </div>
 </div>
 
@@ -6439,7 +6430,12 @@ function openWhatsNew() {
   document.getElementById('whatsNewDot')?.style.setProperty('display', 'none');
   document.getElementById('whatsNewBadge')?.style.setProperty('display', 'none');
   closeReportsDropdown();
-  toggleSidePanel('notes');
+  renderReleaseNotes();
+  document.getElementById('whatsNewModal').classList.add('open');
+}
+
+function closeWhatsNew() {
+  document.getElementById('whatsNewModal').classList.remove('open');
 }
 
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpqbmh3bWtramdvZ3R5aWR6cmptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDMyNzcsImV4cCI6MjA5NjYxOTI3N30.AFILeKWgnKQNV1igRsZIFKxqTpCW-PwNLtN6ct2NPFo';
@@ -10285,6 +10281,28 @@ function populateTroDropdown() {
     + TRO_ZONES.map(z => `<option value="${escHtml(z)}"${current===z?' selected':''}>${escHtml(z)}</option>`).join('');
 }
 
+// Populates the Add/Edit Channel form's Function dropdown from the
+// admin-configured list. `selected` pre-selects a value when editing
+// an existing channel; called with no argument when just refreshing
+// the list after an admin adds/deletes a function in Radio Config.
+function populateChannelFunctionDropdown(selected = '') {
+  const sel = document.getElementById('f-function');
+  if (!sel) return;
+  const keep = selected || sel.value;
+  sel.innerHTML = '<option value="">— Select function —</option>' +
+    channelFunctions.map(f => `<option value="${escHtml(f)}">${escHtml(f)}</option>`).join('');
+  if (keep) sel.value = keep;
+}
+
+// Shows the "In Use / Reserved For" row on the Add/Edit Channel form
+// only when it's actually relevant — a channel sitting Available
+// doesn't have an event/incident name attached to it.
+function toggleActiveForField() {
+  const status = document.getElementById('f-status')?.value;
+  const row = document.getElementById('f-activefor-row');
+  if (row) row.style.display = (status === 'active' || status === 'reserved') ? '' : 'none';
+}
+
 function classifyChannelType(ch) {
   const haystack = `${ch.function||''} ${ch.designator||''}`.toLowerCase();
   const band = ch.band || detectBand(ch.freq || '');
@@ -12093,22 +12111,11 @@ function mobileNav(tab) {
     openMobileSheet();
     setTimeout(() => document.getElementById('mobileSearch')?.focus(), 100);
   } else if (tab === 'notes') {
-    // Release notes in bottom sheet
-    const sorted = [...releaseNotes].sort((a,b) => (b.date||'').localeCompare(a.date||''));
-    const notesHtml = sorted.length ? sorted.map((note, i) => `
-      <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--accent);">${escHtml(note.version)}</span>
-          ${i===0?`<span style="font-family:var(--font-data);font-size:11px;background:var(--accent-glow);color:var(--accent);border:1px solid rgba(30,136,229,0.3);padding:1px 6px;border-radius:2px;">LATEST</span>`:''}
-          <span style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);margin-left:auto;">${note.date||''}</span>
-        </div>
-        <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">${escHtml(note.title)}</div>
-        ${note.body ? `<div style="font-size:14px;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;">${escHtml(note.body)}</div>` : ''}
-      </div>`).join('')
-      : '<div style="padding:40px 20px;text-align:center;color:var(--text-dim);font-size:14px;">No release notes yet</div>';
-    document.getElementById('sheetTitle').innerHTML = `📝 Release Notes <button class="btn-primary" style="font-size:13px;padding:3px 10px;margin-left:8px;" onclick="openReleaseNoteEditor(null)">+ Add</button>`;
-    document.getElementById('sheetContent').innerHTML = `<div style="padding-bottom:16px;">${notesHtml}</div>`;
-    openMobileSheet();
+    // Unreachable now — mobile "Release Notes" opens the shared
+    // What's New modal directly (openWhatsNew()) instead of routing
+    // through here, same as desktop. Left only as a safety no-op in
+    // case anything still calls mobileNav('notes') directly.
+    openWhatsNew();
   }
 }
 
@@ -12502,7 +12509,6 @@ function switchSideTab(tab) {
   const tabContent = document.getElementById(`tabcontent-${tab}`);
   if (tabBtn) tabBtn.classList.add('active');
   if (tabContent) tabContent.classList.add('active');
-  if (tab === 'notes')   renderReleaseNotes();
   if (tab === 'log')     renderLog();
   if (tab === 'history') {
     // Load history for whichever channel is selected
@@ -25245,6 +25251,23 @@ if ('serviceWorker' in navigator) {
     <div class="modal-footer" style="flex-shrink:0;">
       <button class="btn-secondary" onclick="closeReportFiltersModal()">Cancel</button>
       <button class="btn-primary" onclick="runSelectedReport()">🖨 Generate PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── WHAT'S NEW / RELEASE NOTES MODAL ── -->
+<div class="modal-overlay" id="whatsNewModal">
+  <div class="modal" style="max-width:560px;max-height:85vh;display:flex;flex-direction:column;">
+    <div class="modal-header" style="flex-shrink:0;">
+      <div class="modal-title">📝 What's New</div>
+      <button class="modal-close" onclick="closeWhatsNew()">✕</button>
+    </div>
+    <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;">Version History</div>
+      <button class="btn-primary" style="font-size:13px;padding:4px 10px;" onclick="openReleaseNoteEditor(null)">+ Add Entry</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;">
+      <div id="releaseNotesList"></div>
     </div>
   </div>
 </div>
