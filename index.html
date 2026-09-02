@@ -105,6 +105,15 @@
   [data-theme="nightvision"] .topbar,
   [data-theme="nightvision"] .channel-row,
   [data-theme="nightvision"] .modal { box-shadow: 0 0 18px rgba(0,255,102,0.04) inset; }
+  /* Admin-configurable status/system colors are stored as raw hex and
+     don't route through the theme's CSS variables — without this, a
+     purple or bright red status dot would defeat the entire point of
+     Night Vision mode. Convert any of them to a green-tinted
+     equivalent, preserving relative brightness so distinct colors
+     still look distinct, just not colorful. */
+  [data-theme="nightvision"] .status-color-swatch {
+    filter: grayscale(1) sepia(1) hue-rotate(60deg) saturate(4) brightness(1.1);
+  }
 
   /* ── MODE FONT IMPORTS ── */
   @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
@@ -4479,6 +4488,7 @@
           <button class="btn-secondary" onclick="openImpactDashboard()">⚡ Operational Impact</button>
         </div>
       </div>
+      <div id="overviewStatsStrip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
       <div id="overviewContent"></div>
     </div>
 
@@ -4851,11 +4861,6 @@
           <span style="font-size:14px;color:var(--text-dim);">Set status:</span>
           <select class="form-select" id="invBulkStatus" style="width:160px;font-size:13px;padding:4px 8px;">
             <option value="">— Choose status —</option>
-            <option value="in-stock">In Stock</option>
-            <option value="assigned">Assigned to Unit</option>
-            <option value="signed-out">Assigned to Person</option>
-            <option value="out-of-service">Out of Service</option>
-            <option value="retired">Retired</option>
           </select>
           <button class="btn-primary" style="font-size:13px;padding:4px 12px;" onclick="applyBulkStatusChange()">Apply</button>
           <button class="btn-secondary" style="font-size:13px;padding:4px 10px;margin-left:auto;" onclick="toggleInventoryBulkMode()">Cancel</button>
@@ -8557,7 +8562,7 @@ function quickDeploy(id) {
 
 async function deleteChannel(id) {
   const ch = channels.find(c => c.id === id);
-  if (!confirm(`Remove ${ch.designator} from the channel plan?`)) return;
+  if (!(await themedConfirm(`Remove ${ch.designator} from the channel plan?`))) return;
   const who = currentUser ? currentUser.name : 'Unknown';
   // Log deletion before the row is gone
   await logChannelHistory({
@@ -10207,7 +10212,7 @@ async function toggleUserActive(userId) {
 async function deleteUser(userId) {
   const u = allProfiles.find(x => x.id === userId);
   if (!u) return;
-  if (!confirm(`Remove user "${u.name}"? This deletes their profile. Their Supabase auth account will need to be removed separately in the Supabase dashboard.`)) return;
+  if (!(await themedConfirm(`Remove user "${u.name}"? This deletes their profile. Their Supabase auth account will need to be removed separately in the Supabase dashboard.`))) return;
   const { error } = await sb.from('profiles').delete().eq('id', userId);
   if (error) { alert('Error: ' + error.message); return; }
   logActivity(`User <span class="log-ch">${u.name}</span> removed by ${currentUser.name}`);
@@ -11554,6 +11559,8 @@ document.addEventListener('keydown', function(e) {
 
   // Escape always works, even while typing (so you can back out of a field and close a modal in one press)
   if (e.key === 'Escape') {
+    const themedConfirmEl = document.getElementById('themedConfirmOverlay');
+    if (themedConfirmEl && themedConfirmEl.classList.contains('open')) { _themedConfirmResolve(false); return; }
     const gSearch = document.getElementById('globalSearchOverlay');
     if (gSearch && gSearch.style.display !== 'none') { closeGlobalSearch(); return; }
     const bigBoard = document.getElementById('bigBoardOverlay');
@@ -12713,9 +12720,9 @@ function saveReleaseNote() {
   closeReleaseNoteEditor();
 }
 
-function deleteReleaseNote(id) {
+async function deleteReleaseNote(id) {
   const note = releaseNotes.find(n => n.id === id);
-  if (!note || !confirm(`Delete release note "${note.version} — ${note.title}"?`)) return;
+  if (!note || !(await themedConfirm(`Delete release note "${note.version} — ${note.title}"?`))) return;
   releaseNotes = releaseNotes.filter(n => n.id !== id);
   saveReleaseNotes();
   renderReleaseNotes();
@@ -12858,7 +12865,26 @@ window.addEventListener('resize', closeAllNavGroups);
 // ─────────────────────────────────────────────
 // OVERVIEW TAB — Active + Reserved only, channels + talkgroups merged
 // ─────────────────────────────────────────────
+function renderOverviewStatsStrip() {
+  const el = document.getElementById('overviewStatsStrip');
+  if (!el) return;
+  const cats = getDataHealthCategories().filter(c => c.items.length);
+  if (!cats.length) {
+    el.innerHTML = `<div style="display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--status-available);padding:8px 4px;">✅ Nothing needs attention right now</div>`;
+    return;
+  }
+  el.innerHTML = cats.map(c => `
+    <div onclick="switchMainTab('admin');setTimeout(()=>switchAdminTab('datahealth'),80);" style="cursor:pointer;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;min-width:150px;" onmouseover="this.style.borderColor='var(--border-lit)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:20px;">${c.icon}</span>
+      <div>
+        <div style="font-family:var(--font-data);font-size:20px;font-weight:700;color:var(--status-reserved);line-height:1;">${c.items.length}</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">${escHtml(c.title)}</div>
+      </div>
+    </div>`).join('');
+}
+
 function renderOverview() {
+  renderOverviewStatsStrip();
   const el = document.getElementById('overviewContent');
   if (!el) return;
 
@@ -13272,7 +13298,7 @@ async function adminToggleUserActive(id) {
 
 async function adminDeleteUser(id) {
   const u = allProfiles.find(x => x.id === id);
-  if (!u || !confirm(`Remove user "${u.name}"? This deletes their profile but not their auth account.`)) return;
+  if (!u || !(await themedConfirm(`Remove user "${u.name}"? This deletes their profile but not their auth account.`))) return;
   const { error } = await sb.from('profiles').delete().eq('id', id);
   if (error) { alert('Error: ' + error.message); return; }
   logActivity(`User <span class="log-ch">${u.name}</span> removed by ${currentUser?.name||'Admin'}`);
@@ -13659,62 +13685,77 @@ function daysUntil(dateStr) {
   return Math.floor((new Date(dateStr) - new Date()) / 86400000);
 }
 
-function renderDataHealthPanel() {
-  const summaryEl = document.getElementById('dataHealthSummary');
-  const catsEl = document.getElementById('dataHealthCategories');
-  if (!catsEl) return;
-
-  const categories = [
+// Shared by the Data Health panel (Admin) and the Overview dashboard
+// widgets — one place computing "what needs attention," read by both,
+// so the two never drift into showing different numbers for the same
+// thing.
+function getDataHealthCategories() {
+  return [
     {
-      title: 'Radios missing Model or Band', icon: '📦',
+      id: 'oos', title: 'Radios out of service, lost, or stolen', icon: '🔧',
+      items: inventory.filter(r => r.status && (r.status.startsWith('out-of-service') || r.status === 'lost' || r.status === 'stolen')),
+      describe: r => r.serial_number || '(no serial)',
+      sub: r => INV_STATUS_LABELS[r.status] || r.status,
+      jump: r => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(r.id); },
+    },
+    {
+      id: 'nomodel', title: 'Radios missing Model or Band', icon: '📦',
       items: inventory.filter(r => !r.radio_model || !r.radio_band),
       describe: r => r.serial_number || '(no serial)',
       sub: r => [!r.radio_model ? 'no model' : '', !r.radio_band ? 'no band' : ''].filter(Boolean).join(', '),
       jump: r => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(r.id); },
     },
     {
-      title: 'Radios with no System IDs entered', icon: '🆔',
+      id: 'noids', title: 'Radios with no System IDs entered', icon: '🆔',
       items: inventory.filter(r => !r.mdc_id && !r.larics_id && !r.ici_id && !r.cwirs_id && !r.cris_id),
       describe: r => r.serial_number || '(no serial)',
       sub: r => r.radio_model || '',
       jump: r => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(r.id); },
     },
     {
-      title: 'Personnel with expired or expiring certifications', icon: '👥',
+      id: 'certs', title: 'Personnel with expired or expiring certifications', icon: '👥',
       items: personnelRoster.filter(p => p.cert_expires && daysUntil(p.cert_expires) < 30),
       describe: p => p.name,
       sub: p => { const d = daysUntil(p.cert_expires); return d < 0 ? `expired ${Math.abs(d)}d ago` : `expires in ${d}d`; },
       jump: p => { switchMainTab('personnel'); openUasPersonnelForm(p.id); },
     },
     {
-      title: 'UAS aircraft with maintenance overdue', icon: '🛸',
+      id: 'uasmaint', title: 'UAS aircraft with maintenance overdue', icon: '🛸',
       items: uasFleet.filter(a => a.next_maintenance_date && daysUntil(a.next_maintenance_date) < 0),
       describe: a => a.tail_number,
       sub: a => `maintenance overdue ${Math.abs(daysUntil(a.next_maintenance_date))}d`,
       jump: a => { switchMainTab('uas'); openUasAircraftForm(a.id); },
     },
     {
-      title: 'Parts low or out of stock', icon: '🧰',
+      id: 'lowstock', title: 'Parts low or out of stock', icon: '🧰',
       items: partsInventory.filter(p => partStockStatus(p) !== 'ok'),
       describe: p => p.name,
       sub: p => `${p.quantity_on_hand ?? 0} on hand · reorder at ${p.reorder_threshold ?? 0}`,
       jump: p => { switchMainTab('parts'); openPartModal(p.id); },
     },
     {
-      title: 'Sites missing elevation or antenna height', icon: '🗼',
+      id: 'sites', title: 'Sites missing elevation or antenna height', icon: '🗼',
       items: sites.filter(s => !s.elevation_ft || !s.antenna_height_ft),
       describe: s => s.name,
       sub: s => [!s.elevation_ft ? 'no elevation' : '', !s.antenna_height_ft ? 'no antenna height' : ''].filter(Boolean).join(', '),
       jump: s => { switchMainTab('sites'); openSiteModal(s.id); },
     },
     {
-      title: 'Channels missing Agency or Function', icon: '📻',
+      id: 'channels', title: 'Channels missing Agency or Function', icon: '📻',
       items: channels.filter(c => !c.agency || c.agency === '—' || !c.function || c.function === '—'),
       describe: c => c.designator,
       sub: c => [(!c.agency||c.agency==='—') ? 'no agency' : '', (!c.function||c.function==='—') ? 'no function' : ''].filter(Boolean).join(', '),
       jump: c => { switchMainTab('channels'); selectChannel(c.id); },
     },
   ];
+}
+
+function renderDataHealthPanel() {
+  const summaryEl = document.getElementById('dataHealthSummary');
+  const catsEl = document.getElementById('dataHealthCategories');
+  if (!catsEl) return;
+
+  const categories = getDataHealthCategories();
 
   if (summaryEl) {
     const totalFlags = categories.reduce((sum, c) => sum + c.items.length, 0);
@@ -14182,7 +14223,7 @@ async function saveResource() {
 
 async function deleteResource(id) {
   const r = resources.find(x => x.id === id);
-  if (!r || !confirm(`Remove "${r.name}" from resources?`)) return;
+  if (!r || !(await themedConfirm(`Remove "${r.name}" from resources?`))) return;
   const { error } = await sb.from('resources').delete().eq('id', id);
   if (error) { alert('Error deleting resource: ' + error.message); return; }
   logActivity(`Resource <span class="log-ch">${r.name}</span> removed`);
@@ -14564,7 +14605,7 @@ async function savePart() {
 
 async function deletePart() {
   const p = partsInventory.find(x => String(x.id) === String(currentPartId));
-  if (!p || !confirm(`Remove "${p.name}" from parts inventory? This also removes its usage history.`)) return;
+  if (!p || !(await themedConfirm(`Remove "${p.name}" from parts inventory? This also removes its usage history.`))) return;
   const { error } = await sb.from('parts_inventory').delete().eq('id', p.id);
   if (error) { alert('Error deleting part: ' + error.message); return; }
   logEvent('system', 'Part Deleted', p.name, { part: p.name });
@@ -14848,7 +14889,7 @@ async function saveSite() {
     const prev = sites.find(x => x.id === siteEditingId);
     const { error } = await sb.from('sites').update(row).eq('id', siteEditingId);
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
-    logEvent('system', 'Site Updated', name, { name });
+    logEvent('admin', 'Site Updated', name, { name });
     if (prev) {
       const fieldDiffs = diffRecordFields(prev, row, SITE_TRACKED_FIELDS);
       await logRecordHistory('sites', siteEditingId, name, 'edited', fieldDiffs);
@@ -14856,7 +14897,7 @@ async function saveSite() {
   } else {
     const { data: inserted, error } = await sb.from('sites').insert(row).select('id').single();
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
-    logEvent('system', 'Site Added', name, { name });
+    logEvent('admin', 'Site Added', name, { name });
     if (inserted?.id) await logRecordHistory('sites', inserted.id, name, 'created', null);
   }
 
@@ -14868,9 +14909,9 @@ async function saveSite() {
 
 async function deleteSite() {
   const s = sites.find(x => x.id === currentSiteId);
-  if (!s || !confirm(`Delete site "${s.name}"?`)) return;
+  if (!s || !(await themedConfirm(`Delete site "${s.name}"?`))) return;
   await sb.from('sites').delete().eq('id', s.id);
-  logEvent('system', 'Site Deleted', s.name, { name: s.name });
+  logEvent('admin', 'Site Deleted', s.name, { name: s.name });
   await loadSites();
   closeSiteModal();
   renderSites();
@@ -14920,6 +14961,25 @@ function usePointForRfDeconflicter(siteId) {
 // pattern as printSignOutSlip()/ICS 205, so nothing new to maintain
 // per report beyond its own table-building logic.
 // ─────────────────────────────────────────────
+// ── Themed confirm dialog — replaces native confirm() for destructive
+// actions (deletes) so the prompt matches the app's look instead of an
+// OS-styled browser popup. Promise-based: `if (!(await themedConfirm(msg))) return;`
+// is a drop-in replacement for `if (!confirm(msg)) return;` in any
+// async function. ──
+let _themedConfirmResolver = null;
+function themedConfirm(message, { title = 'Confirm', confirmText = 'Confirm', cancelText = 'Cancel' } = {}) {
+  document.getElementById('themedConfirmTitle').textContent = title;
+  document.getElementById('themedConfirmMessage').textContent = message;
+  document.getElementById('themedConfirmOkBtn').textContent = confirmText;
+  document.getElementById('themedConfirmCancelBtn').textContent = cancelText;
+  document.getElementById('themedConfirmOverlay').classList.add('open');
+  return new Promise(resolve => { _themedConfirmResolver = resolve; });
+}
+function _themedConfirmResolve(result) {
+  document.getElementById('themedConfirmOverlay').classList.remove('open');
+  if (_themedConfirmResolver) { _themedConfirmResolver(result); _themedConfirmResolver = null; }
+}
+
 function openReportPrintWindow(title, bodyHtml, subtitle = '', filterDesc = '') {
   const agency = currentAgency?.name || 'Agency';
   const now = new Date().toLocaleString('en-US', { timeZone:'America/Los_Angeles', dateStyle:'full', timeStyle:'short' });
@@ -15135,6 +15195,34 @@ function generateUasFleetReport(filters = {}) {
   openReportPrintWindow('UAS Fleet Status', body, `${filtered.length} aircraft`, describeReportFilters(REPORT_FILTER_SPECS.uas, filters));
 }
 
+// ── 9. Channel Usage — how often each channel was booked (Reservations)
+// or tied to an Incident. WARDEN has no actual radio transmission
+// telemetry (it's a coordination/planning tool, not hardware-integrated),
+// so this counts *scheduling activity*, not real airtime — the report
+// says so plainly rather than implying it's measuring real RF usage.
+function generateChannelUsageReport(filters = {}) {
+  const since = filters.since ? new Date(filters.since) : null;
+  const bandFilt = filters.band;
+
+  const relevantChannels = channels.filter(c => !bandFilt || c.band === bandFilt);
+  const usage = relevantChannels.map(c => {
+    const cid = String(c.id);
+    const resFor = reservations.filter(r => r.channelIds.includes(cid) && (!since || new Date(r.start) >= since));
+    const incFor = incidents.filter(i => (i.channel_ids||[]).map(String).includes(cid) && (!since || new Date(i.created_at || i.start) >= since));
+    const totalHours = resFor.reduce((sum, r) => {
+      if (!r.start || !r.end) return sum;
+      const h = (new Date(r.end) - new Date(r.start)) / 3600000;
+      return sum + (h > 0 ? h : 0);
+    }, 0);
+    return { channel: c, resCount: resFor.length, incCount: incFor.length, totalHours, activity: resFor.length + incFor.length };
+  }).filter(u => u.activity > 0).sort((a,b) => b.activity - a.activity);
+
+  const rows = usage.map(u => [u.channel.designator, u.channel.band, u.resCount, u.incCount, u.totalHours ? u.totalHours.toFixed(1) : '—']);
+  const body = `<div style="font-size:12px;color:#888;margin-bottom:12px;">Counts reservations and incidents each channel was linked to — not actual radio airtime, which WARDEN doesn't track.</div>`
+    + rptTable(['Channel', 'Band', 'Reservations', 'Incidents', 'Reserved Hours'], rows);
+  openReportPrintWindow('Channel Usage', body, `${usage.length} of ${relevantChannels.length} channels had scheduling activity`, describeReportFilters(REPORT_FILTER_SPECS.chusage, filters));
+}
+
 // ── Filter specs — one array per report, drives the generic filter
 // modal below. Each field: key (matches the generator's filters.key),
 // type (checklist | select | text | dateSince), label, optionsFn
@@ -15175,6 +15263,10 @@ const REPORT_FILTER_SPECS = {
     { key:'status', type:'checklist', label:'Status', optionsFn: () => [...new Set(uasFleet.map(a=>a.status).filter(Boolean))].map(s => ({ value:s, label:s })) },
     { key:'maintenance', type:'select', label:'Maintenance', optionsFn: () => [{value:'overdue',label:'Overdue only'},{value:'soon',label:'Due within 30 days'}] },
   ],
+  chusage: [
+    { key:'band', type:'select', label:'Band', optionsFn: () => [...new Set(channels.map(c=>c.band).filter(Boolean))].sort().map(b => ({ value:b, label:b })) },
+    { key:'since', type:'dateSince', label:'Activity since' },
+  ],
 };
 
 const REPORTS_CATALOG = [
@@ -15186,6 +15278,7 @@ const REPORTS_CATALOG = [
   { id:'sites',        icon:'🗼', title:'Sites Directory', desc:'All repeater, tower, and infrastructure sites.', fn:'generateSitesReport' },
   { id:'fullinv',      icon:'📦', title:'Full Radio Inventory', desc:'Every radio on file, one row each.', fn:'generateFullInventoryReport' },
   { id:'uas',          icon:'🛸', title:'UAS Fleet Status', desc:'Aircraft roster with maintenance due dates.', fn:'generateUasFleetReport' },
+  { id:'chusage',      icon:'📊', title:'Channel Usage', desc:'How often each channel was booked via Reservations or Incidents. Scheduling activity, not real radio airtime — WARDEN has no transmission telemetry.', fn:'generateChannelUsageReport' },
 ];
 
 function renderReportsCatalog() {
@@ -16513,7 +16606,7 @@ async function saveReservation() {
 
 async function deleteReservation(id) {
   const r = reservations.find(x => x.id === id);
-  if (!r || !confirm(`Delete reservation "${r.title}"?`)) return;
+  if (!r || !(await themedConfirm(`Delete reservation "${r.title}"?`))) return;
   const { error } = await sb.from('reservations').delete().eq('id', id);
   if (error) { alert('Error deleting reservation: ' + error.message); return; }
   logEvent('reservation', 'Deleted', `"${r.title}" · ${r.channelDesignator || '—'} · was ${r.start} → ${r.end}`, {
@@ -16811,7 +16904,7 @@ function closeTalkgroupModal() {
 
 async function deleteTalkgroup(id) {
   const tg = talkgroups.find(x => String(x.id) === String(id));
-  if (!tg || !confirm(`Remove talkgroup "${tg.name}" (${tg.tgId})?`)) return;
+  if (!tg || !(await themedConfirm(`Remove talkgroup "${tg.name}" (${tg.tgId})?`))) return;
   const { error } = await sb.from('talkgroups').delete().eq('id', id);
   if (error) { alert('Error deleting talkgroup: ' + error.message); return; }
   logActivity(`Talkgroup <span class="log-ch">${tg.name}</span> removed by ${currentUser?.name || 'Unknown'}`);
@@ -17693,8 +17786,8 @@ async function testViewerLogin() {
   }
 }
 
-function clearViewerAccountConfig() {
-  if (!confirm('Remove the viewer account configuration from this device?')) return;
+async function clearViewerAccountConfig() {
+  if (!(await themedConfirm('Remove the viewer account configuration from this device?'))) return;
   localStorage.removeItem(VIEWER_CREDS_KEY);
   const emailEl = document.getElementById('viewerAcctEmail');
   const passEl  = document.getElementById('viewerAcctPass');
@@ -17982,7 +18075,7 @@ async function renderAdminNotices() {
 }
 
 async function deleteNotice(id) {
-  if (!confirm('Delete this notice?')) return;
+  if (!(await themedConfirm('Delete this notice?'))) return;
   await sb.from('system_notices').delete().eq('id', id);
   renderAdminNotices();
 }
@@ -18099,7 +18192,7 @@ async function addRadioStatus() {
   labelInp.value = '';
   await loadRadioStatuses();
   renderRadioStatusList();
-  logEvent('system', 'Radio Status Added', label);
+  logEvent('admin', 'Radio Status Added', label);
 }
 
 function renameRadioStatus(id, key, currentLabel) {
@@ -18115,7 +18208,7 @@ async function saveRadioStatusLabel(id, key, newLabel) {
   }
   await loadRadioStatuses();
   renderRadioStatusList();
-  logEvent('system', 'Radio Status Renamed', `${key} → ${newLabel}`);
+  logEvent('admin', 'Radio Status Renamed', `${key} → ${newLabel}`);
 }
 
 async function updateRadioStatusColor(id, key, newColor) {
@@ -18130,12 +18223,12 @@ async function updateRadioStatusColor(id, key, newColor) {
 async function deleteRadioStatus(id, key, label) {
   const inUse = inventory.filter(r => r.status === key).length;
   const warn = inUse ? `\n\n⚠ ${inUse} radio(s) currently have this status — they'll keep the stored value "${key}" but it will show as an unrecognized status until reassigned.` : '';
-  if (!confirm(`Delete status "${label}"?${warn}`)) return;
+  if (!(await themedConfirm(`Delete status "${label}"?${warn}`))) return;
   if (id) await sb.from('radio_statuses').delete().eq('id', id);
   await loadRadioStatuses();
   renderRadioStatusList();
   renderInventoryStatusOptions();
-  logEvent('system', 'Radio Status Deleted', label);
+  logEvent('admin', 'Radio Status Deleted', label);
 }
 
 // Populates the Inventory edit form's Status <select> from radioStatuses
@@ -18196,7 +18289,7 @@ async function saveRadioSystemField(id, patch) {
   if (error) { alert(error.message); return; }
   await loadRadioSystems();
   renderRadioSystemList();
-  logEvent('system', 'Radio System Updated', JSON.stringify(patch));
+  logEvent('admin', 'Radio System Updated', JSON.stringify(patch));
 }
 
 async function addRadioSystem() {
@@ -18215,16 +18308,16 @@ async function addRadioSystem() {
   codeInp.value = '';
   await loadRadioSystems();
   renderRadioSystemList();
-  logEvent('system', 'Radio System Added', `${label} (${code})`);
+  logEvent('admin', 'Radio System Added', `${label} (${code})`);
 }
 
 async function deleteRadioSystem(id, label) {
-  if (!confirm(`Delete System "${label}"?`)) return;
+  if (!(await themedConfirm(`Delete System "${label}"?`))) return;
   const { error } = await sb.from('radio_systems').delete().eq('id', id);
   if (error) { alert(error.message); return; }
   await loadRadioSystems();
   renderRadioSystemList();
-  logEvent('system', 'Radio System Deleted', label);
+  logEvent('admin', 'Radio System Deleted', label);
 }
 
 // Populates the RID Range form's code-autocomplete <datalist> from the
@@ -18645,7 +18738,7 @@ async function saveUasAircraft() {
 
 async function deleteUasAircraft(id) {
   const a = uasFleet.find(x => String(x.id) === String(id || uasFleetEditingId));
-  if (!a || !confirm(`Remove aircraft "${a.tail_number}" from the fleet?`)) return;
+  if (!a || !(await themedConfirm(`Remove aircraft "${a.tail_number}" from the fleet?`))) return;
   const { error } = await sb.from('uas_aircraft').delete().eq('id', a.id);
   if (error) { alert('Error deleting: ' + error.message); return; }
   logEvent('uas', 'Aircraft Removed', `${a.tail_number}`, { tail: a.tail_number });
@@ -18797,7 +18890,7 @@ async function saveUasPerson() {
 
 async function deleteUasPerson(id) {
   const p = uasPersonnel.find(x => String(x.id) === String(id || uasPersonEditingId));
-  if (!p || !confirm(`Remove "${p.name}" from the roster?`)) return;
+  if (!p || !(await themedConfirm(`Remove "${p.name}" from the roster?`))) return;
   const { error } = await sb.from('uas_personnel').delete().eq('id', p.id);
   if (error) { alert('Error deleting: ' + error.message); return; }
   logEvent('uas', 'Personnel Removed', p.name, { name: p.name });
@@ -18952,7 +19045,7 @@ async function saveUasMission() {
 
 async function deleteUasMission(id) {
   const m = uasMissions.find(x => String(x.id) === String(id || uasMissionEditingId));
-  if (!m || !confirm(`Delete mission "${m.title}"?`)) return;
+  if (!m || !(await themedConfirm(`Delete mission "${m.title}"?`))) return;
   const { error } = await sb.from('uas_missions').delete().eq('id', m.id);
   if (error) { alert('Error deleting: ' + error.message); return; }
   logEvent('uas', 'Mission Deleted', m.title, { title: m.title });
@@ -19250,7 +19343,7 @@ async function savePerson() {
 async function deletePerson(id) {
   if (!canEditPersonnel()) return;
   const p = personnelRoster.find(x => String(x.id) === String(id || personEditingId));
-  if (!p || !confirm(`Remove "${p.name}" from the roster?`)) return;
+  if (!p || !(await themedConfirm(`Remove "${p.name}" from the roster?`))) return;
   const { error } = await sb.from('personnel').delete().eq('id', p.id);
   if (error) { alert('Error deleting: ' + error.message); return; }
   logEvent('personnel', 'Person Removed', p.name, { name: p.name });
@@ -19709,7 +19802,7 @@ async function saveRidRange() {
 
 async function deleteRidRange(id) {
   const r = ridRanges.find(x => String(x.id) === String(id));
-  if (!r || !confirm(`Delete range "${r.name}" (${r.start_id}–${r.end_id})?\nThis only deletes the range definition — radio records in Inventory are not affected.`)) return;
+  if (!r || !(await themedConfirm(`Delete range "${r.name}" (${r.start_id}–${r.end_id})?\nThis only deletes the range definition — radio records in Inventory are not affected.`))) return;
   const { error } = await sb.from('rid_ranges').delete().eq('id', id);
   if (error) { alert('Error: ' + error.message); return; }
   logEvent('admin', 'RID Range Deleted', `${r.name} (${r.start_id}–${r.end_id})`);
@@ -19798,9 +19891,9 @@ function renderInventory() {
       cris   ? `<span title="CRIS">CR:${escHtml(cris)}</span>`    : '',
     ].filter(Boolean).join(' ');
 
-    return `
-    <div class="inv-row${r.status==='retired'?' retired':''}" onclick="openInventoryModal('${r.id}')">
-      <div style="width:4px;height:32px;border-radius:2px;background:${invStatusColor(r.status)};flex-shrink:0;"></div>
+    const rowHtml = `
+    <div class="inv-row${r.status==='retired'?' retired':''}" onclick="${invBulkMode ? `toggleBulkSelect('${r.id}', this.closest('.inv-bulk-row-wrap').querySelector('.inv-bulk-cb'))` : `openInventoryModal('${r.id}')`}">
+      <div class="status-color-swatch" style="width:4px;height:32px;border-radius:2px;background:${invStatusColor(r.status)};flex-shrink:0;"></div>
       <div>
         <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(r.serial_number||'')}">${escHtml(r.serial_number||'—')}${r.control_top_replaced?' <span style="color:var(--accent);" title="Control Top Replaced">⟲</span>':''}</div>
         ${r.alias ? `<div style="font-size:12px;color:var(--text-dim);font-family:var(--font-data);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.alias)}</div>` : ''}
@@ -19814,6 +19907,17 @@ function renderInventory() {
       <div style="font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_person||r.agency||'—')}</div>
       <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--accent);">${escHtml(r.mdc_id || '—')}</div>
       <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);display:flex;flex-direction:column;gap:2px;overflow:hidden;">${sysIds || '<span style="color:var(--border);">—</span>'}</div>
+    </div>`;
+
+    // Bulk mode wraps the (otherwise untouched) row in a flex container
+    // with a checkbox sibling, rather than adding a column to the grid
+    // itself — the grid's column definitions are shared across three
+    // different breakpoints (desktop/iPad/mobile) and this way none of
+    // them need to change just to support an optional select mode.
+    if (!invBulkMode) return rowHtml;
+    return `<div class="inv-bulk-row-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+      <input type="checkbox" class="inv-bulk-cb" style="width:18px;height:18px;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();toggleBulkSelect('${r.id}', this)" ${invBulkSelected.has(String(r.id)) ? 'checked' : ''}>
+      <div style="flex:1;min-width:0;">${rowHtml}</div>
     </div>`;
   }).join('');
 }
@@ -20174,6 +20278,13 @@ function toggleInventoryBulkMode() {
   const btn = document.getElementById('invBulkToggleBtn');
   if (bar) bar.style.display = invBulkMode ? 'flex' : 'none';
   if (btn) btn.textContent = invBulkMode ? '✕ Cancel' : '☐ Select';
+  if (invBulkMode) {
+    const sel = document.getElementById('invBulkStatus');
+    if (sel) sel.innerHTML = '<option value="">— Choose status —</option>' +
+      radioStatuses.map(s => `<option value="${s.key}">${escHtml(s.label)}</option>`).join('');
+  }
+  const count = document.getElementById('invBulkCount');
+  if (count) count.textContent = '0 selected';
   renderInventory();
 }
 
@@ -20395,7 +20506,7 @@ async function saveInventoryRecord() {
 
 async function deleteInventoryRecord() {
   const r = inventory.find(x => String(x.id) === String(currentInvId));
-  if (!r || !confirm(`Permanently delete radio ${r.serial_number}?\nAll custody history will also be deleted.`)) return;
+  if (!r || !(await themedConfirm(`Permanently delete radio ${r.serial_number}?\nAll custody history will also be deleted.`))) return;
   await logInventoryEvent('DELETE', r.serial_number, `Deleted — ${r.radio_model||'—'} · ${r.status}`);
   await sb.from('radio_inventory').delete().eq('id', currentInvId);
   await loadInventory();
@@ -20763,7 +20874,7 @@ async function addTroZone() {
 }
 
 async function deleteTroZone(id, name) {
-  if (!confirm('Delete TRO zone "' + name + '"?\n\nChannels assigned to this zone will keep their assignment — it will just no longer appear in the zone list.')) return;
+  if (!(await themedConfirm('Delete TRO zone "' + name + '"?\n\nChannels assigned to this zone will keep their assignment — it will just no longer appear in the zone list.'))) return;
   await sb.from('tro_zones').delete().eq('id', id);
   await loadTroZones();
   renderTroZoneList();
@@ -20843,7 +20954,7 @@ async function addRadioModel() {
 }
 
 async function deleteRadioModel(id, name) {
-  if (!confirm(`Delete model "${name}"?`)) return;
+  if (!(await themedConfirm(`Delete model "${name}"?`))) return;
   await sb.from('radio_models').delete().eq('id', id);
   await loadSharedReferenceData();
   renderRadioModelList();
@@ -20876,7 +20987,7 @@ async function addRadioBand() {
 }
 
 async function deleteRadioBand(id, name) {
-  if (!confirm(`Delete band "${name}"?`)) return;
+  if (!(await themedConfirm(`Delete band "${name}"?`))) return;
   await sb.from('radio_bands').delete().eq('id', id);
   await loadSharedReferenceData();
   renderRadioBandList();
@@ -20910,7 +21021,7 @@ async function addChannelFunction() {
 }
 
 async function deleteChannelFunction(id, name) {
-  if (!confirm(`Delete function/purpose "${name}"? Channels already using this value keep it — it just won't be offered for new selections.`)) return;
+  if (!(await themedConfirm(`Delete function/purpose "${name}"? Channels already using this value keep it — it just won't be offered for new selections.`))) return;
   await sb.from('channel_functions').delete().eq('id', id);
   await loadSharedReferenceData();
   renderChannelFunctionList();
@@ -21202,7 +21313,7 @@ async function deleteIncident(id) {
   if (!id) return;
   const inc = incidents.find(x => String(x.id) === String(id));
   if (!inc) return;
-  if (!confirm(`Permanently delete incident "${inc.name}"? This cannot be undone.\n\nChannels assigned to this incident will be marked Available.`)) return;
+  if (!(await themedConfirm(`Permanently delete incident "${inc.name}"? This cannot be undone.\n\nChannels assigned to this incident will be marked Available.`))) return;
   await releaseIncidentChannels(inc);
   const { error } = await sb.from('incidents').delete().eq('id', id);
   if (error) { alert('Error deleting incident: ' + error.message); return; }
@@ -24840,6 +24951,22 @@ if ('serviceWorker' in navigator) {
       <span style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);border:1px solid var(--border);border-radius:3px;padding:2px 6px;">ESC</span>
     </div>
     <div id="globalSearchResults" style="max-height:60vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ── THEMED CONFIRM MODAL ── -->
+<div class="modal-overlay" id="themedConfirmOverlay">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title" id="themedConfirmTitle">Confirm</div>
+    </div>
+    <div class="modal-body">
+      <div id="themedConfirmMessage" style="font-size:15px;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="themedConfirmCancelBtn" onclick="_themedConfirmResolve(false)">Cancel</button>
+      <button class="btn-danger" id="themedConfirmOkBtn" onclick="_themedConfirmResolve(true)">Confirm</button>
+    </div>
   </div>
 </div>
 
