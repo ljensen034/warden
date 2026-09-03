@@ -5483,6 +5483,9 @@
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-secondary);">
                   <input type="checkbox" id="auf-can-personnel-edit" style="accent-color:var(--accent);" onchange="if(this.checked)document.getElementById('auf-can-personnel').checked=true;"> 👥 Personnel (Editor)
                 </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-secondary);">
+                  <input type="checkbox" id="auf-can-custody-delete" style="accent-color:var(--accent);"> 🗑 Custody Log Delete
+                </label>
               </div>
             </div>
           </div>
@@ -9707,6 +9710,7 @@ async function doLogin() {
     canUas:           profile.can_uas        === true  || profile.role === 'admin',
     canPersonnel:     profile.can_personnel  === true  || profile.role === 'admin',
     canPersonnelEdit: profile.can_personnel_edit === true || profile.role === 'admin',
+    canCustodyDelete: profile.can_custody_delete === true || profile.role === 'admin',
     canViewResources: profile.can_vehicles === true || profile.can_equipment === true || profile.role === 'admin',
     viewMode:         profile.view_mode || 'coml',
   };
@@ -9990,6 +9994,7 @@ async function checkExistingSession() {
     canUas:           profile.can_uas        === true  || profile.role === 'admin',
     canPersonnel:     profile.can_personnel  === true  || profile.role === 'admin',
     canPersonnelEdit: profile.can_personnel_edit === true || profile.role === 'admin',
+    canCustodyDelete: profile.can_custody_delete === true || profile.role === 'admin',
     canViewResources: profile.can_vehicles === true || profile.can_equipment === true || profile.role === 'admin',
     viewMode:         profile.view_mode || 'coml',
   };
@@ -10095,6 +10100,7 @@ function openUserForm(userId) {
     if (document.getElementById('uf-can-uas'))            document.getElementById('uf-can-uas').checked            = u.canUas === true || u.role === 'admin';
     if (document.getElementById('uf-can-personnel'))      document.getElementById('uf-can-personnel').checked      = u.canPersonnel === true || u.role === 'admin';
     if (document.getElementById('uf-can-personnel-edit'))  document.getElementById('uf-can-personnel-edit').checked = u.canPersonnelEdit === true || u.role === 'admin';
+    if (document.getElementById('uf-can-custody-delete'))  document.getElementById('uf-can-custody-delete').checked = u.canCustodyDelete === true || u.role === 'admin';
     document.getElementById('userFormTitle').textContent = 'Edit User';
     document.getElementById('uf-username').readOnly = true;
     document.getElementById('uf-username').style.opacity = '0.5';
@@ -10112,6 +10118,7 @@ function openUserForm(userId) {
     if (document.getElementById('uf-can-uas'))            document.getElementById('uf-can-uas').checked = false;
     if (document.getElementById('uf-can-personnel'))      document.getElementById('uf-can-personnel').checked = false;
     if (document.getElementById('uf-can-personnel-edit'))  document.getElementById('uf-can-personnel-edit').checked = false;
+    if (document.getElementById('uf-can-custody-delete'))  document.getElementById('uf-can-custody-delete').checked = false;
     if (document.getElementById('uf-uuid')) document.getElementById('uf-uuid').value = '';
     document.getElementById('userFormTitle').textContent = 'Add New User';
     document.getElementById('uf-username').readOnly = false;
@@ -10155,9 +10162,11 @@ async function saveUserForm() {
       const canUas       = document.getElementById('uf-can-uas')?.checked || false;
       const canPersonnel     = document.getElementById('uf-can-personnel')?.checked || false;
       const canPersonnelEdit = document.getElementById('uf-can-personnel-edit')?.checked || false;
+      const canCustodyDelete = document.getElementById('uf-can-custody-delete')?.checked || false;
       const updates = { name, role, color,
         can_freq: canFreq, can_vehicles: canVehicles, can_equipment: canEquipment, can_admin: canAdmin,
         can_uas: canUas, can_personnel: canPersonnel, can_personnel_edit: canPersonnelEdit,
+        can_custody_delete: canCustodyDelete,
         can_view_resources: canVehicles || canEquipment };
       const { error: profErr } = await sb.from('profiles').update(updates).eq('id', userEditingId);
       if (profErr) { errEl.textContent = 'Error: ' + profErr.message; return; }
@@ -10199,9 +10208,11 @@ async function saveUserForm() {
       const canUasN       = document.getElementById('uf-can-uas')?.checked || false;
       const canPersonnelN     = document.getElementById('uf-can-personnel')?.checked || false;
       const canPersonnelEditN = document.getElementById('uf-can-personnel-edit')?.checked || false;
+      const canCustodyDeleteN = document.getElementById('uf-can-custody-delete')?.checked || false;
       const { error: profErr } = await sb.from('profiles').insert({ id: userId, name, role, color, email, active: true,
         can_freq: canFreqN, can_vehicles: canVehiclesN, can_equipment: canEquipmentN, can_admin: canAdminN,
         can_uas: canUasN, can_personnel: canPersonnelN, can_personnel_edit: canPersonnelEditN,
+        can_custody_delete: canCustodyDeleteN,
         can_view_resources: canVehiclesN || canEquipmentN });
       if (profErr) { errEl.textContent = 'Profile save failed: ' + profErr.message; return; }
 
@@ -13223,6 +13234,7 @@ function openAdminUserForm(userId) {
     if (document.getElementById('auf-can-uas'))            document.getElementById('auf-can-uas').checked            = u.can_uas === true || u.role === 'admin';
     if (document.getElementById('auf-can-personnel'))      document.getElementById('auf-can-personnel').checked      = u.can_personnel === true || u.role === 'admin';
     if (document.getElementById('auf-can-personnel-edit'))  document.getElementById('auf-can-personnel-edit').checked = u.can_personnel_edit === true || u.role === 'admin';
+    if (document.getElementById('auf-can-custody-delete'))  document.getElementById('auf-can-custody-delete').checked = u.can_custody_delete === true || u.role === 'admin';
     if (inst) inst.style.display = 'none';
   } else {
     document.getElementById('adminUserFormTitle').textContent = 'Add New User';
@@ -13240,6 +13252,7 @@ function openAdminUserForm(userId) {
     if (document.getElementById('auf-can-uas'))            document.getElementById('auf-can-uas').checked = false;
     if (document.getElementById('auf-can-personnel'))      document.getElementById('auf-can-personnel').checked = false;
     if (document.getElementById('auf-can-personnel-edit'))  document.getElementById('auf-can-personnel-edit').checked = false;
+    if (document.getElementById('auf-can-custody-delete'))  document.getElementById('auf-can-custody-delete').checked = false;
     if (document.getElementById('auf-uuid')) document.getElementById('auf-uuid').value = '';
     if (inst) inst.style.display = 'block';
   }
@@ -13266,6 +13279,7 @@ async function saveAdminUserForm() {
   const canUas    = document.getElementById('auf-can-uas')?.checked            ?? false;
   const canPers   = document.getElementById('auf-can-personnel')?.checked      ?? false;
   const canPersEdit = document.getElementById('auf-can-personnel-edit')?.checked ?? false;
+  const canCustodyDel = document.getElementById('auf-can-custody-delete')?.checked ?? false;
   const errEl     = document.getElementById('auf-error');
   errEl.textContent = ''; errEl.style.color = 'var(--status-active)';
 
@@ -13275,6 +13289,7 @@ async function saveAdminUserForm() {
   const modulePerms = {
     can_freq: canFreq, can_vehicles: canVeh, can_equipment: canEquip, can_admin: canAdm,
     can_uas: canUas, can_personnel: canPers, can_personnel_edit: canPersEdit,
+    can_custody_delete: canCustodyDel,
     can_view_resources: canVeh || canEquip
   };
 
@@ -20825,6 +20840,10 @@ async function loadMoreCustodyLog() {
   renderCustodyLog();
 }
 
+function canDeleteCustodyEntry() {
+  return currentUser?.canCustodyDelete === true || currentUser?.role === 'admin';
+}
+
 function renderCustodyLog() {
   const query = (document.getElementById('invCustodySearch')?.value || '').toLowerCase();
   const body  = document.getElementById('custodyLogBody');
@@ -20832,20 +20851,40 @@ function renderCustodyLog() {
   const filtered = custodyCache.filter(r => !query ||
     [r.action, r.detail, r.actor, r.radio_inventory?.serial_number].some(f => (f||'').toLowerCase().includes(query))
   );
-  if (!filtered.length) { body.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:14px;">No entries.</div>'; return; }
+  if (!filtered.length) { body.innerHTML = '<div class="text-body" style="padding:16px;color:var(--text-dim);">No entries.</div>'; return; }
+  const canDelete = canDeleteCustodyEntry();
   const ACTION_COLORS = { ADD:'var(--status-available)', EDIT:'var(--accent)', STATUS_CHANGE:'var(--status-reserved)', NOTE:'var(--text-dim)', DELETE:'var(--status-active)' };
   body.innerHTML = filtered.map(r => {
     const ts  = new Date(r.created_at).toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
     const col = ACTION_COLORS[r.action] || 'var(--text-dim)';
     const serial = r.radio_inventory?.serial_number || '—';
-    return `<div style="display:grid;grid-template-columns:150px 120px 90px 1fr 120px;gap:0;padding:7px 14px;border-bottom:1px solid var(--border);font-size:13px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
-      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);">${ts}</div>
-      <div style="font-family:var(--font-data);font-size:13px;font-weight:600;color:var(--text-primary);">${escHtml(serial)}</div>
-      <div><span style="font-family:var(--font-data);font-size:11px;padding:1px 5px;border-radius:2px;border:1px solid ${col}44;color:${col};">${r.action||'—'}</span></div>
-      <div style="color:var(--text-secondary);padding:0 8px;white-space:pre-wrap;line-height:1.4;">${escHtml(r.detail||'')}</div>
-      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);">${escHtml(r.actor||'—')}</div>
+    return `<div style="display:grid;grid-template-columns:150px 120px 90px 1fr 120px${canDelete?' 32px':''};gap:0;padding:7px 14px;border-bottom:1px solid var(--border);align-items:center;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+      <div class="text-label" style="font-family:var(--font-data);color:var(--text-dim);">${ts}</div>
+      <div class="text-body" style="font-family:var(--font-data);font-weight:600;color:var(--text-primary);">${escHtml(serial)}</div>
+      <div><span class="text-label" style="font-family:var(--font-data);padding:1px 5px;border-radius:2px;border:1px solid ${col}44;color:${col};">${r.action||'—'}</span></div>
+      <div class="text-body" style="color:var(--text-secondary);padding:0 8px;white-space:pre-wrap;line-height:1.4;">${escHtml(r.detail||'')}</div>
+      <div class="text-label" style="font-family:var(--font-data);color:var(--text-dim);">${escHtml(r.actor||'—')}</div>
+      ${canDelete ? `<button onclick="deleteCustodyEntry('${r.id}')" title="Delete this custody entry" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:15px;padding:2px 4px;justify-self:end;">✕</button>` : ''}
     </div>`;
   }).join('');
+}
+
+// Custody log entries are the accountability record for who had a
+// radio and when — deletion is gated (admins always have it; can be
+// individually granted to a non-admin via Admin → Users) and the
+// deletion itself gets logged to the System Log, so removing an entry
+// still leaves a trace of who removed it and when. This is the one
+// place in Inventory where deleting audit data is allowed at all.
+async function deleteCustodyEntry(id) {
+  const entry = custodyCache.find(r => String(r.id) === String(id));
+  if (!entry) return;
+  const serial = entry.radio_inventory?.serial_number || '(unknown radio)';
+  if (!(await themedConfirm(`Delete this custody entry for ${serial}?\n\n"${entry.detail || entry.action}"\n\nThis cannot be undone.`, { title: 'Delete Custody Entry', confirmText: 'Delete' }))) return;
+  const { error } = await sb.from('inventory_custody').delete().eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  logEvent('admin', 'Custody Entry Deleted', `${serial} — "${entry.detail || entry.action}" (originally logged by ${entry.actor || 'unknown'})`);
+  custodyCache = custodyCache.filter(r => String(r.id) !== String(id));
+  renderCustodyLog();
 }
 
 async function loadInventoryLog() {
@@ -23256,6 +23295,13 @@ if ('serviceWorker' in navigator) {
                   <input type="checkbox" id="uf-can-personnel-edit" onchange="if(this.checked)document.getElementById('uf-can-personnel').checked=true;"> Editor
                 </label>
               </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);grid-column:span 2;">
+              <div>
+                <div style="font-size:14px;color:var(--text-primary);font-weight:500;">🗑 Chain of Custody — Delete</div>
+                <div style="font-size:12px;color:var(--text-dim);margin-top:1px;">Remove custody log entries in Radio Inventory. Admins always have this; grant it individually here for a non-admin user.</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" id="uf-can-custody-delete" onchange=""><span class="toggle-slider"></span></label>
             </div>
           </div>
           <div style="font-size:12px;color:var(--text-dim);margin-top:8px;">Note: Dispatch Admin role automatically has access to all modules.</div>
