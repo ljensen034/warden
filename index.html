@@ -55,6 +55,16 @@
     --transition: 180ms ease;
   }
 
+  /* ── TYPE SCALE — the whole system is these 4 sizes, nothing else.
+     Every module uses one of these classes instead of an inline
+     font-size, so "consistent across modules" is structural, not a
+     convention someone has to remember. Combine with var(--font-data)
+     inline for monospace where precision matters (IDs, frequencies). ── */
+  .text-label    { font-size: 12px; }  /* column headers, eyebrows, timestamps, captions */
+  .text-body     { font-size: 14px; }  /* default — buttons, inputs, list rows, descriptions */
+  .text-emphasis { font-size: 16px; }  /* serial numbers, key IDs, section titles */
+  .text-hero     { font-size: 28px; }  /* big stat counts — read across a room, not "read" */
+
   /* ── THEME: DAY MODE (light, bright environments) ── */
   [data-theme="day"] {
     --bg-deep:     #f0f2f5;
@@ -3424,7 +3434,6 @@
     gap: 8px;
     padding: 3px 10px 6px;
     font-family: var(--font-data);
-    font-size: 12px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -3449,7 +3458,7 @@
     align-items: center;
     justify-content: center;
     font-family: var(--font-data);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     padding: 2px 5px;
     border-radius: 2px;
@@ -3458,9 +3467,9 @@
   .ov-type-badge.ch { background: rgba(30,136,229,0.15); color: var(--accent); border: 1px solid rgba(30,136,229,0.25); }
   .ov-type-badge.tg { background: rgba(206,147,216,0.15); color: var(--status-interop); border: 1px solid rgba(206,147,216,0.25); }
   .ov-name { display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow: hidden; }
-  .ov-sub  { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ov-sub  { font-size: 12px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ov-freq, .ov-agency, .ov-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ov-agency { font-size: 14px; color: var(--text-secondary); }
+  .ov-agency { color: var(--text-secondary); }
   @media (max-width: 768px) {
     .ov-grid-header { display: none; }
     .ov-row { grid-template-columns: 36px 1fr auto; }
@@ -12916,9 +12925,9 @@ function renderOverview() {
   const totalReserved = reservedChannels.length  + reservedTGs.length;
 
   if (!totalActive && !totalReserved) {
-    el.innerHTML = `<div style="text-align:center;padding:64px 24px;color:var(--text-dim);font-size:15px;line-height:1.8;">
+    el.innerHTML = `<div class="text-body" style="text-align:center;padding:64px 24px;color:var(--text-dim);line-height:1.8;">
       No active or reserved channels or talkgroups.<br>
-      <span style="font-size:14px;">Assign channels or talkgroups to see them here.</span>
+      <span class="text-label">Assign channels or talkgroups to see them here.</span>
     </div>`;
     return;
   }
@@ -12931,13 +12940,13 @@ function renderOverview() {
       <div class="ov-row" onclick="switchMainTab('channels');setTimeout(()=>selectChannel(${ch.id}),80);">
         <div class="ov-type-badge ch">CH</div>
         <div class="ov-name">
-          <span style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${ch.designator}</span>
-          ${ch.function && ch.function !== '—' ? `<span class="ov-sub">${ch.function}</span>` : ''}
+          <span class="text-emphasis" style="font-family:var(--font-data);font-weight:700;color:var(--text-primary);">${ch.designator}</span>
+          ${ch.function && ch.function !== '—' ? `<span class="ov-sub text-label">${ch.function}</span>` : ''}
         </div>
-        <div class="ov-freq" style="font-family:var(--font-data);font-size:14px;color:var(--text-secondary);">${ch.freq} MHz</div>
-        <div class="ov-agency">${ch.agency && ch.agency !== '—' ? ch.agency : '—'}</div>
+        <div class="ov-freq text-body" style="font-family:var(--font-data);color:var(--text-secondary);">${ch.freq} MHz</div>
+        <div class="ov-agency text-body">${ch.agency && ch.agency !== '—' ? ch.agency : '—'}</div>
         <div class="ov-detail">
-          <span style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);">${ch.tone || '—'}</span>
+          <span class="text-label" style="font-family:var(--font-data);color:var(--text-dim);">${ch.tone || '—'}</span>
         </div>
       </div>`).join('');
 
@@ -12945,24 +12954,24 @@ function renderOverview() {
       <div class="ov-row" onclick="switchMainTab('talkgroups');">
         <div class="ov-type-badge tg">TG</div>
         <div class="ov-name">
-          <span style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${tg.tgId}</span>
-          <span class="ov-sub">${tg.name}</span>
+          <span class="text-emphasis" style="font-family:var(--font-data);font-weight:700;color:var(--text-primary);">${tg.tgId}</span>
+          <span class="ov-sub text-label">${tg.name}</span>
         </div>
-        <div class="ov-freq" style="font-family:var(--font-data);font-size:14px;color:var(--text-secondary);">${tg.system || '—'}</div>
-        <div class="ov-agency">${tg.agency || '—'}</div>
+        <div class="ov-freq text-body" style="font-family:var(--font-data);color:var(--text-secondary);">${tg.system || '—'}</div>
+        <div class="ov-agency text-body">${tg.agency || '—'}</div>
         <div class="ov-detail">
-          <span style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);">${tg.encryption !== 'None' ? '🔒 ' + tg.encryption : 'Clear'}</span>
-          <span style="font-family:var(--font-data);font-size:13px;color:var(--text-dim);margin-left:8px;">${tg.priority || 'Normal'}</span>
+          <span class="text-label" style="font-family:var(--font-data);color:var(--text-dim);">${tg.encryption !== 'None' ? '🔒 ' + tg.encryption : 'Clear'}</span>
+          <span class="text-label" style="font-family:var(--font-data);color:var(--text-dim);margin-left:8px;">${tg.priority || 'Normal'}</span>
         </div>
       </div>`).join('');
 
     return `
-      <div style="margin-bottom:20px;">
+      <div style="margin-bottom:24px;">
         <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:2px solid ${statusColor};margin-bottom:6px;">
-          <span style="font-family:var(--font-data);font-size:13px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:0.1em;">${statusLabels[statusKey]}</span>
-          <span style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);">${chs.length} channel${chs.length!==1?'s':''} · ${tgs.length} talkgroup${tgs.length!==1?'s':''}</span>
+          <span class="text-label" style="font-family:var(--font-data);font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:0.1em;">${statusLabels[statusKey]}</span>
+          <span class="text-label" style="font-family:var(--font-data);color:var(--text-dim);">${chs.length} channel${chs.length!==1?'s':''} · ${tgs.length} talkgroup${tgs.length!==1?'s':''}</span>
         </div>
-        <div class="ov-grid-header">
+        <div class="ov-grid-header text-label">
           <span></span><span>Designator / ID</span><span>Freq / System</span><span>Agency</span><span>Tone / Enc · Mode / Pri</span>
         </div>
         ${chRows}${tgRows}
@@ -12970,9 +12979,9 @@ function renderOverview() {
   }
 
   el.innerHTML = `
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
-      ${totalActive   ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);"><span style="font-size:22px;font-weight:700;color:var(--status-active);font-family:var(--font-data);">${totalActive}</span><span style="font-size:13px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.07em;">Active</span></div>` : ''}
-      ${totalReserved ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);"><span style="font-size:22px;font-weight:700;color:var(--status-reserved);font-family:var(--font-data);">${totalReserved}</span><span style="font-size:13px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.07em;">Reserved</span></div>` : ''}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;">
+      ${totalActive   ? `<div style="display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);"><span class="text-hero" style="font-weight:700;color:var(--status-active);font-family:var(--font-data);">${totalActive}</span><span class="text-label" style="color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.07em;">Active</span></div>` : ''}
+      ${totalReserved ? `<div style="display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);"><span class="text-hero" style="font-weight:700;color:var(--status-reserved);font-family:var(--font-data);">${totalReserved}</span><span class="text-label" style="color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.07em;">Reserved</span></div>` : ''}
     </div>
     ${buildSection('active',   'var(--status-active)',   activeChannels,   activeTGs)}
     ${buildSection('reserved', 'var(--status-reserved)', reservedChannels, reservedTGs)}
