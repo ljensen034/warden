@@ -20081,14 +20081,23 @@ function renderRidManager() {
   const { rangeStats, totFree, totReserved, totCommitted } = computeRidRangeStats();
   const total = totFree + totReserved + totCommitted;
 
-  // Summary strip
+  // Summary strip — reflects whichever range is selected in the filter
+  // dropdown, not always the grand total across every range. "All
+  // Ranges" still shows the full aggregate.
   if (strip) {
-    const utilPct = total ? Math.round((totCommitted/total)*100) : 0;
+    const selectedRange = rangeF !== 'all' ? ridRanges.find(r => String(r.id) === String(rangeF)) : null;
+    const scoped = selectedRange ? (rangeStats[selectedRange.id] || { free:0, reserved:0, committed:0, total:0 }) : null;
+    const sFree      = scoped ? scoped.free      : totFree;
+    const sReserved  = scoped ? scoped.reserved  : totReserved;
+    const sCommitted = scoped ? scoped.committed : totCommitted;
+    const sTotal      = scoped ? scoped.total      : total;
+    const totalLabel = selectedRange ? `Total IDs — ${selectedRange.name}` : 'Total IDs';
+    const utilPct = sTotal ? Math.round((sCommitted/sTotal)*100) : 0;
     strip.innerHTML = [
-      { label:'Total IDs', count:total, color:'var(--text-secondary)' },
-      { label:'Free',      count:totFree,      color:RID_STATE.free.color },
-      { label:'Reserved',  count:totReserved,  color:RID_STATE.reserved.color },
-      { label:'Committed', count:totCommitted,  color:RID_STATE.committed.color },
+      { label:totalLabel, count:sTotal, color:'var(--text-secondary)' },
+      { label:'Free',      count:sFree,      color:RID_STATE.free.color },
+      { label:'Reserved',  count:sReserved,  color:RID_STATE.reserved.color },
+      { label:'Committed', count:sCommitted,  color:RID_STATE.committed.color },
     ].map(s => `<div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-data);font-size:13px;padding:4px 12px;border-radius:var(--radius);background:var(--bg-card);border:1px solid var(--border);">
       <span style="font-size:16px;font-weight:700;color:${s.color};">${s.count}</span>
       <span style="color:var(--text-dim);">${s.label}</span>
