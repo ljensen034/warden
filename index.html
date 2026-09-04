@@ -5559,6 +5559,18 @@
               <button class="btn-primary" style="font-size:14px;padding:5px 12px;" onclick="addSignoutAccessory()">+ Add</button>
             </div>
           </div>
+          <!-- Specialty Systems -->
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+              <div style="font-family:var(--font-data);font-size:13px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Specialty Systems</div>
+              <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Beyond MDC/LARICS/ICI/CWIRS/CRIS — get full RID Manager range tracking, same as the core 5</div>
+            </div>
+            <div id="ridCustomSystemList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
+            <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
+              <input class="form-input" id="newRidCustomSystem" placeholder="System name…" style="flex:1;font-size:14px;" onkeydown="if(event.key==='Enter')addRidCustomSystem()">
+              <button class="btn-primary" style="font-size:14px;padding:5px 12px;" onclick="addRidCustomSystem()">+ Add</button>
+            </div>
+          </div>
           <!-- Radio Models -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
@@ -13759,12 +13771,20 @@ function getDataHealthCategories() {
   // Same field-by-field check the Inventory edit form already runs live
   // as you type (checkIdOutOfRange) — swept across every radio already
   // on file, so violations from before a range existed (or from a range
-  // edited/narrowed after the fact) actually surface somewhere.
+  // edited/narrowed after the fact) actually surface somewhere. Extra
+  // System IDs (specialty systems) get the same sweep via
+  // checkCustomIdOutOfRange, folded into the same violations list.
   const RID_FIELD_LABELS = { mdc_id:'MDC', larics_id:'LARICS', ici_id:'ICI', cwirs_id:'CWIRS', cris_id:'CRIS' };
   const outOfRangeRadios = inventory.map(r => {
     const violations = Object.keys(RID_FIELD_LABELS)
       .filter(f => checkIdOutOfRange(f, r[f]))
       .map(f => RID_FIELD_LABELS[f]);
+    radioInventoryExtraIds.filter(x => String(x.radio_id) === String(r.id)).forEach(x => {
+      if (checkCustomIdOutOfRange(x.custom_system_id, x.id_value)) {
+        const cs = ridCustomSystems.find(s => s.id === x.custom_system_id);
+        violations.push(cs ? cs.name : 'Specialty System');
+      }
+    });
     return { radio: r, violations };
   }).filter(x => x.violations.length);
 
@@ -15201,7 +15221,7 @@ function generateRidAvailabilityReport(filters = {}) {
       if (range.system === 'mdc_id' && ridContainsF(ridDecimalToHex(id))) continue;
       if (classifyRid(id, ridavailIndex, ridReservations, range).state === 'free') free.push(range.system === 'mdc_id' ? ridDecimalToHex(id) : id);
     }
-    const sysLabel = range.system ? (RID_SYSTEM_LABELS[range.system]||range.system) : 'Any System';
+    const sysLabel = ridRangeSystemKey(range) ? ridSystemDisplayLabel(ridRangeSystemKey(range)) : 'Any System';
     body += `<div class="rpt-section">${escHtml(range.name)} <span style="font-weight:400;color:#888;font-size:13px;">(${sysLabel} · ${range.start_id}–${range.end_id})</span></div>`;
     body += `<div class="rpt-count">${free.length} of ${total.toLocaleString()} IDs free${free.length>=500?' (showing first 500)':''}</div>`;
     body += free.length ? `<div style="font-family:monospace;font-size:12px;line-height:1.8;word-spacing:8px;">${free.join(', ')}</div>` : '<div class="rpt-empty">No free IDs in this range.</div>';
@@ -19629,6 +19649,8 @@ async function deleteTeam(id) {
 // ═══════════════════════════════════════════════
 let ridRanges       = [];       // rows from rid_ranges table
 let ridReservations = [];       // rows from rid_reservations table — earmarked but not yet committed to a real radio
+let ridCustomSystems = [];      // rows from rid_custom_systems — specialty systems beyond the 5 core fields, tracked in RID Manager just like MDC/LARICS/etc.
+let radioInventoryExtraIds = []; // rows from radio_inventory_extra_ids — a radio's specialty-system ID values
 let ridCurrentPage  = 0;        // persisted across re-renders so realtime updates don't reset to page 1
 let ridFilter       = 'all';    // 'all' | 'free' | 'reserved' | 'committed'
 let ridViewMode      = 'ids';    // 'ids' | 'reservations'
@@ -19642,6 +19664,22 @@ async function loadRidRanges() {
     if (error) { console.warn('loadRidRanges:', error.message); return; }
     ridRanges = data || [];
   } catch(e) { console.warn('loadRidRanges exception:', e.message); }
+}
+
+async function loadRidCustomSystems() {
+  try {
+    const { data, error } = await sb.from('rid_custom_systems').select('*').order('name');
+    if (error) { console.warn('loadRidCustomSystems:', error.message); return; }
+    ridCustomSystems = data || [];
+  } catch(e) { console.warn('loadRidCustomSystems exception:', e.message); }
+}
+
+async function loadRadioInventoryExtraIds() {
+  try {
+    const { data, error } = await sb.from('radio_inventory_extra_ids').select('*');
+    if (error) { console.warn('loadRadioInventoryExtraIds:', error.message); return; }
+    radioInventoryExtraIds = data || [];
+  } catch(e) { console.warn('loadRadioInventoryExtraIds exception:', e.message); }
 }
 
 async function loadRidReservations() {
@@ -19866,25 +19904,32 @@ async function ridAssignNextFromReservation(reservationId) {
   alert('Every ID in this reservation is already committed to a radio.');
 }
 
-// Classify a single numeric ID against inventory's system ID columns.
-// Returns { state: 'committed'|'free', radio }
-// Builds a one-time lookup of every committed System ID across all of
-// Inventory, keyed by the exact trimmed string value each field holds —
-// same matching semantics classifyRid() always used (string equality,
-// so a leading zero genuinely doesn't match without one), just O(1) to
-// look up per ID instead of scanning the whole inventory array. Any
-// loop that's about to call classifyRid() many times in a row should
+// Builds a one-time lookup of every committed System ID, scoped per
+// system rather than one flat pool — a LARICS ID and an ICI ID that
+// happen to share the same numeric value are genuinely independent
+// (same principle the overlap-warning fix applies), so they now live
+// in separate sub-maps and can't cross-match. Includes specialty
+// systems from radio_inventory_extra_ids alongside the 5 core fields,
+// each specialty system keyed as `custom:<rid_custom_systems.id>`.
+// Any loop about to call classifyRid() many times in a row should
 // build this once and pass it in.
 function buildCommittedIdIndex() {
-  const map = new Map();
-  const fields = ['mdc_id','larics_id','ici_id','cwirs_id','cris_id'];
+  const bySystem = {};
+  const ensure = (key) => { if (!bySystem[key]) bySystem[key] = new Map(); return bySystem[key]; };
+  const coreFields = ['mdc_id','larics_id','ici_id','cwirs_id','cris_id'];
   for (const r of inventory) {
-    for (const f of fields) {
+    for (const f of coreFields) {
       const v = String(r[f] || '').trim();
-      if (v && !map.has(v)) map.set(v, r);
+      if (v) ensure(f).set(v, r);
     }
   }
-  return map;
+  for (const extra of radioInventoryExtraIds) {
+    const v = String(extra.id_value || '').trim();
+    if (!v) continue;
+    const radio = inventory.find(r => String(r.id) === String(extra.radio_id));
+    if (radio) ensure(`custom:${extra.custom_system_id}`).set(v, radio);
+  }
+  return bySystem;
 }
 
 // Converts a range's plain decimal boundary into the 4-hex-digit form
@@ -19914,26 +19959,46 @@ function ridValidTotalInSpan(startId, endId, system) {
   return n;
 }
 
+// Resolves which sub-index key a range should be checked against:
+// one of the 5 core field names, `custom:<id>` for a specialty
+// system, or null for "Unrestricted" (not tied to any one field).
+function ridRangeSystemKey(range) {
+  if (!range) return null;
+  if (range.system) return range.system;
+  if (range.custom_system_id) return `custom:${range.custom_system_id}`;
+  return null;
+}
+
 // `index`, if passed (from buildCommittedIdIndex()), makes this O(1)
 // instead of scanning all of inventory — pass one in any loop that
 // classifies many IDs. `reservations`, if passed (just the loaded
 // ridReservations array — a handful of rows, no index needed), adds
 // the reserved state: committed always wins if somehow both apply
 // (a real radio is ground truth over a still-open reservation), free
-// only if neither. `range`, if passed and tagged system:'mdc_id',
-// switches the match string from decimal to 4-digit hex — MDC1200 IDs
-// are stored as hex text (e.g. "A1B2"), so a range walking plain
-// decimal numbers would never actually match one without this; the
-// underlying committed-ID index already holds the correct raw hex
-// values (mdc_id is stored as typed, uppercased), only the string used
-// to query it needs to change. Omitting range keeps the original
-// decimal-only behavior for any caller that hasn't been updated.
+// only if neither. `range`, if passed, scopes the match to that
+// range's own system (core field, specialty system, or — for an
+// Unrestricted range with no system tag — checked across every
+// system combined, since "no tag" means "could be any of them").
+// A range tagged system:'mdc_id' also switches the match string from
+// decimal to 4-digit hex, since MDC1200 IDs are stored as hex text.
+// Omitting range/index keeps the original slow, untagged, decimal-only
+// behavior for any caller that hasn't been updated.
 function classifyRid(numericId, index = null, reservations = null, range = null) {
   const isMdcHex = range && range.system === 'mdc_id';
   const idStr = isMdcHex ? ridDecimalToHex(numericId) : String(numericId);
   let radio = null;
   if (index) {
-    radio = index.get(idStr) || null;
+    const systemKey = ridRangeSystemKey(range);
+    if (systemKey) {
+      radio = index[systemKey]?.get(idStr) || null;
+    } else {
+      // Unrestricted (or classifyRid called with no range at all) —
+      // check across every system's sub-index combined.
+      for (const sysMap of Object.values(index)) {
+        const hit = sysMap.get(idStr);
+        if (hit) { radio = hit; break; }
+      }
+    }
   } else {
     radio = inventory.find(r =>
       String(r.mdc_id    || '').trim() === idStr ||
@@ -20208,16 +20273,38 @@ function renderRidManager() {
 
 // Open inventory form pre-populated with a free RID so it can be committed quickly
 const RID_FIELD_TO_INPUT = { mdc_id:'ie-mdc-id', larics_id:'ie-larics', ici_id:'ie-ici', cwirs_id:'ie-cwirs', cris_id:'ie-cris' };
+
+// Resolves a display label for either a core system key ('mdc_id',
+// etc.) or a specialty one ('custom:<rid_custom_systems.id>') — the
+// one place that knows how to turn either form of system key into
+// human-readable text.
+function ridSystemDisplayLabel(systemKey) {
+  if (!systemKey) return 'Any';
+  if (RID_SYSTEM_LABELS[systemKey]) return RID_SYSTEM_LABELS[systemKey];
+  if (systemKey.startsWith('custom:')) {
+    const cs = ridCustomSystems.find(s => String(s.id) === systemKey.slice(7));
+    return cs ? cs.name : 'Specialty System';
+  }
+  return systemKey;
+}
+
 async function ridAssignToInventory(idValue, system = 'mdc_id') {
-  const fieldId = RID_FIELD_TO_INPUT[system] || 'ie-mdc-id';
-  const label = RID_SYSTEM_LABELS[system] || 'MDC ID';
+  const isCustom = system && system.startsWith('custom:');
+  const fieldId = RID_FIELD_TO_INPUT[system] || null;
+  const label = ridSystemDisplayLabel(system);
   if (!(await themedConfirm(`Open "Add Radio" form pre-populated with ${label} ${idValue}?\nYou can fill in the rest of the radio details there.`))) return;
   switchMainTab('inventory');
   setTimeout(() => {
     switchInventoryTab('list');
     openInventoryForm(null).then(() => {
-      const field = document.getElementById(fieldId);
-      if (field) { field.value = idValue; checkInventorySystemIdDuplicates(); }
+      if (isCustom) {
+        // No fixed Inventory field for a specialty system — add it as
+        // a row in the Additional System IDs section instead.
+        addInvExtraIdRow(parseInt(system.slice(7), 10), idValue);
+      } else if (fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field) { field.value = idValue; checkInventorySystemIdDuplicates(); }
+      }
     });
   }, 100);
 }
@@ -20274,7 +20361,7 @@ function findOverlappingRidRangeIds() {
   for (let i = 0; i < ridRanges.length; i++) {
     for (let j = i + 1; j < ridRanges.length; j++) {
       const a = ridRanges[i], b = ridRanges[j];
-      if (a.system !== b.system) continue;
+      if (ridRangeSystemKey(a) !== ridRangeSystemKey(b)) continue;
       if (a.start_id <= b.end_id && b.start_id <= a.end_id) {
         overlapping.add(a.id);
         overlapping.add(b.id);
@@ -20295,7 +20382,7 @@ function renderAdminRidRanges() {
   el.innerHTML = ridRanges.map(r => {
     const isMdc = r.system === 'mdc_id';
     const count = ridValidTotalInSpan(r.start_id, r.end_id, r.system);
-    const sysLabel = r.system ? (RID_SYSTEM_LABELS[r.system] || r.system) : 'Any';
+    const sysLabel = ridSystemDisplayLabel(ridRangeSystemKey(r));
     const codes = (r.system_codes || []).join(', ');
     const isOverlapping = overlapping.has(r.id);
     const startDisplay = isMdc ? `${ridDecimalToHex(r.start_id)} <span style="color:var(--text-dim);">(${r.start_id})</span>` : r.start_id;
@@ -20324,6 +20411,7 @@ function renderAdminRidRanges() {
 function openRidRangeForm(id) {
   ridRangeEditingId = id || null;
   populateRrSystemCodeSuggestions();
+  populateRrCustomSystemOptions();
   if (id) {
     const r = ridRanges.find(x => String(x.id) === String(id));
     if (!r) return;
@@ -20333,7 +20421,7 @@ function openRidRangeForm(id) {
     document.getElementById('rr-start').value       = isMdc ? ridDecimalToHex(r.start_id) : (r.start_id ?? '');
     document.getElementById('rr-end').value         = isMdc ? ridDecimalToHex(r.end_id)   : (r.end_id ?? '');
     document.getElementById('rr-description').value = r.description || '';
-    document.getElementById('rr-system').value      = r.system      || '';
+    document.getElementById('rr-system').value      = ridRangeSystemKey(r) || '';
     document.getElementById('rr-system-codes').value = (r.system_codes || []).join(', ');
   } else {
     document.getElementById('ridRangeModalTitle').textContent = 'Add Range';
@@ -20342,6 +20430,15 @@ function openRidRangeForm(id) {
   }
   onRrSystemFieldChange();
   document.getElementById('ridRangeModal').classList.add('open');
+}
+
+// Fills the System dropdown's "Specialty Systems" group from
+// rid_custom_systems, using the same `custom:<id>` value encoding
+// classifyRid() uses to resolve a range's scoped index bucket.
+function populateRrCustomSystemOptions() {
+  const group = document.getElementById('rr-system-custom-group');
+  if (!group) return;
+  group.innerHTML = ridCustomSystems.map(s => `<option value="custom:${s.id}">${escHtml(s.name)}</option>`).join('');
 }
 
 function closeRidRangeForm() {
@@ -20389,7 +20486,10 @@ function updateRrMdcPreview() {
 
 async function saveRidRange() {
   const name   = document.getElementById('rr-name').value.trim();
-  const system = document.getElementById('rr-system').value || null;
+  const rawSystemValue = document.getElementById('rr-system').value || null;
+  const isCustom = rawSystemValue && rawSystemValue.startsWith('custom:');
+  const system = isCustom ? null : rawSystemValue;
+  const customSystemId = isCustom ? parseInt(rawSystemValue.slice(7), 10) : null;
   const isMdc  = system === 'mdc_id';
   const startRaw = document.getElementById('rr-start').value.trim();
   const endRaw   = document.getElementById('rr-end').value.trim();
@@ -20420,7 +20520,7 @@ async function saveRidRange() {
 
   const row = {
     name, start_id: start, end_id: end, description: desc || null,
-    system, system_codes: systemCodes,
+    system, custom_system_id: customSystemId, system_codes: systemCodes,
     updated_by: currentUser?.name || 'Unknown', updated_at: new Date().toISOString(),
     agency_id: agencyId(),
   };
@@ -20713,6 +20813,30 @@ async function saveStatusChange() {
 }
 
 // ── Inventory add/edit form ──
+// Additional System IDs — a repeatable row per specialty system on
+// the Inventory edit form. Rows are managed directly in the DOM (no
+// separate JS array to keep in sync) and read back at save time.
+let ieExtraIdRowSeq = 0;
+function addInvExtraIdRow(customSystemId = null, idValue = '') {
+  const list = document.getElementById('ie-extra-ids-list');
+  if (!list) return;
+  const rowId = `ie-extra-row-${ieExtraIdRowSeq++}`;
+  const options = ridCustomSystems.map(s => `<option value="${s.id}"${String(s.id)===String(customSystemId)?' selected':''}>${escHtml(s.name)}</option>`).join('');
+  const row = document.createElement('div');
+  row.id = rowId;
+  row.className = 'ie-extra-id-row';
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;';
+  row.innerHTML = `
+    <select class="form-select ie-extra-id-system" style="flex:1;font-size:14px;">
+      <option value="">— Select system —</option>
+      ${options}
+    </select>
+    <input class="form-input ie-extra-id-value" placeholder="ID value" style="flex:1;font-family:var(--font-data);" value="${escHtml(idValue)}">
+    <button onclick="document.getElementById('${rowId}').remove()" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0;" title="Remove">✕</button>
+  `;
+  list.appendChild(row);
+}
+
 async function openInventoryForm(id) {
   inventoryEditingId = id || null;
   const errEl = document.getElementById('ie-error');
@@ -20732,6 +20856,16 @@ async function openInventoryForm(id) {
       triggerBands.map(b => `<option value="${escHtml(b)}">${escHtml(b)}</option>`).join('');
   }
   renderInventoryStatusOptions();
+
+  // Additional System IDs (specialty systems) — rebuilt fresh each
+  // time the form opens, populated from whatever's already saved for
+  // this radio when editing an existing one.
+  const extraList = document.getElementById('ie-extra-ids-list');
+  if (extraList) extraList.innerHTML = '';
+  if (id) {
+    radioInventoryExtraIds.filter(x => String(x.radio_id) === String(id))
+      .forEach(x => addInvExtraIdRow(x.custom_system_id, x.id_value));
+  }
 
   // Populate MDC ID / System ID input, using the value stored directly on
   // this inventory record — no more cross-table lookup needed.
@@ -20821,6 +20955,24 @@ function checkIdOutOfRange(fieldSystem, value) {
   const num = parseInt(val, 10);
   if (isNaN(num) || String(num) !== val) return null;
   const applicable = ridRanges.filter(r => r.system === fieldSystem);
+  if (!applicable.length) return null;
+  const inRange = applicable.some(r => num >= r.start_id && num <= r.end_id);
+  if (inRange) return null;
+  const rangeList = applicable.map(r => `${r.start_id}–${r.end_id}`).join(', ');
+  return `is outside the configured range${applicable.length>1?'s':''} for this system (${rangeList})`;
+}
+
+// Same check as checkIdOutOfRange(), for a specialty system instead
+// of one of the 5 core fields — kept separate rather than merged into
+// one function, since the two take different kinds of key (a fixed
+// field name vs. a rid_custom_systems id) and the 3 existing callers
+// of checkIdOutOfRange() shouldn't need to change.
+function checkCustomIdOutOfRange(customSystemId, value) {
+  const val = (value || '').trim();
+  if (!val) return null;
+  const num = parseInt(val, 10);
+  if (isNaN(num) || String(num) !== val) return null;
+  const applicable = ridRanges.filter(r => r.custom_system_id === customSystemId);
   if (!applicable.length) return null;
   const inRange = applicable.some(r => num >= r.start_id && num <= r.end_id);
   if (inRange) return null;
@@ -21023,6 +21175,44 @@ async function deleteSignoutAccessory(id, name) {
   logEvent('admin', 'Sign-Out Accessory Deleted', name);
 }
 
+function renderRidCustomSystemList() {
+  const el = document.getElementById('ridCustomSystemList');
+  if (!el) return;
+  el.innerHTML = ridCustomSystems.length
+    ? ridCustomSystems.map(s => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);">
+          <span style="font-family:var(--font-data);font-size:14px;color:var(--text-primary);">${escHtml(s.name)}</span>
+          <button onclick="deleteRidCustomSystem(${s.id},'${escHtml(s.name).replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:16px;padding:0 4px;" title="Delete">✕</button>
+        </div>`).join('')
+    : '<div style="color:var(--text-dim);font-size:14px;">No specialty systems yet.</div>';
+}
+
+async function addRidCustomSystem() {
+  const inp = document.getElementById('newRidCustomSystem');
+  const name = inp?.value.trim();
+  if (!name) return;
+  const { error } = await sb.from('rid_custom_systems').insert({ name, agency_id: agencyId() });
+  if (error) { alert(error.message); return; }
+  inp.value = '';
+  await loadRidCustomSystems();
+  renderRidCustomSystemList();
+  logEvent('admin', 'Specialty System Added', name);
+}
+
+async function deleteRidCustomSystem(id, name) {
+  const rangesUsing = ridRanges.filter(r => r.custom_system_id === id).length;
+  const idsUsing    = radioInventoryExtraIds.filter(x => x.custom_system_id === id).length;
+  const warn = (rangesUsing || idsUsing)
+    ? `\n\n⚠ ${rangesUsing} range(s) reference this system and will fall back to unrestricted. ${idsUsing} radio ID value(s) recorded under this system will be PERMANENTLY DELETED.`
+    : '';
+  if (!(await themedConfirm(`Delete specialty system "${name}"?${warn}`))) return;
+  const { error } = await sb.from('rid_custom_systems').delete().eq('id', id);
+  if (error) { alert(error.message); return; }
+  await loadRidCustomSystems();
+  renderRidCustomSystemList();
+  logEvent('admin', 'Specialty System Deleted', name);
+}
+
 let signOutAccessoriesTargetIds = [];
 
 function openSignOutAccessoriesModal(idOrIds) {
@@ -21213,6 +21403,18 @@ async function saveInventoryRecord() {
   const empNumber = document.getElementById('ie-emp-number').value.trim();
   if (empNumber && !/^\d{6}$/.test(empNumber)) { errEl.textContent = 'Employee # must be exactly 6 digits.'; return; }
 
+  // Additional System IDs — read straight from the DOM rows. A row
+  // with only one of System/Value filled in is a mistake, not a valid
+  // partial entry, so it's rejected rather than silently dropped.
+  const extraIdRows = [];
+  for (const rowEl of document.querySelectorAll('#ie-extra-ids-list .ie-extra-id-row')) {
+    const sysId = rowEl.querySelector('.ie-extra-id-system').value;
+    const val   = rowEl.querySelector('.ie-extra-id-value').value.trim();
+    if (!sysId && !val) continue; // fully empty row — ignore
+    if (!sysId || !val) { errEl.textContent = 'Each Additional System ID needs both a system and a value.'; return; }
+    extraIdRows.push({ custom_system_id: parseInt(sysId, 10), id_value: val });
+  }
+
   const who = currentUser?.name || 'Unknown';
   const mdcId = document.getElementById('ie-mdc-id').value.trim().toUpperCase() || null;
   const larics = document.getElementById('ie-larics').value.trim() || null;
@@ -21246,6 +21448,7 @@ async function saveInventoryRecord() {
     agency_id:        agencyId(),
   };
 
+  let radioId = inventoryEditingId;
   if (inventoryEditingId) {
     const prev = inventory.find(x => String(x.id) === String(inventoryEditingId));
     // Conflict check — block if system IDs collide with another radio unless overridden
@@ -21277,10 +21480,22 @@ async function saveInventoryRecord() {
     if (conflicts.length && !confirmSystemIdOverride(conflicts)) return;
     const { data: inserted, error } = await sb.from('radio_inventory').insert(row).select('id').single();
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
-    const newId = inserted?.id;
-    if (newId) await logCustodyEvent(newId, 'ADD', `Radio added to inventory — ${row.radio_model||'—'} · ${row.radio_band||'—'} · Status: ${INV_STATUS_LABELS[row.status]}`);
+    radioId = inserted?.id;
+    if (radioId) await logCustodyEvent(radioId, 'ADD', `Radio added to inventory — ${row.radio_model||'—'} · ${row.radio_band||'—'} · Status: ${INV_STATUS_LABELS[row.status]}`);
     await logInventoryEvent('ADD', serial, `Added — model: ${row.radio_model||'—'} · status: ${INV_STATUS_LABELS[row.status]}`);
-    if (newId) await logRecordHistory('radio_inventory', newId, serial, 'created', null);
+    if (radioId) await logRecordHistory('radio_inventory', radioId, serial, 'created', null);
+  }
+
+  // Additional System IDs — simplest safe approach for a small list
+  // per radio: replace the whole set rather than diff row by row.
+  if (radioId) {
+    await sb.from('radio_inventory_extra_ids').delete().eq('radio_id', radioId);
+    if (extraIdRows.length) {
+      await sb.from('radio_inventory_extra_ids').insert(
+        extraIdRows.map(r => ({ ...r, radio_id: radioId, agency_id: agencyId(), updated_by: who, updated_at: new Date().toISOString() }))
+      );
+    }
+    await loadRadioInventoryExtraIds();
   }
 
   await loadInventory();
@@ -21626,6 +21841,7 @@ async function renderAdminRadioConfig() {
   renderRadioStatusList();
   renderRadioSystemList();
   renderSignoutAccessoryList();
+  renderRidCustomSystemList();
   await renderRadioModelList();
   await renderRadioBandList();
   await renderChannelFunctionList();
@@ -22754,6 +22970,8 @@ async function loadAllData() {
     loadResources(),
     loadRidRanges(),
     loadRidReservations(),
+    loadRidCustomSystems(),
+    loadRadioInventoryExtraIds(),
     loadPartsInventory(),
     loadSites(),
   ]);
@@ -24665,6 +24883,16 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
 
+      <!-- Additional System IDs (specialty systems) -->
+      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--bg-deep);margin-bottom:6px;">
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+          <span>🆔 Additional System IDs</span>
+          <button class="btn-secondary" style="font-size:12px;padding:2px 8px;" onclick="addInvExtraIdRow()">+ Add</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">For specialty systems beyond the 5 above — each one still gets full RID Manager range tracking.</div>
+        <div id="ie-extra-ids-list"></div>
+      </div>
+
       <div style="border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--bg-deep);margin-bottom:6px;">
         <div style="font-family:var(--font-data);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">⚙ Configuration</div>
         <div class="form-row triple">
@@ -25400,6 +25628,7 @@ if ('serviceWorker' in navigator) {
             <option value="ici_id">ICI</option>
             <option value="cwirs_id">CWIRS</option>
             <option value="cris_id">CRIS</option>
+            <optgroup label="Specialty Systems" id="rr-system-custom-group"></optgroup>
           </select>
           <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Ties this range to one Inventory System ID field. Radio Inventory will warn if that field's entered value falls outside every range configured for it.</div>
         </div>
