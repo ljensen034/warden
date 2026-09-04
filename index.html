@@ -5058,8 +5058,7 @@
       </div>
 
       <!-- Summary strip -->
-      <div id="ridSummaryStrip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;"></div>
-      <div id="ridSystemBreakdownStrip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;"></div>
+      <div id="ridSummaryStrip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
 
       <!-- Filters -->
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
@@ -20108,35 +20107,6 @@ function renderRidManager() {
     </div>`;
   }
 
-  // Per-system breakdown — one card per System that has at least one
-  // range configured, aggregating all its ranges together. "LAC" is
-  // this agency's own name for the MDC system specifically; every
-  // other label matches the System dropdown elsewhere in the app.
-  const sysBreakdownEl = document.getElementById('ridSystemBreakdownStrip');
-  if (sysBreakdownEl) {
-    const RID_SUMMARY_SYSTEM_LABELS = { mdc_id:'LAC', larics_id:'LARICS', ici_id:'ICI', cwirs_id:'CWIRS', cris_id:'CRIS' };
-    const bySystem = {};
-    ridRanges.forEach(range => {
-      const key = range.system || 'unrestricted';
-      if (!bySystem[key]) bySystem[key] = { free:0, reserved:0, committed:0, codes: new Set() };
-      const s = rangeStats[range.id] || {};
-      bySystem[key].free      += s.free      || 0;
-      bySystem[key].reserved  += s.reserved  || 0;
-      bySystem[key].committed += s.committed || 0;
-      (range.system_codes || []).forEach(c => bySystem[key].codes.add(c));
-    });
-    sysBreakdownEl.innerHTML = Object.entries(bySystem).map(([sysKey, data]) => {
-      const label = sysKey === 'unrestricted' ? 'Unrestricted' : (RID_SUMMARY_SYSTEM_LABELS[sysKey] || sysKey);
-      const codeLabel = data.codes.size ? [...data.codes].join(', ') : '';
-      return `<div style="display:inline-flex;align-items:center;gap:10px;font-family:var(--font-data);font-size:12px;padding:5px 12px;border-radius:var(--radius);background:var(--bg-deep);border:1px solid var(--border);">
-        <span style="font-weight:700;color:var(--text-primary);">${escHtml(label)}${codeLabel?` <span style="color:var(--text-dim);font-weight:400;">${escHtml(codeLabel)}</span>`:''}</span>
-        <span style="color:${RID_STATE.free.color};">${data.free} free</span>
-        <span style="color:${RID_STATE.reserved.color};">${data.reserved} rsv</span>
-        <span style="color:${RID_STATE.committed.color};">${data.committed} cmt</span>
-      </div>`;
-    }).join('');
-  }
-
   // Toggle which view is visible, and which of the two view-mode
   // buttons looks active
   document.getElementById('ridIdsView').style.display          = ridViewMode === 'ids' ? 'block' : 'none';
@@ -20293,19 +20263,18 @@ function exportCommittedRidsCsv() {
 // ── ADMIN: RID Ranges ──
 const RID_SYSTEM_LABELS = { mdc_id:'MDC', larics_id:'LARICS', ici_id:'ICI', cwirs_id:'CWIRS', cris_id:'CRIS' };
 
-// Two ranges whose numeric bounds overlap cause real problems here —
-// an ID in the overlap gets counted twice in the grand totals and
-// shows up as two separate rows (potentially both pointing at the
-// same committed radio). This is independent of each range's System
-// tag, which only scopes the separate per-field validation warning —
-// classifyRid() checks all 5 System ID fields regardless of it, so
-// two ranges tagged for different systems can still numerically
-// collide in a way that's confusing here.
+// Two ranges whose numeric bounds overlap only cause real problems if
+// they're tagged for the same System — genuinely different systems
+// (LARICS vs ICI, for instance) are independent numbering spaces, so a
+// numeric coincidence between them isn't a real collision. Ranges with
+// no System tag ("Unrestricted") are still compared against each
+// other, since those aren't scoped to any specific field either.
 function findOverlappingRidRangeIds() {
   const overlapping = new Set();
   for (let i = 0; i < ridRanges.length; i++) {
     for (let j = i + 1; j < ridRanges.length; j++) {
       const a = ridRanges[i], b = ridRanges[j];
+      if (a.system !== b.system) continue;
       if (a.start_id <= b.end_id && b.start_id <= a.end_id) {
         overlapping.add(a.id);
         overlapping.add(b.id);
