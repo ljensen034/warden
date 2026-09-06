@@ -5077,6 +5077,7 @@
         <button class="btn-primary" onclick="copyNextFreeRidToClipboard()" style="font-size:13px;">📋 Next Free ID</button>
         <button class="btn-secondary" onclick="exportFreeRidsCsv()" style="font-size:13px;">⬇ Export Free IDs CSV</button>
         <button class="btn-secondary" onclick="exportCommittedRidsCsv()" style="font-size:13px;">⬇ Export Committed IDs CSV</button>
+        <button class="btn-primary" onclick="exportMdcApxUclCsv()" style="font-size:13px;">⬇ Export MDC for APX Import</button>
         <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-left:auto;">
           <button id="rid-view-ids"          onclick="setRidViewMode('ids')"          style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:var(--accent);color:#fff;cursor:pointer;">📊 By ID</button>
           <button id="rid-view-reservations" onclick="setRidViewMode('reservations')" style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;">📋 Reservations</button>
@@ -20347,6 +20348,48 @@ function exportCommittedRidsCsv() {
   logEvent('rid', 'Committed IDs Exported', `${rows.length} committed IDs exported to CSV`);
 }
 
+// Exports MDC IDs in APX CPS's native conventional Unified Call List
+// import format — exactly "Radio ID,Radio User Alias", importable via
+// Codeplug menu → "Import From Console" with no third-party tool
+// needed. Radio ID is exported in DECIMAL, not the hex form WARDEN
+// stores — this is the one detail that couldn't be independently
+// verified, so a second reference file (hex alongside decimal) comes
+// down alongside the real import file so it can be checked against
+// what your CPS version actually expects before trusting a full
+// import. Alias falls back through Assigned Unit → Assigned Person →
+// Alias field → Serial Number, truncated to 14 characters (APX's
+// known display-field limit in the trunked UCL schema — unconfirmed
+// for this conventional import specifically, so verify a truncated
+// name still reads sensibly before relying on it at scale).
+function exportMdcApxUclCsv() {
+  const header = ['Radio ID', 'Radio User Alias'];
+  const rows = [];
+  const skipped = [];
+  const refRows = [];
+
+  inventory.forEach(r => {
+    const hex = (r.mdc_id || '').trim().toUpperCase();
+    if (!hex) return;
+    if (!/^[0-9A-F]{1,4}$/.test(hex) || ridContainsF(hex)) {
+      skipped.push(`${r.serial_number || '(no serial)'} (${hex || 'blank'})`);
+      return;
+    }
+    const decimal = ridHexToDecimal(hex);
+    const alias = (r.assigned_unit || r.assigned_person || r.alias || r.serial_number || `Radio ${decimal}`).trim().slice(0, 14);
+    rows.push([decimal, alias]);
+    refRows.push([hex, decimal, alias, r.serial_number || '']);
+  });
+
+  if (!rows.length) { alert('No radios with a valid MDC ID found.'); return; }
+
+  downloadCSV(`mdc-ucl-import-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
+  downloadCSV(`mdc-ucl-hex-decimal-reference-${new Date().toLocaleDateString('en-CA')}.csv`,
+    ['MDC ID (hex)', 'MDC ID (decimal — used in import file)', 'Alias Used', 'Serial Number'], refRows);
+
+  if (skipped.length) alert(`${skipped.length} radio(s) skipped — invalid or missing MDC ID:\n${skipped.join('\n')}`);
+  logEvent('rid', 'MDC UCL Export', `${rows.length} radio(s) exported for APX CPS import${skipped.length ? `, ${skipped.length} skipped` : ''}`);
+}
+
 // ── ADMIN: RID Ranges ──
 const RID_SYSTEM_LABELS = { mdc_id:'MDC', larics_id:'LARICS', ici_id:'ICI', cwirs_id:'CWIRS', cris_id:'CRIS' };
 
@@ -20825,17 +20868,61 @@ function addInvExtraIdRow(customSystemId = null, idValue = '') {
   const row = document.createElement('div');
   row.id = rowId;
   row.className = 'ie-extra-id-row';
-  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;';
+  row.style.cssText = 'margin-bottom:8px;';
   row.innerHTML = `
-    <select class="form-select ie-extra-id-system" style="flex:1;font-size:14px;">
-      <option value="">— Select system —</option>
-      ${options}
-    </select>
-    <input class="form-input ie-extra-id-value" placeholder="ID value" style="flex:1;font-family:var(--font-data);" value="${escHtml(idValue)}">
-    <button onclick="document.getElementById('${rowId}').remove()" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0;" title="Remove">✕</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select class="form-select ie-extra-id-system" style="flex:1;font-size:14px;" onchange="checkInvExtraIdRowDuplicate('${rowId}')">
+        <option value="">— Select system —</option>
+        ${options}
+      </select>
+      <input class="form-input ie-extra-id-value" placeholder="ID value" style="flex:1;font-family:var(--font-data);" value="${escHtml(idValue)}" oninput="checkInvExtraIdRowDuplicate('${rowId}')">
+      <button onclick="document.getElementById('${rowId}').remove()" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0;" title="Remove">✕</button>
+    </div>
+    <div class="ie-extra-id-warn" style="font-size:12px;color:var(--status-active);min-height:14px;margin-top:2px;font-family:var(--font-data);"></div>
   `;
   list.appendChild(row);
+  if (customSystemId && idValue) checkInvExtraIdRowDuplicate(rowId);
 }
+
+// Live warning as you type/select — mirrors what the 5 core System ID
+// fields already do (checkInventorySystemIdDuplicates). Checks against
+// every OTHER row on this same radio first (an easy copy-paste mistake
+// to make while adding several), then against every other radio's
+// saved Additional System IDs, then the configured range for that
+// specialty system.
+function checkInvExtraIdRowDuplicate(rowId) {
+  const rowEl = document.getElementById(rowId);
+  if (!rowEl) return;
+  const warnEl = rowEl.querySelector('.ie-extra-id-warn');
+  const sysId = rowEl.querySelector('.ie-extra-id-system').value;
+  const val = rowEl.querySelector('.ie-extra-id-value').value.trim();
+  if (!warnEl) return;
+  if (!sysId || !val) { warnEl.textContent = ''; return; }
+  const customSystemId = parseInt(sysId, 10);
+  const valLower = val.toLowerCase();
+
+  const selfDup = [...document.querySelectorAll('#ie-extra-ids-list .ie-extra-id-row')].some(other => {
+    if (other.id === rowId) return false;
+    return other.querySelector('.ie-extra-id-system').value === sysId &&
+           other.querySelector('.ie-extra-id-value').value.trim().toLowerCase() === valLower;
+  });
+  if (selfDup) { warnEl.textContent = '⚠ DUPLICATE — already entered above for this same radio'; return; }
+
+  const otherDup = radioInventoryExtraIds.find(x =>
+    String(x.radio_id) !== String(inventoryEditingId) &&
+    x.custom_system_id === customSystemId &&
+    (x.id_value || '').trim().toLowerCase() === valLower
+  );
+  if (otherDup) {
+    const dupRadio = inventory.find(r => String(r.id) === String(otherDup.radio_id));
+    warnEl.textContent = `⚠ DUPLICATE — already on ${dupRadio?.serial_number || 'another radio'}`;
+    return;
+  }
+
+  const rangeMsg = checkCustomIdOutOfRange(customSystemId, val);
+  warnEl.textContent = rangeMsg ? `⚠ ${val} ${rangeMsg}` : '';
+}
+
 
 async function openInventoryForm(id) {
   inventoryEditingId = id || null;
@@ -21017,7 +21104,7 @@ function checkInventorySystemIdDuplicates() {
 // committed to a different radio in inventory or trigger lookup. Returns a
 // list of conflict descriptions. The caller decides whether to block or
 // allow an override.
-function checkSystemIdConflicts(payload, excludeInventoryId) {
+function checkSystemIdConflicts(payload, excludeInventoryId, extraIdRows = []) {
   const conflicts = [];
   const checks = [
     { key: 'mdc_id',    label: 'MDC ID',    dbCol: 'mdc_id' },
@@ -21042,6 +21129,29 @@ function checkSystemIdConflicts(payload, excludeInventoryId) {
 
     const rangeMsg = checkIdOutOfRange(key, payload[key]);
     if (rangeMsg) conflicts.push(`${label} "${payload[key]}" ${rangeMsg}`);
+  });
+
+  // Additional System IDs (specialty systems) — same two checks,
+  // scoped per system so a match under a different specialty system
+  // never counts as a conflict.
+  extraIdRows.forEach(({ custom_system_id, id_value }) => {
+    const val = (id_value || '').trim().toLowerCase();
+    if (!val) return;
+    const sysName = ridCustomSystems.find(s => s.id === custom_system_id)?.name || 'Specialty System';
+
+    const extraDup = radioInventoryExtraIds.find(x =>
+      String(x.radio_id) !== String(excludeInventoryId) &&
+      x.custom_system_id === custom_system_id &&
+      (x.id_value || '').trim().toLowerCase() === val
+    );
+    if (extraDup) {
+      const dupRadio = inventory.find(r => String(r.id) === String(extraDup.radio_id));
+      conflicts.push(`${sysName} ID "${id_value}" is already assigned to serial ${dupRadio?.serial_number || '(no serial)'}${dupRadio?.assigned_unit ? ' — ' + dupRadio.assigned_unit : ''}`);
+      return;
+    }
+
+    const rangeMsg = checkCustomIdOutOfRange(custom_system_id, id_value);
+    if (rangeMsg) conflicts.push(`${sysName} ID "${id_value}" ${rangeMsg}`);
   });
 
   return conflicts;
@@ -21452,7 +21562,7 @@ async function saveInventoryRecord() {
   if (inventoryEditingId) {
     const prev = inventory.find(x => String(x.id) === String(inventoryEditingId));
     // Conflict check — block if system IDs collide with another radio unless overridden
-    const conflicts = checkSystemIdConflicts(row, inventoryEditingId);
+    const conflicts = checkSystemIdConflicts(row, inventoryEditingId, extraIdRows);
     if (conflicts.length && !confirmSystemIdOverride(conflicts)) return;
 
     const { error } = await sb.from('radio_inventory').update(row).eq('id', inventoryEditingId);
@@ -21476,7 +21586,7 @@ async function saveInventoryRecord() {
       await logRecordHistory('radio_inventory', inventoryEditingId, serial, 'edited', fieldDiffs);
     }
   } else {
-    const conflicts = checkSystemIdConflicts(row, null);
+    const conflicts = checkSystemIdConflicts(row, null, extraIdRows);
     if (conflicts.length && !confirmSystemIdOverride(conflicts)) return;
     const { data: inserted, error } = await sb.from('radio_inventory').insert(row).select('id').single();
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
