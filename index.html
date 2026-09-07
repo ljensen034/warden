@@ -2289,6 +2289,9 @@
   @media (max-width: 768px) {
     .topbar-dropdown { position: fixed; left: 8px; right: 8px; top: auto; min-width: 0; }
   }
+  @media (max-width: 768px) {
+    #overviewFleetDashboard { grid-template-columns: 1fr !important; }
+  }
 
   .nav-group-item {
     display: flex;
@@ -3978,6 +3981,13 @@
           </div>
           <label class="toggle-switch"><input type="checkbox" id="nt-email-lowstock" onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
         </div>
+        <div class="notif-toggle-row">
+          <div class="notif-toggle-info">
+            <div class="notif-toggle-name">Email on Radio Lost / Stolen</div>
+            <div class="notif-toggle-desc">Alert the moment a radio's status is changed to Lost or Stolen</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" id="nt-email-lost-stolen" onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+        </div>
       </div>
 
     </div>
@@ -4518,6 +4528,7 @@
         </div>
       </div>
       <div id="overviewStatsStrip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
+      <div id="overviewFleetDashboard" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;"></div>
       <div id="overviewContent"></div>
     </div>
 
@@ -4846,7 +4857,10 @@
           <div class="tab-page-title">Radio Inventory</div>
           <div class="tab-page-subtitle">Full radio lifecycle — status, assignment, condition, chain of custody</div>
         </div>
-        <div id="invTotalCount" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);"></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div id="invTotalCount" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);"></div>
+          <div id="invEmpCoverage" title="Share of assigned/signed-out radios with an Employee # on file" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);"></div>
+        </div>
       </div>
 
       <!-- Sub-tabs -->
@@ -4863,11 +4877,6 @@
             <input class="search-input" id="invSearch" type="text" placeholder="Search serial, model, unit, system ID…" oninput="renderInventory();logSearchDebounced('Inventory',this.value)" style="width:230px;">
             <select class="form-select" id="invStatusFilter" onchange="renderInventory()" style="width:155px;font-size:14px;padding:5px 8px;">
               <option value="all">All Statuses</option>
-              <option value="in-stock">In Stock</option>
-              <option value="assigned">Assigned to Unit</option>
-              <option value="signed-out">Assigned to Person</option>
-              <option value="out-of-service">Out of Service</option>
-              <option value="retired">Retired</option>
             </select>
             <select class="form-select" id="invModelFilter" onchange="renderInventory()" style="width:140px;font-size:14px;padding:5px 8px;">
               <option value="all">All Models</option>
@@ -5097,6 +5106,8 @@
         <button class="btn-primary" onclick="openReserveRidBlockForm()" style="font-size:13px;">🔒 Reserve Block</button>
         <button class="btn-secondary" onclick="copyFreeRidsToClipboard()" style="font-size:13px;">📋 Copy Free IDs</button>
         <button class="btn-primary" onclick="copyNextFreeRidToClipboard()" style="font-size:13px;">📋 Next Free ID</button>
+        <button class="btn-secondary" onclick="openFindGapsModal()" style="font-size:13px;">🔍 Find Gaps</button>
+        <button class="btn-secondary" onclick="runDuplicateIntegrityScan()" style="font-size:13px;">🔬 Integrity Scan</button>
         <button class="btn-secondary" onclick="exportFreeRidsCsv()" style="font-size:13px;">⬇ Export Free IDs CSV</button>
         <button class="btn-secondary" onclick="exportCommittedRidsCsv()" style="font-size:13px;">⬇ Export Committed IDs CSV</button>
         <button class="btn-primary" onclick="exportMdcApxUclCsv()" style="font-size:13px;">⬇ Export MDC for APX Import</button>
@@ -11876,6 +11887,7 @@ const NOTIF_COLORS = {
   available: { color: '#00e676', label: 'AVAILABLE' },
   reserved:  { color: '#ffc400', label: 'RESERVED' },
   removed:   { color: '#ff5252', label: 'REMOVED' },
+  'lost-stolen': { color: '#ff5252', label: '🚨 LOST/STOLEN' },
 };
 
 function loadNotifSettings() {
@@ -11885,10 +11897,10 @@ function loadNotifSettings() {
       added: true, updated: true, active: true, available: true,
       reserved: true, removed: true, sound: true, toast: true,
       tone: 'chime', emailAddress: '', emailActive: false, emailConflict: false, emailLowAvail: false,
-      emailResSignout: false, emailResOverdue: false, emailLowStock: false
+      emailResSignout: false, emailResOverdue: false, emailLowStock: false, emailLostStolen: false
     };
   } catch(e) {
-    return { added:true, updated:true, active:true, available:true, reserved:true, removed:true, sound:true, toast:true, tone:'chime', emailAddress: '', emailActive: false, emailConflict: false, emailLowAvail: false, emailLowStock: false };
+    return { added:true, updated:true, active:true, available:true, reserved:true, removed:true, sound:true, toast:true, tone:'chime', emailAddress: '', emailActive: false, emailConflict: false, emailLowAvail: false, emailLowStock: false, emailLostStolen: false };
   }
 }
 
@@ -11910,6 +11922,7 @@ function saveNotifSettings() {
     emailResSignout: document.getElementById('nt-email-res-signout')?.checked ?? false,
     emailResOverdue: document.getElementById('nt-email-res-overdue')?.checked ?? false,
     emailLowStock: document.getElementById('nt-email-lowstock')?.checked ?? false,
+    emailLostStolen: document.getElementById('nt-email-lost-stolen')?.checked ?? false,
   };
   try { localStorage.setItem('warden_notif_settings', JSON.stringify(notifSettings)); } catch(e) {}
 }
@@ -11920,7 +11933,8 @@ function openNotifSettings() {
     available:'nt-available', reserved:'nt-reserved', removed:'nt-removed',
     sound:'nt-sound', toast:'nt-toast', emailActive:'nt-email-active',
     emailConflict:'nt-email-conflict', emailLowAvail:'nt-email-lowavail',
-    emailResSignout:'nt-email-res-signout', emailResOverdue:'nt-email-res-overdue', emailLowStock:'nt-email-lowstock' };
+    emailResSignout:'nt-email-res-signout', emailResOverdue:'nt-email-res-overdue', emailLowStock:'nt-email-lowstock',
+    emailLostStolen:'nt-email-lost-stolen' };
   Object.entries(map).forEach(([k,id]) => {
     const el = document.getElementById(id);
     if (el) el.checked = !!notifSettings[k];
@@ -11986,6 +12000,7 @@ async function sendEmailNotification(subject, body, type) {
   if (type === 'res-signout' && !notifSettings.emailResSignout)  return;
   if (type === 'res-overdue' && !notifSettings.emailResOverdue)  return;
   if (type === 'lowstock'    && !notifSettings.emailLowStock)    return;
+  if (type === 'lost-stolen' && !notifSettings.emailLostStolen)  return;
   
   try {
     // This is a placeholder - replace with your own backend endpoint
@@ -12040,6 +12055,13 @@ function pushNotification(type, text) {
       '🚨 Channel Activated - RF Manager',
       `${text}\n\nTime: ${getPacificTimeStr(true)}\nApp: WARDEN`,
       'active'
+    );
+  }
+  if (type === 'lost-stolen') {
+    sendEmailNotification(
+      '🚨 Radio Marked Lost/Stolen - WARDEN',
+      `${text}\n\nTime: ${getPacificTimeStr(true)}\nApp: WARDEN`,
+      'lost-stolen'
     );
   }
 }
@@ -12971,6 +12993,74 @@ window.addEventListener('resize', closeAllNavGroups);
 // ─────────────────────────────────────────────
 // OVERVIEW TAB — Active + Reserved only, channels + talkgroups merged
 // ─────────────────────────────────────────────
+// Two visual widgets on the main Overview dashboard: Radio Inventory
+// broken into 4 operational buckets, and RID Manager's Free/Reserved/
+// Committed breakdown across every system combined. Both link through
+// to their full module for detail — this is a glance, not a report.
+//
+// The Inventory bucket mapping (stated plainly since it's a judgment
+// call, not something the app's status model spells out on its own):
+//   Available (Unassigned) = In Stock
+//   Available (Cache)      = Assigned to Unit
+//   In Use                 = Assigned to Person
+//   Under Repair           = any status starting with "out-of-service"
+// Retired/Lost/Stolen radios aren't in any of the four buckets — none
+// of them are "available," "in use," or "under repair" in the sense
+// those buckets mean, so folding them in would misrepresent the fleet
+// rather than clarify it.
+function renderOverviewFleetDashboard() {
+  const el = document.getElementById('overviewFleetDashboard');
+  if (!el) return;
+
+  // ── Inventory bucket widget ──
+  const buckets = [
+    { key:'unassigned', label:'Available (Unassigned)', color:'var(--status-available)', count: inventory.filter(r => r.status === 'in-stock').length },
+    { key:'cache',       label:'Available (Cache)',       color:'var(--accent)',           count: inventory.filter(r => r.status === 'assigned').length },
+    { key:'inuse',       label:'In Use',                  color:'var(--status-reserved)',  count: inventory.filter(r => r.status === 'signed-out').length },
+    { key:'repair',      label:'Under Repair',            color:'var(--status-active)',    count: inventory.filter(r => (r.status||'').startsWith('out-of-service')).length },
+  ];
+  const bucketTotal = buckets.reduce((sum,b) => sum + b.count, 0);
+  const invWidget = `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 18px;cursor:pointer;" onclick="switchMainTab('inventory')">
+      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">📻 Radio Inventory</div>
+      <div style="height:10px;background:var(--bg-deep);border-radius:5px;overflow:hidden;display:flex;margin-bottom:12px;">
+        ${bucketTotal ? buckets.map(b => `<div style="width:${(b.count/bucketTotal)*100}%;background:${b.color};" title="${b.label}: ${b.count}"></div>`).join('') : `<div style="width:100%;background:var(--border);"></div>`}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        ${buckets.map(b => `<div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:8px;height:8px;border-radius:2px;background:${b.color};flex-shrink:0;"></div>
+          <div><span class="text-emphasis" style="font-family:var(--font-data);font-weight:700;color:var(--text-primary);">${b.count}</span> <span class="text-label" style="color:var(--text-dim);">${b.label}</span></div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+  // ── RID widget ──
+  const { totFree, totReserved, totCommitted } = computeRidRangeStats();
+  const ridTotal = totFree + totReserved + totCommitted;
+  const ridPct = ridTotal ? Math.round((totCommitted/ridTotal)*100) : 0;
+  const ridWidget = ridRanges.length ? `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 18px;cursor:pointer;" onclick="switchMainTab('rid')">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;">
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">🆔 Radio IDs</div>
+        <span class="text-label" style="font-family:var(--font-data);color:${ridPct>80?'var(--status-active)':ridPct>60?'var(--status-reserved)':'var(--status-available)'};font-weight:700;">${ridPct}% committed</span>
+      </div>
+      <div style="height:10px;background:var(--bg-deep);border-radius:5px;overflow:hidden;display:flex;margin-bottom:12px;">
+        <div style="width:${ridTotal?(totCommitted/ridTotal)*100:0}%;background:${RID_STATE.committed.color};"></div>
+        <div style="width:${ridTotal?(totReserved/ridTotal)*100:0}%;background:${RID_STATE.reserved.color};"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div><span class="text-emphasis" style="font-family:var(--font-data);font-weight:700;color:${RID_STATE.free.color};">${totFree}</span> <span class="text-label" style="color:var(--text-dim);">Free</span></div>
+        <div><span class="text-emphasis" style="font-family:var(--font-data);font-weight:700;color:${RID_STATE.reserved.color};">${totReserved}</span> <span class="text-label" style="color:var(--text-dim);">Reserved</span></div>
+        <div><span class="text-emphasis" style="font-family:var(--font-data);font-weight:700;color:${RID_STATE.committed.color};">${totCommitted}</span> <span class="text-label" style="color:var(--text-dim);">Committed</span></div>
+      </div>
+    </div>` : `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px 18px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:14px;cursor:pointer;" onclick="switchMainTab('rid')">
+      No RID ranges configured yet
+    </div>`;
+
+  el.innerHTML = invWidget + ridWidget;
+}
+
 function renderOverviewStatsStrip() {
   const el = document.getElementById('overviewStatsStrip');
   if (!el) return;
@@ -12991,6 +13081,7 @@ function renderOverviewStatsStrip() {
 
 function renderOverview() {
   renderOverviewStatsStrip();
+  renderOverviewFleetDashboard();
   const el = document.getElementById('overviewContent');
   if (!el) return;
 
@@ -19805,6 +19896,151 @@ async function loadRidReservations() {
   } catch(e) { console.warn('loadRidReservations exception:', e.message); }
 }
 
+// Finds runs of consecutive free IDs at least minSize long — the
+// single "next free ID" tool answers "give me one ID right now";
+// this answers "give me a clean sequential block for a batch of new
+// radios," which scattered free-ID hunting can't easily do once a
+// range has been partially filled for a while.
+// Standalone integrity check, independent of any import — the normal
+// index used for classification silently keeps only the *last*
+// radio it sees for a given value (a plain Map can't hold two radios
+// under one key), so this needs its own pass that tracks every radio
+// sharing a value instead of overwriting.
+function findDuplicateCommittedIds() {
+  const bySystem = {}; // systemKey -> Map<value, [radios]>
+  const ensure = (key) => { if (!bySystem[key]) bySystem[key] = new Map(); return bySystem[key]; };
+  const coreFields = ['mdc_id','larics_id','ici_id','cwirs_id','cris_id'];
+
+  inventory.forEach(r => {
+    coreFields.forEach(f => {
+      const v = String(r[f] || '').trim();
+      if (!v) return;
+      const map = ensure(f);
+      if (!map.has(v)) map.set(v, []);
+      map.get(v).push(r);
+    });
+  });
+  radioInventoryExtraIds.forEach(x => {
+    const v = String(x.id_value || '').trim();
+    if (!v) return;
+    const radio = inventory.find(r => String(r.id) === String(x.radio_id));
+    if (!radio) return;
+    const map = ensure(`custom:${x.custom_system_id}`);
+    if (!map.has(v)) map.set(v, []);
+    map.get(v).push(radio);
+  });
+
+  const duplicates = [];
+  Object.entries(bySystem).forEach(([systemKey, map]) => {
+    map.forEach((radios, value) => {
+      if (radios.length > 1) duplicates.push({ systemKey, value, radios });
+    });
+  });
+  return duplicates;
+}
+
+function closeIntegrityScanModal() {
+  document.getElementById('integrityScanModal').classList.remove('open');
+}
+
+function runDuplicateIntegrityScan() {
+  const duplicates = findDuplicateCommittedIds();
+  const el = document.getElementById('integrity-scan-results');
+  if (!duplicates.length) {
+    el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--status-available);font-size:14px;">✓ No duplicate committed IDs found. Every ID is uniquely assigned within its system.</div>`;
+  } else {
+    el.innerHTML = duplicates.map(d => {
+      const isMdc = d.systemKey === 'mdc_id';
+      const displayValue = isMdc ? d.value.toUpperCase() : d.value;
+      const label = ridSystemDisplayLabel(d.systemKey);
+      return `<div style="background:var(--bg-deep);border:1px solid var(--status-active);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;">
+        <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--status-active);margin-bottom:6px;">${escHtml(label)} ID "${escHtml(displayValue)}" — assigned to ${d.radios.length} radios</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          ${d.radios.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+            <span style="color:var(--text-secondary);">${escHtml(r.serial_number||'(no serial)')} — ${escHtml(r.radio_model||'')}</span>
+            <button class="btn-secondary" style="font-size:12px;padding:2px 8px;" onclick="closeIntegrityScanModal();openInventoryModal('${r.id}');">Open</button>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('integrityScanModal').classList.add('open');
+}
+
+function findContiguousGaps(rangeFilterId, minSize) {
+  const targetRanges = rangeFilterId === 'all' ? ridRanges : ridRanges.filter(r => String(r.id) === String(rangeFilterId));
+  const index = buildCommittedIdIndex();
+  const results = [];
+  targetRanges.forEach(range => {
+    const isMdc = range.system === 'mdc_id';
+    let runStart = null;
+    for (let id = range.start_id; id <= range.end_id + 1; id++) {
+      const withinBounds = id <= range.end_id;
+      const isValidId = withinBounds && !(isMdc && ridContainsF(ridDecimalToHex(id)));
+      const isFree = isValidId && classifyRid(id, index, ridReservations, range).state === 'free';
+      if (isFree) {
+        if (runStart === null) runStart = id;
+      } else if (runStart !== null) {
+        const runEnd = id - 1;
+        const size = runEnd - runStart + 1;
+        if (size >= minSize) results.push({ range, start: runStart, end: runEnd, size, isMdc });
+        runStart = null;
+      }
+    }
+  });
+  return results.sort((a,b) => b.size - a.size);
+}
+
+function openFindGapsModal() {
+  const sel = document.getElementById('fg-range');
+  const rangeF = document.getElementById('ridRangeFilter')?.value || 'all';
+  sel.innerHTML = '<option value="all">All Ranges</option>' +
+    ridRanges.map(r => `<option value="${r.id}"${String(r.id)===String(rangeF)?' selected':''}>${escHtml(r.name)}</option>`).join('');
+  document.getElementById('fg-results').innerHTML = '';
+  document.getElementById('findGapsModal').classList.add('open');
+}
+
+function closeFindGapsModal() {
+  document.getElementById('findGapsModal').classList.remove('open');
+}
+
+function runFindGaps() {
+  const rangeFilterId = document.getElementById('fg-range').value;
+  const minSize = Math.max(2, parseInt(document.getElementById('fg-min-size').value, 10) || 5);
+  const results = findContiguousGaps(rangeFilterId, minSize);
+  const el = document.getElementById('fg-results');
+  if (!results.length) {
+    el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-dim);font-size:14px;">No contiguous block of ${minSize}+ free IDs found${rangeFilterId==='all'?' in any range':''}.</div>`;
+    return;
+  }
+  el.innerHTML = results.map(g => {
+    const startLabel = g.isMdc ? ridDecimalToHex(g.start) : g.start;
+    const endLabel   = g.isMdc ? ridDecimalToHex(g.end)   : g.end;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px;">
+      <div>
+        <div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${startLabel} – ${endLabel}</div>
+        <div style="font-size:12px;color:var(--text-dim);">${g.size} consecutive free IDs · ${escHtml(g.range.name)}</div>
+      </div>
+      <button class="btn-primary" style="font-size:12px;padding:4px 10px;" onclick="reserveFoundGap('${g.range.id}','${g.start}','${g.end}')">🔒 Reserve This Block</button>
+    </div>`;
+  }).join('');
+}
+
+// Hands off to the existing Reserve Block flow, pre-filled with the
+// gap just found, instead of building a second, parallel reservation
+// path.
+function reserveFoundGap(rangeId, start, end) {
+  closeFindGapsModal();
+  openReserveRidBlockForm();
+  document.getElementById('rrb-range').value = rangeId;
+  onRrbRangeChange();
+  const range = ridRanges.find(r => String(r.id) === String(rangeId));
+  const isMdc = range?.system === 'mdc_id';
+  document.getElementById('rrb-start').value = isMdc ? ridDecimalToHex(Number(start)) : start;
+  document.getElementById('rrb-end').value   = isMdc ? ridDecimalToHex(Number(end))   : end;
+  updateRrbMdcPreview();
+}
+
 function openReserveRidBlockForm() {
   const sel = document.getElementById('rrb-range');
   const rangeF = document.getElementById('ridRangeFilter')?.value || 'all';
@@ -20816,6 +21052,34 @@ function renderInventory() {
   const totalEl = document.getElementById('invTotalCount');
   if (totalEl) totalEl.innerHTML = `<span class="text-hero" style="font-weight:700;color:var(--text-primary);">${inventory.length}</span><span class="text-label" style="color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Total Radios</span>`;
 
+  // Employee # coverage — what share of radios actually in someone's
+  // hands (assigned to a unit or signed out to a person) have
+  // accountability info on file. Radios sitting In Stock or Retired
+  // aren't counted in the denominator — there's no one to attribute
+  // an employee number to yet.
+  const empCoverageEl = document.getElementById('invEmpCoverage');
+  if (empCoverageEl) {
+    const inServiceRadios = inventory.filter(r => r.status === 'assigned' || r.status === 'signed-out');
+    const withEmpNumber = inServiceRadios.filter(r => (r.emp_number||'').trim());
+    const pct = inServiceRadios.length ? Math.round((withEmpNumber.length/inServiceRadios.length)*100) : 100;
+    empCoverageEl.innerHTML = `<span class="text-hero" style="font-weight:700;color:${pct>=90?'var(--status-available)':pct>=60?'var(--status-reserved)':'var(--status-active)'};">${pct}%</span><span class="text-label" style="color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Emp # Coverage</span>`;
+  }
+
+  // Populate status filter — dynamic from radioStatuses (this used to
+  // be a hardcoded 5-option list that silently had no way to filter
+  // on custom statuses like Lost/Stolen at all), plus one synthetic
+  // combined option since a single-select can't otherwise represent
+  // "either Lost or Stolen."
+  const statusSel = document.getElementById('invStatusFilter');
+  if (statusSel && statusSel.options.length <= 1) {
+    const lostStolenOpt = document.createElement('option');
+    lostStolenOpt.value = 'lost-stolen'; lostStolenOpt.textContent = '🚨 Lost / Stolen';
+    statusSel.appendChild(lostStolenOpt);
+    radioStatuses.forEach(s => {
+      const o = document.createElement('option'); o.value = s.key; o.textContent = s.label;
+      statusSel.appendChild(o);
+    });
+  }
   // Populate model filter
   const modelSel = document.getElementById('invModelFilter');
   if (modelSel && modelSel.options.length <= 1) {
@@ -20836,7 +21100,8 @@ function renderInventory() {
   }
 
   const filtered = inventory.filter(r => {
-    if (statusFilt !== 'all' && r.status !== statusFilt) return false;
+    if (statusFilt === 'lost-stolen') { if (r.status !== 'lost' && r.status !== 'stolen') return false; }
+    else if (statusFilt !== 'all' && r.status !== statusFilt) return false;
     if (modelFilt  !== 'all' && r.radio_model !== modelFilt) return false;
     if (bandFilt   !== 'all' && r.radio_band  !== bandFilt)  return false;
     if (query) return [r.serial_number, r.radio_model, r.radio_band, r.assigned_unit,
@@ -20955,11 +21220,14 @@ async function openInventoryModal(id) {
   const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:15px;color:var(--text-secondary);">${escHtml(String(val))}</div></div>` : '';
 
   document.getElementById('invDetailSection').innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-      <div style="font-family:var(--font-data);font-size:24px;font-weight:700;color:var(--text-primary);">${escHtml(r.serial_number||'—')}</div>
-      ${r.alias ? `<span style="font-size:15px;color:var(--accent);">"${escHtml(r.alias)}"</span>` : ''}
-      <span class="inv-status-chip ${r.status}">${INV_STATUS_LABELS[r.status]||r.status}</span>
-      ${r.control_top_replaced ? `<span style="font-family:var(--font-data);font-size:12px;padding:2px 8px;border-radius:2px;background:rgba(30,136,229,0.12);color:var(--accent);border:1px solid rgba(30,136,229,0.3);">⟲ CONTROL TOP REPLACED</span>` : ''}
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;">
+      ${r.photo_url ? `<img src="${escHtml(r.photo_url)}" style="width:56px;height:56px;border-radius:var(--radius);object-fit:cover;border:1px solid var(--border);flex-shrink:0;" alt="Radio photo">` : ''}
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="font-family:var(--font-data);font-size:24px;font-weight:700;color:var(--text-primary);">${escHtml(r.serial_number||'—')}</div>
+        ${r.alias ? `<span style="font-size:15px;color:var(--accent);">"${escHtml(r.alias)}"</span>` : ''}
+        <span class="inv-status-chip ${r.status}">${INV_STATUS_LABELS[r.status]||r.status}</span>
+        ${r.control_top_replaced ? `<span style="font-family:var(--font-data);font-size:12px;padding:2px 8px;border-radius:2px;background:rgba(30,136,229,0.12);color:var(--accent);border:1px solid rgba(30,136,229,0.3);">⟲ CONTROL TOP REPLACED</span>` : ''}
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:10px;">
       ${field('Radio Model',   r.radio_model)}
@@ -20977,6 +21245,7 @@ async function openInventoryModal(id) {
     ${sysIdBlock}`;
 
   await loadCustodyForRadio(id);
+  await loadMaintenanceForRadio(id);
   await renderRecordHistoryPanel('invFieldHistory', 'radio_inventory', id);
   document.getElementById('invNewNote').value = '';
   document.getElementById('inventoryModal').classList.add('open');
@@ -21004,6 +21273,42 @@ async function loadCustodyForRadio(inventoryId) {
       </div>`;
     }).join('');
   } catch(e) { el.innerHTML = `<div style="padding:10px 14px;color:var(--text-dim);font-size:14px;">Error: ${e.message}</div>`; }
+}
+
+async function loadMaintenanceForRadio(inventoryId) {
+  const el = document.getElementById('invMaintenanceList');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:10px 14px;color:var(--text-dim);font-size:14px;">Loading…</div>';
+  try {
+    const { data, error } = await sb.from('radio_maintenance_log').select('*').eq('radio_id', inventoryId).order('date_performed', { ascending: false });
+    if (error) { el.innerHTML = `<div style="padding:10px 14px;color:var(--text-dim);font-size:14px;">Error: ${error.message}</div>`; return; }
+    if (!data?.length) { el.innerHTML = '<div style="padding:10px 14px;color:var(--text-dim);font-size:14px;">No maintenance logged yet.</div>'; return; }
+    el.innerHTML = data.map(e => `<div class="inv-custody-row">
+        <div class="inv-custody-meta">${fmtDateShort(e.date_performed)}<br><strong>${escHtml(e.performed_by||'Unknown')}</strong>${e.cost!=null?`<br><span style="color:var(--text-dim);">$${Number(e.cost).toFixed(2)}</span>`:''}</div>
+        <div style="flex:1;color:var(--text-primary);line-height:1.5;white-space:pre-wrap;">${escHtml(e.description||'')}</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = `<div style="padding:10px 14px;color:var(--text-dim);font-size:14px;">Error: ${e.message}</div>`; }
+}
+
+async function saveMaintenanceEntry() {
+  if (!currentInvId) return;
+  const date = document.getElementById('invMaintDate').value;
+  const desc = document.getElementById('invMaintDesc').value.trim();
+  const costRaw = document.getElementById('invMaintCost').value;
+  if (!date || !desc) { alert('Date and description are required.'); return; }
+  const r = inventory.find(x => String(x.id) === String(currentInvId));
+  const { error } = await sb.from('radio_maintenance_log').insert({
+    radio_id: currentInvId, date_performed: date, description: desc,
+    cost: costRaw ? parseFloat(costRaw) : null,
+    performed_by: currentUser?.name || 'Unknown', agency_id: agencyId(),
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  await logCustodyEvent(currentInvId, 'NOTE', `Maintenance logged: ${desc}`);
+  logEvent('inventory', 'Maintenance Logged', `${r?.serial_number||currentInvId} — ${desc}`);
+  document.getElementById('invMaintDate').value = '';
+  document.getElementById('invMaintDesc').value = '';
+  document.getElementById('invMaintCost').value = '';
+  await loadMaintenanceForRadio(currentInvId);
 }
 
 async function saveInventoryNote() {
@@ -21124,8 +21429,19 @@ function checkInvExtraIdRowDuplicate(rowId) {
 }
 
 
+// Photo storage — Supabase Storage, not a database column holding the
+// image itself (a base64-encoded photo in a text column would bloat
+// every fetchAllRows() pull across the whole table for something only
+// shown one radio at a time). radio_inventory.photo_url just holds a
+// reference to where the real file lives.
+// `undefined` = untouched this session (leave the DB's existing value
+// alone on save); a string = a newly uploaded photo; `null` = the
+// user explicitly removed it.
+let _pendingPhotoUrl = undefined;
+
 async function openInventoryForm(id) {
   inventoryEditingId = id || null;
+  _pendingPhotoUrl = undefined;
   const errEl = document.getElementById('ie-error');
   if (errEl) errEl.textContent = '';
   const warnEl = document.getElementById('ie-serial-warn');
@@ -21177,6 +21493,7 @@ async function openInventoryForm(id) {
     document.getElementById('ie-agency').value        = r.agency           || '';
     document.getElementById('ie-purchase-date').value = r.purchase_date    || '';
     document.getElementById('ie-alias').value           = r.alias                 || '';
+    renderIePhotoPreview(r.photo_url || null);
     document.getElementById('ie-cad-id-display').value  = r.cad_id_display        || '';
     document.getElementById('ie-firmware').value        = r.firmware_version      || '';
     document.getElementById('ie-codeplug').value        = r.codeplug_version      || '';
@@ -21196,6 +21513,7 @@ async function openInventoryForm(id) {
     }, 0);
   } else {
     document.getElementById('invEditTitle').textContent = 'Add Radio';
+    renderIePhotoPreview(null);
     ['ie-serial','ie-agency','ie-unit','ie-person','ie-emp-number','ie-notes',
      'ie-mdc-id','ie-larics','ie-ici','ie-cwirs','ie-cris',
      'ie-alias','ie-cad-id-display','ie-firmware','ie-codeplug','ie-last-programmed'].forEach(fid => {
@@ -21426,7 +21744,7 @@ async function applyBulkStatusChange() {
   const newStatus = document.getElementById('invBulkStatus')?.value;
   if (!newStatus) { alert('Choose a status first.'); return; }
   if (!invBulkSelected.size) { alert('No radios selected.'); return; }
-  if (!confirm(`Set ${invBulkSelected.size} radio(s) to "${INV_STATUS_LABELS[newStatus]}"?`)) return;
+  if (!(await themedConfirm(`Set ${invBulkSelected.size} radio(s) to "${INV_STATUS_LABELS[newStatus]}"?`))) return;
 
   const who = currentUser?.name || 'Unknown';
   const now = new Date().toISOString();
@@ -21437,7 +21755,10 @@ async function applyBulkStatusChange() {
       status: newStatus, updated_by: who, updated_at: now,
     }).eq('id', id);
     if (error) { errors++; continue; }
-    if (r) await logCustodyEvent(id, 'STATUS_CHANGE', `Bulk status change → ${INV_STATUS_LABELS[newStatus]} by ${who}`);
+    if (r) {
+      await logCustodyEvent(id, 'STATUS_CHANGE', `Bulk status change → ${INV_STATUS_LABELS[newStatus]} by ${who}`);
+      checkLostStolenTransition(r.status, newStatus, r.serial_number);
+    }
   }
 
   if (errors) alert(`${errors} update(s) failed.`);
@@ -21714,6 +22035,82 @@ function checkInventoryEmpNumber() {
   warn.textContent = others.length ? `ℹ Also assigned to: ${others.map(r=>r.serial_number).join(', ')}` : '';
 }
 
+const PHOTO_STORAGE_BUCKET = 'radio-photos';
+
+function renderIePhotoPreview(url) {
+  const preview = document.getElementById('ie-photo-preview');
+  const removeBtn = document.getElementById('ie-photo-remove');
+  const statusEl = document.getElementById('ie-photo-status');
+  if (statusEl) statusEl.textContent = '';
+  if (!preview) return;
+  if (url) {
+    preview.innerHTML = `<img src="${escHtml(url)}" style="width:100%;height:100%;object-fit:cover;" alt="Radio photo">`;
+    if (removeBtn) removeBtn.style.display = 'inline-block';
+  } else {
+    preview.innerHTML = '📻';
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
+}
+
+// Uploads to Supabase Storage — a genuinely different mechanism than
+// everything else in this app, which only ever talks to Postgres
+// tables. This REQUIRES a storage bucket named "radio-photos" to
+// already exist in the Supabase project (Dashboard → Storage → New
+// Bucket → name it exactly "radio-photos", set Public), since bucket
+// creation isn't something a SQL migration can do — there's no SQL
+// file for this feature for that reason. If the bucket doesn't exist
+// yet, the upload fails with a clear message rather than silently
+// doing nothing.
+async function uploadRadioPhoto() {
+  const fileInput = document.getElementById('ie-photo-file');
+  const statusEl = document.getElementById('ie-photo-status');
+  const file = fileInput?.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { if (statusEl) statusEl.textContent = '⚠ Please select an image file.'; fileInput.value = ''; return; }
+  if (file.size > 8 * 1024 * 1024) { if (statusEl) statusEl.textContent = '⚠ Image must be under 8MB.'; fileInput.value = ''; return; }
+
+  if (statusEl) statusEl.textContent = '⏳ Uploading…';
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${inventoryEditingId || 'new'}-${Date.now()}.${ext}`;
+
+  try {
+    const { error: uploadError } = await sb.storage.from(PHOTO_STORAGE_BUCKET).upload(path, file, { upsert: true });
+    if (uploadError) {
+      if (statusEl) statusEl.textContent = `⚠ Upload failed: ${uploadError.message}. If this is the first photo ever uploaded, create a public "radio-photos" bucket in Supabase → Storage first.`;
+      fileInput.value = '';
+      return;
+    }
+    const { data: urlData } = sb.storage.from(PHOTO_STORAGE_BUCKET).getPublicUrl(path);
+    if (!urlData?.publicUrl) { if (statusEl) statusEl.textContent = '⚠ Upload succeeded but could not get a public URL.'; return; }
+    _pendingPhotoUrl = urlData.publicUrl;
+    renderIePhotoPreview(_pendingPhotoUrl);
+    if (statusEl) statusEl.textContent = '✓ Photo ready — will be saved with this record.';
+  } catch (e) {
+    if (statusEl) statusEl.textContent = `⚠ Upload error: ${e.message}`;
+    fileInput.value = '';
+  }
+}
+
+async function removeRadioPhoto() {
+  if (!(await themedConfirm('Remove this radio\'s photo?'))) return;
+  _pendingPhotoUrl = null;
+  renderIePhotoPreview(null);
+  const fileInput = document.getElementById('ie-photo-file');
+  if (fileInput) fileInput.value = '';
+}
+
+// Fires only on a genuine transition INTO lost/stolen — re-saving a
+// radio that was already marked that way shouldn't re-alert every
+// time someone edits an unrelated field on it.
+function checkLostStolenTransition(prevStatus, newStatus, serial) {
+  const wasAlready = prevStatus === 'lost' || prevStatus === 'stolen';
+  const isNow = newStatus === 'lost' || newStatus === 'stolen';
+  if (isNow && !wasAlready) {
+    const label = newStatus === 'lost' ? 'LOST' : 'STOLEN';
+    pushNotification('lost-stolen', `🚨 Radio ${serial} marked ${label}`);
+  }
+}
+
 async function saveInventoryRecord() {
   const serial = document.getElementById('ie-serial').value.trim();
   const errEl  = document.getElementById('ie-error');
@@ -21770,6 +22167,10 @@ async function saveInventoryRecord() {
     updated_at:       new Date().toISOString(),
     agency_id:        agencyId(),
   };
+  // Only included if the photo section was actually touched this
+  // session — omitting the key entirely on an update means the
+  // existing photo_url column value is left alone, not overwritten.
+  if (_pendingPhotoUrl !== undefined) row.photo_url = _pendingPhotoUrl;
 
   let radioId = inventoryEditingId;
   if (inventoryEditingId) {
@@ -21794,6 +22195,7 @@ async function saveInventoryRecord() {
     }
     await logCustodyEvent(inventoryEditingId, 'EDIT', `Record edited: ${changed.join(', ')||'saved'}`);
     await logInventoryEvent('EDIT', serial, changed.join(', ')||'record saved');
+    checkLostStolenTransition(prev?.status, row.status, serial);
     if (prev) {
       const fieldDiffs = diffRecordFields(prev, row, INV_TRACKED_FIELDS);
       await logRecordHistory('radio_inventory', inventoryEditingId, serial, 'edited', fieldDiffs);
@@ -25341,6 +25743,28 @@ if ('serviceWorker' in navigator) {
           <button class="btn-primary" style="padding:7px 14px;flex-shrink:0;margin-bottom:1px;" onclick="saveInventoryNote()">Post</button>
         </div>
       </div>
+      <!-- Maintenance / service history — distinct from Chain of
+           Custody, which tracks who has the radio, not what's been
+           repaired on it -->
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">🔧 Maintenance / Service History</div>
+        <div id="invMaintenanceList" style="max-height:200px;overflow-y:auto;background:var(--bg-deep);border-radius:var(--radius);margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-field" style="width:150px;">
+            <label class="form-label">Date</label>
+            <input class="form-input" id="invMaintDate" type="date">
+          </div>
+          <div class="form-field" style="flex:1;min-width:180px;">
+            <label class="form-label">Description</label>
+            <input class="form-input" id="invMaintDesc" placeholder="What was done">
+          </div>
+          <div class="form-field" style="width:130px;">
+            <label class="form-label">Cost <span style="font-weight:400;color:var(--text-dim);font-size:11px;">optional</span></label>
+            <input class="form-input" id="invMaintCost" type="number" step="0.01" placeholder="0.00">
+          </div>
+          <button class="btn-primary" style="padding:7px 14px;flex-shrink:0;margin-bottom:1px;" onclick="saveMaintenanceEntry()">+ Log</button>
+        </div>
+      </div>
       <!-- Structured field-level audit trail -->
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
         <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="const n=this.nextElementSibling;n.style.display=n.style.display==='none'?'':'none';this.querySelector('.fh-c').textContent=n.style.display===''?'▴':'▾';">
@@ -25409,7 +25833,7 @@ if ('serviceWorker' in navigator) {
 
 <!-- ── INVENTORY ADD/EDIT MODAL ── -->
 <div class="modal-overlay" id="inventoryEditModal">
-  <div class="modal" style="max-width:680px;max-height:88vh;display:flex;flex-direction:column;">
+  <div class="modal" style="max-width:680px;max-height:88vh;max-height:88dvh;display:flex;flex-direction:column;">
     <div class="modal-header" style="flex-shrink:0;">
       <div class="modal-title" id="invEditTitle">Add Radio</div>
       <button class="modal-close" onclick="closeInventoryForm()">✕</button>
@@ -25422,6 +25846,19 @@ if ('serviceWorker' in navigator) {
           <label class="form-label">Serial Number *</label>
           <input class="form-input" id="ie-serial" placeholder="Unique serial number" oninput="checkInventorySerial()">
           <div id="ie-serial-warn" style="font-size:13px;color:var(--status-active);min-height:14px;margin-top:2px;font-family:var(--font-data);"></div>
+        </div>
+      </div>
+
+      <!-- Photo -->
+      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--bg-deep);margin-bottom:14px;">
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">📷 Photo</div>
+        <div style="display:flex;gap:14px;align-items:center;">
+          <div id="ie-photo-preview" style="width:80px;height:80px;border-radius:var(--radius);background:var(--bg-card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:var(--text-dim);font-size:24px;">📻</div>
+          <div style="flex:1;">
+            <input type="file" id="ie-photo-file" accept="image/*" style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;" onchange="uploadRadioPhoto()">
+            <div id="ie-photo-status" style="font-size:12px;color:var(--text-dim);"></div>
+          </div>
+          <button id="ie-photo-remove" onclick="removeRadioPhoto()" style="display:none;background:none;border:none;color:var(--status-active);cursor:pointer;font-size:13px;" title="Remove photo">✕ Remove</button>
         </div>
       </div>
 
@@ -26673,6 +27110,45 @@ if ('serviceWorker' in navigator) {
     </div>
     <div class="modal-body" style="flex:1;overflow-y:auto;">
       <div id="releaseNotesList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FIND GAPS MODAL ── -->
+<div class="modal-overlay" id="findGapsModal">
+  <div class="modal" style="max-width:520px;max-height:85vh;max-height:85dvh;display:flex;flex-direction:column;">
+    <div class="modal-header" style="flex-shrink:0;">
+      <div class="modal-title">🔍 Find Contiguous Gaps</div>
+      <button class="modal-close" onclick="closeFindGapsModal()">✕</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;">
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">Finds blocks of consecutive free IDs — useful for provisioning a clean sequential batch instead of scattered singles.</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Range</label>
+          <select class="form-select" id="fg-range"><option value="all">All Ranges</option></select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Minimum Block Size</label>
+          <input class="form-input" id="fg-min-size" type="number" value="5" min="2" style="font-family:var(--font-data);">
+        </div>
+      </div>
+      <button class="btn-primary" onclick="runFindGaps()" style="margin-bottom:14px;">Find</button>
+      <div id="fg-results"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DUPLICATE ID INTEGRITY SCAN MODAL ── -->
+<div class="modal-overlay" id="integrityScanModal">
+  <div class="modal" style="max-width:560px;max-height:85vh;max-height:85dvh;display:flex;flex-direction:column;">
+    <div class="modal-header" style="flex-shrink:0;">
+      <div class="modal-title">🔬 Duplicate ID Integrity Scan</div>
+      <button class="modal-close" onclick="closeIntegrityScanModal()">✕</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;">
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">Sweeps every committed System ID for a value shared by more than one radio, within the same system — this shouldn't happen given the app's own duplicate checks, but data can drift via a bulk import, a direct database edit, or a bug elsewhere. Scoped per system, same as everywhere else: two different systems sharing a value isn't a real collision.</div>
+      <div id="integrity-scan-results"></div>
     </div>
   </div>
 </div>
