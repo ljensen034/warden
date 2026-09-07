@@ -8898,18 +8898,27 @@ function openICS205(channelIds, incidentId, cprId) {
   const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const timeStr = `${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')} UTC`;
 
-  // Resolve which channels to include — explicit ID list, or an incident's linked channels, or the full plan
-  let scopedChannels = channels;
+  // Resolve which channels/talkgroups to include — explicit ID list, or an
+  // incident's linked resources, or a comm plan request's approved picks.
+  // Talkgroups render into the same 16 rows as channels (the LACoFD ICS 205
+  // form's "Channel Name/Trunked Radio System Talkgroup" column exists
+  // specifically for this) rather than being silently dropped.
+  let scopedChannels   = channels;
+  let scopedTalkgroups = [];
   let inc = null;
   let cpr = null;
   if (incidentId) {
     inc = incidents.find(i => String(i.id) === String(incidentId));
-    const ids = (inc?.channel_ids || []).map(String);
-    scopedChannels = channels.filter(c => ids.includes(String(c.id)));
+    const chIds = (inc?.channel_ids || []).map(String);
+    const tgIds = (inc?.talkgroup_ids || []).map(String);
+    scopedChannels   = channels.filter(c => chIds.includes(String(c.id)));
+    scopedTalkgroups = talkgroups.filter(t => tgIds.includes(String(t.id)));
   } else if (cprId) {
     cpr = commPlanReqs.find(r => String(r.id) === String(cprId));
-    const ids = (cpr?.approved_channel_ids || []).map(String);
-    scopedChannels = channels.filter(c => ids.includes(String(c.id)));
+    const chIds = (cpr?.approved_channel_ids || []).map(String);
+    const tgIds = (cpr?.approved_talkgroup_ids || []).map(String);
+    scopedChannels   = channels.filter(c => chIds.includes(String(c.id)));
+    scopedTalkgroups = talkgroups.filter(t => tgIds.includes(String(t.id)));
   } else if (channelIds && channelIds.length) {
     const idSet = new Set(channelIds.map(String));
     scopedChannels = channels.filter(c => idSet.has(String(c.id)));
@@ -8932,11 +8941,18 @@ function openICS205(channelIds, incidentId, cprId) {
   const opPeriod         = inc?.op_period || fmtCprOpPeriod(cpr) || '';
   const preparedBy       = currentUser?.name || '';
 
-  // Build exactly 16 rows — LACoFD ICS 205 form has 16 fixed channel slots, blank rows if unused
+  // Build exactly 16 rows — LACoFD ICS 205 form has 16 fixed channel slots,
+  // blank rows if unused. Channels first, then talkgroups, in one combined
+  // list; anything past 16 total is flagged below rather than silently cut.
   const ROW_COUNT = 16;
+  const scopedItems = [
+    ...scopedChannels.map(data => ({ type: 'channel', data })),
+    ...scopedTalkgroups.map(data => ({ type: 'talkgroup', data })),
+  ];
+  const overflowCount = Math.max(0, scopedItems.length - ROW_COUNT);
   const rowsHtml = Array.from({ length: ROW_COUNT }, (_, i) => {
-    const ch = scopedChannels[i];
-    if (!ch) {
+    const item = scopedItems[i];
+    if (!item) {
       return `<tr>
         <td class="lac205-rownum">${i + 1}</td>
         <td class="lac205-cell"></td><td class="lac205-cell"></td><td class="lac205-cell"></td>
@@ -8946,6 +8962,24 @@ function openICS205(channelIds, incidentId, cprId) {
         <td class="lac205-cell"></td>
       </tr>`;
     }
+    if (item.type === 'talkgroup') {
+      const tg = item.data;
+      // Trunked talkgroups have no discrete RF frequency/tone/deviation/power
+      // the way a direct-mode channel does — those cells stay blank rather
+      // than showing misleading zeros, and Mode is always Digital (P25).
+      return `<tr>
+        <td class="lac205-rownum">${i + 1}</td>
+        <td class="lac205-cell">${escHtml(tg.system || 'Trunked')}</td>
+        <td class="lac205-cell">${escHtml(`TG ${tg.tgId||''} — ${tg.name||''}`.trim())}</td>
+        <td class="lac205-cell">${escHtml(tg.agency || '')}</td>
+        <td class="lac205-cell center" colspan="4" style="text-align:center;font-style:italic;">Trunked Radio System — no discrete frequency</td>
+        <td class="lac205-cell center"></td>
+        <td class="lac205-cell center"></td>
+        <td class="lac205-cell center">D</td>
+        <td class="lac205-cell">${escHtml(tg.notes || '')}</td>
+      </tr>`;
+    }
+    const ch = item.data;
     const rxDev = ch.bandwidth || 'W';
     const txDev = ch.bandwidth || 'W';
     return `<tr>
@@ -9028,6 +9062,7 @@ function openICS205(channelIds, incidentId, cprId) {
       <div style="margin-top:6px;font-size:12px;color:#555;">
         Generated ${dateStr} ${timeStr} &nbsp;|&nbsp; WARDEN — Public Safety Operations
       </div>
+      ${overflowCount ? `<div style="margin-top:8px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:13px;color:#7a5c00;">⚠ ${overflowCount} channel(s)/talkgroup(s) don't fit on this 16-row form and were left off. Consider a second ICS 205 page for the overflow.</div>` : ''}
     </div>
     </div>
   `;
@@ -25012,34 +25047,55 @@ function openCprModal(id) {
     </div>` : ''}
   `;
 
-  // Approved Channels checklist — pre-check anything already saved as
-  // approved, or (for a request never reviewed yet) anything whose
-  // designator text-matches what the requestor typed in as free text.
+  // Approved Channels/Talkgroups checklist — pre-check anything already
+  // saved as approved, or (for a request never reviewed yet) anything
+  // whose designator/name text-matches what the requestor typed in as
+  // free text. Tagged option values (ch:/tg:) let one combined list and
+  // checklist back two separate arrays on save.
   const sel = document.getElementById('cpr-approved-channels');
   if (sel) {
-    const approvedIds = new Set((r.approved_channel_ids || []).map(String));
+    const approvedChIds = new Set((r.approved_channel_ids || []).map(String));
+    const approvedTgIds = new Set((r.approved_talkgroup_ids || []).map(String));
+    const hasAnyApproved = approvedChIds.size || approvedTgIds.size;
     const requestedLower = (r.requested_channels || []).map(c => c.toLowerCase());
-    const eligible = channels.filter(c => c.status !== 'retired');
-    sel.innerHTML = eligible.map(c => {
-      const label = `${c.designator}${c.function && c.function !== '—' ? ' — ' + c.function : ''} (${c.freq} MHz)`;
-      const preselect = approvedIds.size
-        ? approvedIds.has(String(c.id))
+    const eligibleCh = channels.filter(c => c.status !== 'retired');
+    const eligibleTg = talkgroups.filter(t => t.status !== 'retired');
+    const chOptions = eligibleCh.map(c => {
+      const label = `📻 ${c.designator}${c.function && c.function !== '—' ? ' — ' + c.function : ''} (${c.freq} MHz)`;
+      const preselect = hasAnyApproved
+        ? approvedChIds.has(String(c.id))
         : requestedLower.some(rc => rc.includes(c.designator.toLowerCase()) || c.designator.toLowerCase().includes(rc));
-      return `<option value="${c.id}"${preselect ? ' selected' : ''}>${escHtml(label)}</option>`;
-    }).join('');
+      return `<option value="ch:${c.id}"${preselect ? ' selected' : ''}>${escHtml(label)}</option>`;
+    });
+    const tgOptions = eligibleTg.map(t => {
+      const label = `🔀 TG ${t.tgId} — ${t.name} (${t.system})`;
+      const preselect = hasAnyApproved
+        ? approvedTgIds.has(String(t.id))
+        : requestedLower.some(rc => rc.includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(rc));
+      return `<option value="tg:${t.id}"${preselect ? ' selected' : ''}>${escHtml(label)}</option>`;
+    });
+    sel.innerHTML = [...chOptions, ...tgOptions].join('');
     renderChecklistFromSelect('cpr-approved-channels', 'cpr-approved-channels-checklist');
   }
-  cprLoadedApprovedIds = getCprApprovedChannelIds().join(',');
+  cprLoadedApprovedIds = getCprApprovedChannelIds().all.join(',');
 
   document.getElementById('cpr-review-notes').value = r.review_notes || '';
   cprLoadedNotes = r.review_notes || '';
   document.getElementById('cprModal').classList.add('open');
 }
 
+// Returns the current checklist selection split by type — {channelIds,
+// talkgroupIds, all} — since the underlying <select> holds both tagged
+// together (ch:123 / tg:456) in one combined, ordered checklist.
 function getCprApprovedChannelIds() {
   const sel = document.getElementById('cpr-approved-channels');
-  if (!sel) return [];
-  return [...sel.selectedOptions].map(o => o.value);
+  if (!sel) return { channelIds: [], talkgroupIds: [], all: [] };
+  const all = [...sel.selectedOptions].map(o => o.value);
+  return {
+    channelIds:   all.filter(v => v.startsWith('ch:')).map(v => v.slice(3)),
+    talkgroupIds: all.filter(v => v.startsWith('tg:')).map(v => v.slice(3)),
+    all,
+  };
 }
 
 // Saves the internal review notes AND the approved-channels selection
@@ -25050,18 +25106,19 @@ async function saveCprNotes() {
   const r = commPlanReqs.find(x => String(x.id) === String(cprViewingId));
   if (!r) return;
   const reviewNotes = document.getElementById('cpr-review-notes').value.trim();
-  const approvedIds = getCprApprovedChannelIds();
+  const approved = getCprApprovedChannelIds();
 
   const { error } = await sb.from('comm_plan_requests').update({
     review_notes: reviewNotes || null,
-    approved_channel_ids: approvedIds,
+    approved_channel_ids: approved.channelIds,
+    approved_talkgroup_ids: approved.talkgroupIds,
     reviewed_by:  currentUser?.name || 'Unknown',
     reviewed_at:  new Date().toISOString(),
   }).eq('id', cprViewingId);
   if (error) { alert('Error saving: ' + error.message); return; }
 
   cprLoadedNotes = reviewNotes;
-  cprLoadedApprovedIds = approvedIds.join(',');
+  cprLoadedApprovedIds = approved.all.join(',');
   logEvent('system', 'Comm Plan Request Notes Saved', `${r.event_name} — ${r.requestee_name}`, { request_id: cprViewingId });
   await loadCommPlanReqs();
   pushNotification('available', '✓ Saved');
@@ -25074,11 +25131,12 @@ function closeCprModal() {
   const current = document.getElementById('cpr-review-notes')?.value.trim() || '';
   const currentApproved = getCprApprovedChannelIds();
   const notesChanged    = cprViewingId && current !== (cprLoadedNotes || '');
-  const approvedChanged = cprViewingId && currentApproved.join(',') !== (cprLoadedApprovedIds || '');
+  const approvedChanged = cprViewingId && currentApproved.all.join(',') !== (cprLoadedApprovedIds || '');
   if (notesChanged || approvedChanged) {
     sb.from('comm_plan_requests').update({
       review_notes: current || null,
-      approved_channel_ids: currentApproved,
+      approved_channel_ids: currentApproved.channelIds,
+      approved_talkgroup_ids: currentApproved.talkgroupIds,
       reviewed_by:  currentUser?.name || 'Unknown',
       reviewed_at:  new Date().toISOString(),
     }).eq('id', cprViewingId).then(() => loadCommPlanReqs());
@@ -25091,12 +25149,13 @@ async function setCprStatus(status) {
   const r = commPlanReqs.find(x => String(x.id) === String(cprViewingId));
   if (!r) return;
   const reviewNotes = document.getElementById('cpr-review-notes').value.trim();
-  const approvedIds = getCprApprovedChannelIds();
+  const approved = getCprApprovedChannelIds();
 
   const { error } = await sb.from('comm_plan_requests').update({
     status,
     review_notes: reviewNotes || null,
-    approved_channel_ids: approvedIds,
+    approved_channel_ids: approved.channelIds,
+    approved_talkgroup_ids: approved.talkgroupIds,
     reviewed_by:  currentUser?.name || 'Unknown',
     reviewed_at:  new Date().toISOString(),
   }).eq('id', cprViewingId);
@@ -25104,7 +25163,7 @@ async function setCprStatus(status) {
   if (error) { alert('Error: ' + error.message); return; }
 
   cprLoadedNotes = reviewNotes;
-  cprLoadedApprovedIds = approvedIds.join(',');
+  cprLoadedApprovedIds = approved.all.join(',');
   logEvent('system', `Comm Plan Request ${status === 'denied' ? 'Denied' : 'Reviewed'}`,
     `${r.event_name} — ${r.requestee_name}`, { request_id: cprViewingId });
 
@@ -25113,14 +25172,14 @@ async function setCprStatus(status) {
   renderCommPlanReqs();
 }
 
-// Generates the ICS 205 scoped to this request's Approved Channels list —
-// saves first (so the plan reflects whatever's currently checked, even if
-// never explicitly hit Save) then opens the same preview/print flow every
-// other ICS 205 in the app uses.
+// Generates the ICS 205 scoped to this request's Approved Channels/Talkgroups
+// list — saves first (so the plan reflects whatever's currently checked,
+// even if never explicitly hit Save) then opens the same preview/print flow
+// every other ICS 205 in the app uses.
 async function generateCprICS205() {
-  const approvedIds = getCprApprovedChannelIds();
-  if (!approvedIds.length) {
-    if (!(await themedConfirm('No channels are checked under Approved Channels — generate an empty ICS 205 anyway?'))) return;
+  const approved = getCprApprovedChannelIds();
+  if (!approved.all.length) {
+    if (!(await themedConfirm('Nothing is checked under Approved Channels — generate an empty ICS 205 anyway?'))) return;
   }
   await saveCprNotes();
   openICS205(null, null, cprViewingId);
@@ -25137,18 +25196,23 @@ function emailCprRequestor() {
   if (!r) return;
   if (!r.requestee_email) { alert('No requestor email on file for this request.'); return; }
 
-  const approvedIds = new Set(getCprApprovedChannelIds());
-  const approved = channels.filter(c => approvedIds.has(String(c.id)));
+  const approved = getCprApprovedChannelIds();
+  const chIdSet = new Set(approved.channelIds);
+  const tgIdSet = new Set(approved.talkgroupIds);
+  const approvedCh = channels.filter(c => chIdSet.has(String(c.id)));
+  const approvedTg = talkgroups.filter(t => tgIdSet.has(String(t.id)));
 
   const subject = `Communications Plan — ${r.event_name || 'Your Request'}`;
+  const planLines = [
+    ...approvedCh.map(c => `• ${c.designator} — ${c.function && c.function !== '—' ? c.function : 'General'} — ${c.freq} MHz`),
+    ...approvedTg.map(t => `• TG ${t.tgId} — ${t.name} (${t.system}, trunked)`),
+  ];
   const lines = [
     `Hi ${r.requestee_name || ''},`.trim() + ',',
     '',
     `Here is the approved communications plan for ${r.event_name || 'your event'}:`,
     '',
-    ...(approved.length
-      ? approved.map(c => `• ${c.designator} — ${c.function && c.function !== '—' ? c.function : 'General'} — ${c.freq} MHz`)
-      : ['(No channels have been approved yet.)']),
+    ...(planLines.length ? planLines : ['(No channels or talkgroups have been approved yet.)']),
     '',
     'A full ICS 205 Incident Radio Communications Plan is attached/enclosed separately.',
     '',
@@ -25170,8 +25234,10 @@ function convertCprToReservation() {
   // Grab the Approved Channels selection before the modal closes and resets
   // it — falling back to whatever was already saved if nothing's checked
   // live (e.g. jumping straight to Convert without opening the checklist).
+  // Talkgroups aren't included — reservations don't support talkgroup
+  // assignment yet (see the note further down for how that's surfaced).
   const liveApproved = getCprApprovedChannelIds();
-  const approvedIds = liveApproved.length ? liveApproved : (r.approved_channel_ids || []).map(String);
+  const approvedIds = liveApproved.channelIds.length ? liveApproved.channelIds : (r.approved_channel_ids || []).map(String);
 
   closeCprModal();
   switchMainTab('schedule');
@@ -25186,9 +25252,13 @@ function convertCprToReservation() {
         ? 'Requested Channels:\n' + r.requested_channels.map(c => '• ' + c).join('\n')
         : '';
       // Reservations don't support talkgroup assignment yet — if one was chosen
-      // via the recommendation engine, note it directly rather than losing it silently.
+      // via the recommendation engine, or checked in Approved Channels &
+      // Talkgroups, note it directly rather than losing it silently.
+      const approvedTgIds = liveApproved.talkgroupIds.length ? liveApproved.talkgroupIds : (r.approved_talkgroup_ids || []).map(String);
+      const approvedTgNames = talkgroups.filter(t => approvedTgIds.includes(String(t.id))).map(t => `TG ${t.tgId} — ${t.name}`);
       const tgRecNote = window._cprRecommendedTalkgroupLabel
-        ? `Requested talkgroup: ${window._cprRecommendedTalkgroupLabel}` : '';
+        ? `Requested talkgroup: ${window._cprRecommendedTalkgroupLabel}`
+        : (approvedTgNames.length ? 'Approved talkgroup(s) — not reflected in Channels above:\n' + approvedTgNames.map(n => '• ' + n).join('\n') : '');
       document.getElementById('sr-notes').value       = [r.event_description, channelsNote, tgRecNote, r.comments].filter(Boolean).join('\n\n');
       window._cprRecommendedTalkgroupLabel = null;
 
@@ -25230,6 +25300,7 @@ function convertCprToReservation() {
   sb.from('comm_plan_requests').update({
     status: 'fulfilled',
     approved_channel_ids: approvedIds,
+    approved_talkgroup_ids: liveApproved.talkgroupIds.length ? liveApproved.talkgroupIds : (r.approved_talkgroup_ids || []),
     reviewed_by: currentUser?.name || 'Unknown',
     reviewed_at: new Date().toISOString(),
   }).eq('id', r.id).then(async () => {
@@ -26525,7 +26596,7 @@ if ('serviceWorker' in navigator) {
       <div id="cprDetailSection"></div>
 
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
-        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Approved Channels</div>
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Approved Channels &amp; Talkgroups</div>
         <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">Checked here becomes the ICS 205 sent back to the requestor — pre-checked against what they asked for, but yours to adjust.</div>
         <select multiple id="cpr-approved-channels" style="display:none;"></select>
         <div id="cpr-approved-channels-checklist" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);"></div>
