@@ -21798,20 +21798,21 @@ function jumpToInventoryImport() {
 
 // Header order and keys deliberately mirror CSV_TEMPLATES.inventory
 // exactly — same columns, same snake_case names, same raw status key
-// (not the display label) — so a file exported here can be edited and
-// fed straight back into Admin → Import without a column mismatch.
-// This does mean a few fields the old export included (Alias,
-// Firmware, Codeplug, Last Programmed, Control Top Replaced, the MDC
-// decimal reference) are no longer in this file, since Import doesn't
-// read them — ask if those should be added to Import too if losing
-// them from this export is a problem.
+// (not the display label) and Yes/No for the boolean field, so a file
+// exported here can be edited and fed straight back into Admin →
+// Import without a column mismatch. Import was extended to cover
+// Alias, Firmware, Codeplug, Last Programmed, and Control Top
+// Replaced rather than dropping them from this export, so both sides
+// now match at the fuller set instead of the smaller one.
 function exportInventoryCSV() {
   if (!inventory.length) { alert('No inventory data to export.'); return; }
-  const header = ['serial_number','radio_model','radio_band','status','assigned_unit','assigned_person','cad_id_display','emp_number','agency','purchase_date','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'];
+  const header = ['serial_number','alias','radio_model','radio_band','status','assigned_unit','assigned_person','cad_id_display','emp_number','agency','purchase_date','firmware_version','codeplug_version','last_programmed_date','control_top_replaced','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'];
   const rows = inventory.map(r => [
-    r.serial_number||'', r.radio_model||'', r.radio_band||'', r.status||'in-stock',
+    r.serial_number||'', r.alias||'', r.radio_model||'', r.radio_band||'', r.status||'in-stock',
     r.assigned_unit||'', r.assigned_person||'', r.cad_id_display||'', r.emp_number||'', r.agency||'',
-    r.purchase_date||'', r.mdc_id||'', r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
+    r.purchase_date||'', r.firmware_version||'', r.codeplug_version||'', r.last_programmed_date||'',
+    r.control_top_replaced ? 'Yes' : 'No',
+    r.mdc_id||'', r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
     r.notes||''
   ]);
   downloadCSV(`radio-inventory-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
@@ -22223,9 +22224,9 @@ const CSV_TEMPLATES = {
   },
   inventory: {
     filename: 'radio-inventory-template.csv',
-    headers: ['serial_number','radio_model','radio_band','status','assigned_unit','assigned_person','cad_id_display','emp_number','agency','purchase_date','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'],
-    sample: ['ABC123456','APX8000','VHF','in-stock','Station 7','','BC-1','123456','LAFD','2023-01-15','A1B2','LAR-0451','ICI-0451','CW-0451','CR-0451','Primary portable'],
-    note: '# status: in-stock | assigned | signed-out (Assigned to Person) | out-of-service | retired | dates: YYYY-MM-DD | mdc_id (LAC): hex format, 1-4 characters, 0-9 and A-E only — F is not a valid MDC1200 digit and will be rejected; shown as decimal throughout the app for reference (e.g. A1B2 = 41394 decimal) | cad_id_display: optional, how this radio displays in CAD | emp_number: exactly 6 digits',
+    headers: ['serial_number','alias','radio_model','radio_band','status','assigned_unit','assigned_person','cad_id_display','emp_number','agency','purchase_date','firmware_version','codeplug_version','last_programmed_date','control_top_replaced','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'],
+    sample: ['ABC123456','BC-1','APX8000','VHF','in-stock','Station 7','','BC-1','123456','LAFD','2023-01-15','R28.20.10','v14','2024-06-01','No','A1B2','LAR-0451','ICI-0451','CW-0451','CR-0451','Primary portable'],
+    note: '# status: in-stock | assigned | signed-out (Assigned to Person) | out-of-service | retired | dates: YYYY-MM-DD | mdc_id (LAC): hex format, 1-4 characters, 0-9 and A-E only — F is not a valid MDC1200 digit and will be rejected; shown as decimal throughout the app for reference (e.g. A1B2 = 41394 decimal) | cad_id_display: optional, how this radio displays in CAD | emp_number: exactly 6 digits | control_top_replaced: Yes or No',
   },
   parts: {
     filename: 'parts-import-template.csv',
@@ -22337,7 +22338,8 @@ async function importCSV(type) {
       const dup = inventory.find(x => x.serial_number === r.serial_number);
       if (dup) { skipped++; continue; }
       const row = {
-        serial_number: r.serial_number, radio_model: r.radio_model || null,
+        serial_number: r.serial_number, alias: r.alias || null,
+        radio_model: r.radio_model || null,
         radio_band: r.radio_band || null, status: r.status || 'in-stock',
         assigned_unit: r.assigned_unit || null,
         assigned_person: r.assigned_person || null,
@@ -22345,6 +22347,10 @@ async function importCSV(type) {
         emp_number: (r.emp_number && /^\d{6}$/.test(r.emp_number.trim())) ? r.emp_number.trim() : null,
         agency: r.agency || null,
         purchase_date: r.purchase_date || null,
+        firmware_version: r.firmware_version || null,
+        codeplug_version: r.codeplug_version || null,
+        last_programmed_date: r.last_programmed_date || null,
+        control_top_replaced: /^(yes|true|1)$/i.test((r.control_top_replaced||'').trim()),
         mdc_id: (r.mdc_id && /^[0-9A-F]{1,4}$/i.test(r.mdc_id.trim()) && !/F/i.test(r.mdc_id.trim())) ? r.mdc_id.trim().toUpperCase() : null,
         larics_id: r.larics_id || null, ici_id: r.ici_id || null,
         cwirs_id: r.cwirs_id || null, cris_id: r.cris_id || null,
