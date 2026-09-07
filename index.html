@@ -4907,6 +4907,7 @@
             <button class="btn-secondary" id="invExportBtn" style="font-size:14px;" onclick="exportInventoryCSV()">⬇ CSV</button>
             <button class="btn-secondary" onclick="jumpToInventoryImport()" title="Import radios from a CSV file">⬆ Import CSV</button>
             <button class="btn-secondary" style="font-size:14px;" onclick="openSystemIdImportModal()" title="Bulk import LARICS/ICI/CWIRS/CRIS system IDs from CSV">⬆ System IDs</button>
+            <button class="btn-secondary" style="font-size:14px;" onclick="openControlTopBulkModal()" title="Paste or upload a list of serial numbers to mark control top replaced">⟲ Control Top by List</button>
             <button class="btn-primary"   id="invAddBtn"    style="font-size:14px;" onclick="openInventoryForm(null)">+ Add Radio</button>
           </div>
         </div>
@@ -4920,6 +4921,9 @@
             <option value="">— Choose status —</option>
           </select>
           <button class="btn-primary" style="font-size:14px;padding:4px 12px;" onclick="applyBulkStatusChange()">Apply</button>
+          <span style="color:var(--border-lit);">|</span>
+          <button class="btn-secondary" style="font-size:14px;padding:4px 10px;" onclick="applyBulkControlTopReplaced(true)" title="Mark all selected radios as having a replaced control top">⟲ Mark Control Top Replaced</button>
+          <button class="btn-secondary" style="font-size:14px;padding:4px 10px;" onclick="applyBulkControlTopReplaced(false)" title="Undo — clear the control top replaced flag">↩ Unmark</button>
           <button class="btn-secondary" style="font-size:14px;padding:4px 10px;" onclick="bulkSignOutSelected()">🖨 Sign Out Selected</button>
           <button class="btn-secondary" style="font-size:14px;padding:4px 10px;margin-left:auto;" onclick="toggleInventoryBulkMode()">Cancel</button>
         </div>
@@ -9822,6 +9826,9 @@ async function doLogout() {
   }
   await sb.auth.signOut();
   currentUser = null;
+  // Clear remembered nav state — a different user (or a fresh session for
+  // the same one) shouldn't be dropped back into wherever the last person left off.
+  try { localStorage.removeItem('warden_last_agency_id'); localStorage.removeItem('warden_last_module_id'); } catch(e) {}
   document.body.classList.remove('readonly');
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
@@ -10011,6 +10018,10 @@ function showLandingPage() {
 }
 
 function openModule(id) {
+  // Remember this so a refresh can drop the user straight back into it
+  // instead of the module grid — see maybeAutoOpenLastModule().
+  try { localStorage.setItem('warden_last_module_id', id); } catch(e) {}
+
   // Hide landing, show app
   document.getElementById('landingScreen').style.display = 'none';
   document.querySelector('.layout').style.display = '';
@@ -10056,6 +10067,9 @@ function openModule(id) {
 
 // Add Home button to topbar logo to return to landing page
 function goHome() {
+  // Clear the remembered module — a deliberate trip back to the grid
+  // should stick across a refresh too, not bounce right back in.
+  try { localStorage.removeItem('warden_last_module_id'); } catch(e) {}
   document.querySelector('.layout').style.display = 'none';
   document.querySelector('header.topbar').style.display = 'none';
   showLandingPage();
@@ -21778,6 +21792,175 @@ async function applyBulkStatusChange() {
   logEvent('inventory', 'Bulk Status Change', `${invBulkSelected.size} radios → ${INV_STATUS_LABELS[newStatus]}`);
 }
 
+// Mass-mark (or unmark) selected radios' control top as replaced — for when
+// a batch of units all had their control tops swapped in the same service run.
+async function applyBulkControlTopReplaced(flag) {
+  if (!invBulkSelected.size) { alert('No radios selected.'); return; }
+  const verb = flag ? 'mark' : 'unmark';
+  if (!(await themedConfirm(`${flag ? 'Mark' : 'Unmark'} control top replaced for ${invBulkSelected.size} radio(s)?`))) return;
+
+  const who = currentUser?.name || 'Unknown';
+  const now = new Date().toISOString();
+  let errors = 0;
+  for (const id of invBulkSelected) {
+    const { error } = await sb.from('radio_inventory').update({
+      control_top_replaced: flag, updated_by: who, updated_at: now,
+    }).eq('id', id);
+    if (error) { errors++; continue; }
+    await logCustodyEvent(id, 'CONTROL_TOP', `Control top ${flag ? 'marked replaced' : 'unmarked'} (bulk) by ${who}`);
+  }
+
+  if (errors) alert(`${errors} update(s) failed.`);
+  else pushNotification('available', `✓ Control top ${flag ? 'replaced flag set' : 'flag cleared'} on ${invBulkSelected.size} radio(s)`);
+  await loadInventory();
+  toggleInventoryBulkMode();
+  logEvent('inventory', 'Bulk Control Top Update', `${invBulkSelected.size} radios ${verb}ed control-top-replaced`);
+}
+
+// ── BULK CONTROL TOP UPDATE BY SERIAL LIST ──
+// For batches too large to hand-select (e.g. 200 radios back from a depot
+// service run) — paste or upload the serial numbers straight from the
+// service report instead of clicking through the inventory list.
+function openControlTopBulkModal() {
+  const overlay = document.createElement('div');
+  overlay.id = 'ctBulkOverlay';
+  overlay.className = 'modal-overlay open';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style.maxWidth = '600px';
+
+  const header = document.createElement('div');
+  header.className = 'modal-header';
+  const title = document.createElement('div');
+  title.className = 'modal-title';
+  title.textContent = '⟲ Mark Control Top Replaced by Serial List';
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'modal-close';
+  closeBtn.textContent = '✕';
+  closeBtn.onclick = function() { overlay.remove(); };
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+  body.style.cssText = 'display:flex;flex-direction:column;gap:14px;';
+  body.innerHTML =
+      '<div style="font-size:14px;color:var(--text-dim);">Paste serial numbers below (one per line, or separated by commas/spaces/tabs) — straight from a depot report or spreadsheet column works fine — or upload a CSV/TXT file instead. Every radio that matches gets its control top marked replaced in one pass.</div>'
+    + '<textarea id="ctBulkText" class="form-textarea" placeholder="e.g.\nAB1234\nAB1235\nAB1236\n…" style="min-height:160px;font-family:var(--font-data);"></textarea>'
+    + '<div style="display:flex;align-items:center;gap:10px;">'
+    +   '<input type="file" id="ctBulkFile" accept=".csv,.txt" style="flex:1;">'
+    +   '<span style="font-size:12px;color:var(--text-dim);">optional — loads into the box above</span>'
+    + '</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;">'
+    +   '<label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text-primary);cursor:pointer;">'
+    +     '<input type="checkbox" id="ctBulkUnmark" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;"> Unmark instead (clear the flag)'
+    +   '</label>'
+    + '</div>'
+    + '<div id="ctBulkPreview" style="font-size:14px;color:var(--text-dim);"></div>';
+
+  const footer = document.createElement('div');
+  footer.className = 'modal-footer';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-secondary';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = function() { overlay.remove(); };
+  const previewBtn = document.createElement('button');
+  previewBtn.className = 'btn-secondary';
+  previewBtn.textContent = 'Preview Matches';
+  previewBtn.onclick = previewControlTopBulk;
+  const applyBtn = document.createElement('button');
+  applyBtn.className = 'btn-primary';
+  applyBtn.id = 'ctBulkApplyBtn';
+  applyBtn.textContent = 'Apply';
+  applyBtn.disabled = true;
+  applyBtn.onclick = runControlTopBulk;
+  footer.appendChild(cancelBtn);
+  footer.appendChild(previewBtn);
+  footer.appendChild(applyBtn);
+
+  modal.appendChild(header);
+  modal.appendChild(body);
+  modal.appendChild(footer);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  document.getElementById('ctBulkFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => { document.getElementById('ctBulkText').value = ev.target.result; };
+    reader.readAsText(file);
+  });
+}
+
+let _ctBulkMatches = [];
+
+function _parseCtBulkSerials() {
+  const raw = document.getElementById('ctBulkText')?.value || '';
+  // Split on newlines, commas, tabs, or runs of whitespace — whatever shape
+  // the pasted list arrives in — then drop blanks and de-dupe case-insensitively.
+  const tokens = raw.split(/[\n,\t]+|\s{2,}|\s+(?=\S)/).map(s => s.trim()).filter(Boolean);
+  const seen = new Set();
+  const out = [];
+  tokens.forEach(t => {
+    const key = t.toUpperCase();
+    if (!seen.has(key)) { seen.add(key); out.push(t); }
+  });
+  return out;
+}
+
+function previewControlTopBulk() {
+  const serials = _parseCtBulkSerials();
+  const preview = document.getElementById('ctBulkPreview');
+  const applyBtn = document.getElementById('ctBulkApplyBtn');
+  if (!serials.length) {
+    preview.textContent = 'No serial numbers found — paste a list or upload a file first.';
+    applyBtn.disabled = true;
+    return;
+  }
+  const bySerial = new Map(inventory.map(r => [String(r.serial_number || '').toUpperCase(), r]));
+  const matched = [], unmatched = [];
+  serials.forEach(s => {
+    const r = bySerial.get(s.toUpperCase());
+    if (r) matched.push(r); else unmatched.push(s);
+  });
+  _ctBulkMatches = matched;
+  let html = `<strong style="color:var(--text-primary);">${matched.length}</strong> of ${serials.length} matched an inventory radio.`;
+  if (unmatched.length) {
+    html += `<div style="margin-top:8px;color:var(--status-reserved);">${unmatched.length} not found: <span style="font-family:var(--font-data);font-size:12px;">${unmatched.slice(0,20).map(escHtml).join(', ')}${unmatched.length>20?' …':''}</span></div>`;
+  }
+  preview.innerHTML = html;
+  applyBtn.disabled = matched.length === 0;
+}
+
+async function runControlTopBulk() {
+  if (!_ctBulkMatches.length) { previewControlTopBulk(); if (!_ctBulkMatches.length) return; }
+  const flag = !document.getElementById('ctBulkUnmark')?.checked;
+  if (!(await themedConfirm(`${flag ? 'Mark' : 'Unmark'} control top replaced for ${_ctBulkMatches.length} radio(s)?`))) return;
+
+  const who = currentUser?.name || 'Unknown';
+  const now = new Date().toISOString();
+  const applyBtn = document.getElementById('ctBulkApplyBtn');
+  const preview  = document.getElementById('ctBulkPreview');
+  applyBtn.disabled = true;
+  let done = 0, errors = 0;
+  for (const r of _ctBulkMatches) {
+    const { error } = await sb.from('radio_inventory').update({
+      control_top_replaced: flag, updated_by: who, updated_at: now,
+    }).eq('id', r.id);
+    if (error) { errors++; } else { await logCustodyEvent(r.id, 'CONTROL_TOP', `Control top ${flag ? 'marked replaced' : 'unmarked'} (bulk list) by ${who}`); }
+    done++;
+    if (preview) preview.textContent = `Updating… ${done}/${_ctBulkMatches.length}`;
+  }
+
+  if (errors) alert(`${errors} of ${_ctBulkMatches.length} update(s) failed.`);
+  else pushNotification('available', `✓ Control top ${flag ? 'replaced flag set' : 'flag cleared'} on ${_ctBulkMatches.length} radio(s)`);
+  await loadInventory();
+  logEvent('inventory', 'Bulk Control Top Update (list)', `${_ctBulkMatches.length} radios via pasted serial list`);
+  document.getElementById('ctBulkOverlay')?.remove();
+}
+
 // ── SIGN-OUT SLIP ──
 // Sign-out accessories are admin-configurable (Admin → Radio Config →
 // Sign-Out Accessories) rather than a fixed list — DEFAULT_SIGNOUT_ACCESSORIES
@@ -23883,9 +24066,19 @@ async function postLoginRouter() {
   const u = currentUser;
 
   if (u.superAdmin) {
-    // Super admin: load all agencies, show agency selector
+    // Super admin: load all agencies, then try to drop them straight back
+    // into whatever agency they were last in instead of always making them
+    // re-pick it on every refresh. Only the picker itself is skipped —
+    // "⇄ Switch Agency" on the landing page still works exactly as before.
     await loadAgencies();
-    showAgencySelector();
+    let lastAgencyId = null;
+    try { lastAgencyId = localStorage.getItem('warden_last_agency_id'); } catch(e) {}
+    const restored = lastAgencyId && agencies.find(a => String(a.id) === String(lastAgencyId) && a.active);
+    if (restored) {
+      await selectAgencyAndEnter(restored.id);
+    } else {
+      showAgencySelector();
+    }
   } else {
     // Regular user: load their agency, proceed to app
     await loadUserAgency();
@@ -23902,6 +24095,7 @@ async function postLoginRouter() {
     applyScheduledReservations();
     checkOverdueResources();
     showLandingPage();
+    maybeAutoOpenLastModule();
     updateIcrBadge();
     checkPendingRequestsPopup();
   }
@@ -24024,11 +24218,28 @@ async function selectAgencyAndEnter(agencyId) {
   const agency = agencies.find(a => String(a.id) === String(agencyId));
   if (!agency) return;
   currentAgency = agency;
+  try { localStorage.setItem('warden_last_agency_id', agencyId); } catch(e) {}
   hideAgencySelector();
   await loadAllData();
   checkSystemNotices();
   initPresence();
   showLandingPage();
+  maybeAutoOpenLastModule();
+}
+
+// After landing on the module grid, jump straight back into whatever module
+// was open before the last refresh — instead of making the user re-pick it
+// every single time the page reloads. Falls through silently to the module
+// grid if there's nothing saved, or the saved module isn't valid anymore
+// (agency switched, module disabled, etc.).
+function maybeAutoOpenLastModule() {
+  let savedId = null;
+  try { savedId = localStorage.getItem('warden_last_module_id'); } catch(e) {}
+  if (!savedId) return;
+  const enabledMods = getAgencyModules();
+  const alwaysValid = savedId === 'admin' && (currentUser?.role === 'admin' || currentUser?.canAdmin);
+  if (!enabledMods.has(savedId) && !alwaysValid) return;
+  openModule(savedId);
 }
 
 // ── Super Admin Portal ──
