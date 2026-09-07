@@ -6691,6 +6691,7 @@ async function refreshAllAfterReconnect() {
 function subscribeRealtime() {
   sb.channel('channels-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, async () => {
+      if (bulkImportActive) return; // bulk CSV import does its own single reload+render at the end — reacting per-row here would mean thousands of redundant full-table fetches on a large file
       const { data } = await sb.from('channels').select('*').order('id');
       if (data) {
         const newChannels = data.map(rowToChannel);
@@ -6737,6 +6738,7 @@ function subscribeRealtime() {
 
   sb.channel('talkgroups-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'talkgroups' }, async () => {
+      if (bulkImportActive) return; // see channels-changes above
       await loadTalkgroups();
       if (activeMainTab === 'talkgroups') renderTalkgroups();
       if (activeMainTab === 'overview')   renderOverview();
@@ -6761,6 +6763,7 @@ function subscribeRealtime() {
 
   sb.channel('inventory-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'radio_inventory' }, async () => {
+      if (bulkImportActive) return; // see channels-changes above — this is the one that was actually causing large imports to grind to a halt
       await loadInventory();
       if (activeMainTab === 'inventory') renderInventory();
       if (activeMainTab === 'rid')       renderRidManager();
@@ -22304,6 +22307,14 @@ function parseCSV(text) {
 
 const IMPORT_TYPE_LABELS = { channels:'Channels', talkgroups:'Talkgroups', inventory:'Radio Inventory', parts:'Parts & Supplies' };
 let _lastImportReview = null;
+// While a bulk CSV import is running, the realtime subscriptions for
+// channels/talkgroups/inventory would otherwise reload their entire
+// table on every single row inserted — for a 2000+ row file, that's
+// thousands of redundant full-table fetches stacking up in parallel
+// with the import's own inserts, getting slower as the table grows.
+// Import already does one full reload+render at the end regardless,
+// so the realtime handlers just stay quiet while this is true.
+let bulkImportActive = false;
 
 function reopenLastImportReview() {
   if (!_lastImportReview) return;
@@ -22392,6 +22403,9 @@ async function importCSV(type) {
     if (resEl) resEl.textContent = `⏳ Importing ${i+1} / ${rows.length}…`;
   };
 
+  bulkImportActive = true;
+  try {
+
   if (type === 'channels') {
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
@@ -22432,9 +22446,13 @@ async function importCSV(type) {
         updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
         agency_id: agencyId(),
       };
-      const { error } = await sb.from('channels').insert(row);
-      if (error) errorDetails.push({ rowNum, identifier, reason: error.message });
-      else imported++;
+      try {
+        const { error } = await sb.from('channels').insert(row);
+        if (error) errorDetails.push({ rowNum, identifier, reason: error.message });
+        else imported++;
+      } catch (e) {
+        errorDetails.push({ rowNum, identifier, reason: e.message || 'Unexpected error — row skipped, import continued' });
+      }
       updateProgress(i);
     }
     await loadChannels(); renderChannels();
@@ -22457,9 +22475,13 @@ async function importCSV(type) {
         updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
         agency_id: agencyId(),
       };
-      const { error } = await sb.from('talkgroups').insert(row);
-      if (error) errorDetails.push({ rowNum, identifier, reason: error.message });
-      else imported++;
+      try {
+        const { error } = await sb.from('talkgroups').insert(row);
+        if (error) errorDetails.push({ rowNum, identifier, reason: error.message });
+        else imported++;
+      } catch (e) {
+        errorDetails.push({ rowNum, identifier, reason: e.message || 'Unexpected error — row skipped, import continued' });
+      }
       updateProgress(i);
     }
     await loadTalkgroups(); renderTalkgroups();
@@ -22515,9 +22537,13 @@ async function importCSV(type) {
         updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
         agency_id: agencyId(),
       };
-      const { error } = await sb.from('radio_inventory').insert(row);
-      if (error) errorDetails.push({ rowNum, identifier, reason: error.message });
-      else imported++;
+      try {
+        const { error } = await sb.from('radio_inventory').insert(row);
+        if (error) errorDetails.push({ rowNum, identifier, reason: error.message });
+        else imported++;
+      } catch (e) {
+        errorDetails.push({ rowNum, identifier, reason: e.message || 'Unexpected error — row skipped, import continued' });
+      }
       updateProgress(i);
     }
     await loadInventory(); renderInventory();
@@ -22554,7 +22580,13 @@ async function importCSV(type) {
         updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
         agency_id: agencyId(),
       };
-      const { data: inserted, error } = await sb.from('parts_inventory').insert(row).select('id').single();
+      let inserted, error;
+      try {
+        ({ data: inserted, error } = await sb.from('parts_inventory').insert(row).select('id').single());
+      } catch (e) {
+        errorDetails.push({ rowNum, identifier, reason: e.message || 'Unexpected error — row skipped, import continued' });
+        updateProgress(i); continue;
+      }
       if (error) { errorDetails.push({ rowNum, identifier, reason: error.message }); updateProgress(i); continue; }
       imported++;
       if (inserted?.id) {
@@ -22569,6 +22601,10 @@ async function importCSV(type) {
     }
     await loadPartsInventory(); renderPartsInventory();
     logEvent('system', 'Parts CSV Import', `${imported} parts imported, ${skippedDetails.length} skipped, ${errorDetails.length} errors`);
+  }
+
+  } finally {
+    bulkImportActive = false;
   }
 
   if (progEl) progEl.style.display = 'none';
