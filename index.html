@@ -11722,7 +11722,7 @@ function collectGlobalSearchResults(query) {
   });
 
   inventory.forEach(r => {
-    const hay = [r.serial_number, r.alias, r.mdc_id, r.larics_id, r.ici_id, r.cwirs_id, r.cris_id, r.assigned_unit, r.assigned_person, r.emp_number].filter(Boolean).join(' ').toLowerCase();
+    const hay = [r.serial_number, r.alias, r.cad_id_display, r.mdc_id, r.larics_id, r.ici_id, r.cwirs_id, r.cris_id, r.assigned_unit, r.assigned_person, r.emp_number].filter(Boolean).join(' ').toLowerCase();
     if (hay.includes(q)) push('Inventory', '📦', r.serial_number || '(no serial)', [r.alias, r.radio_model, r.mdc_id?'MDC '+r.mdc_id:''].filter(Boolean).join(' · '),
       () => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(r.id); });
   });
@@ -18551,6 +18551,7 @@ async function renderRecordHistoryPanel(containerId, tableName, recordId) {
 const INV_TRACKED_FIELDS = [
   { key:'serial_number',       label:'Serial' },
   { key:'alias',                label:'Alias' },
+  { key:'cad_id_display',       label:'CAD ID Display' },
   { key:'radio_model',          label:'Model' },
   { key:'radio_band',           label:'Band' },
   { key:'status',               label:'Status', fmt: v => INV_STATUS_LABELS[v] || v },
@@ -20641,7 +20642,7 @@ function renderInventory() {
     if (modelFilt  !== 'all' && r.radio_model !== modelFilt) return false;
     if (bandFilt   !== 'all' && r.radio_band  !== bandFilt)  return false;
     if (query) return [r.serial_number, r.radio_model, r.radio_band, r.assigned_unit,
-      r.assigned_person, r.emp_number, r.agency, r.mdc_id,
+      r.assigned_person, r.emp_number, r.agency, r.mdc_id, r.cad_id_display,
       r.larics_id, r.ici_id, r.cwirs_id, r.cris_id]
       .some(f => (f||'').toLowerCase().includes(query));
     return true;
@@ -20744,7 +20745,7 @@ async function openInventoryModal(id) {
     <div style="background:var(--bg-deep);border:1px solid var(--border);border-radius:4px;padding:10px 14px;margin-top:8px;">
       <div style="font-family:var(--font-data);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">🆔 System IDs</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
-        ${sysMdc    ? `<div><div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">LAC MDC ID</div><div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--accent);">${escHtml(sysMdc)}</div></div>` : ''}
+        ${sysMdc    ? `<div><div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">LAC MDC ID</div><div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--accent);">${escHtml(sysMdc)}</div>${/^[0-9A-Fa-f]{1,4}$/.test(sysMdc)?`<div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);">dec ${ridHexToDecimal(sysMdc)}</div>`:''}</div>` : ''}
         ${sysLarics ? `<div><div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">LARICS</div><div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${escHtml(sysLarics)}</div></div>` : ''}
         ${sysIci    ? `<div><div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">ICI</div><div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${escHtml(sysIci)}</div></div>` : ''}
         ${sysCwirs  ? `<div><div style="font-family:var(--font-data);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">CWIRS</div><div style="font-family:var(--font-data);font-size:15px;font-weight:700;color:var(--text-primary);">${escHtml(sysCwirs)}</div></div>` : ''}
@@ -20768,6 +20769,7 @@ async function openInventoryModal(id) {
       ${field('Agency',        r.agency)}
       ${field('Assigned Unit', r.assigned_unit)}
       ${field('Assigned Person', r.assigned_person)}
+      ${field('CAD ID Display', r.cad_id_display)}
       ${field('Purchase Date', fmtDate(r.purchase_date))}
       ${field('Firmware',        r.firmware_version)}
       ${field('Codeplug',        r.codeplug_version)}
@@ -20977,12 +20979,14 @@ async function openInventoryForm(id) {
     document.getElementById('ie-agency').value        = r.agency           || '';
     document.getElementById('ie-purchase-date').value = r.purchase_date    || '';
     document.getElementById('ie-alias').value           = r.alias                 || '';
+    document.getElementById('ie-cad-id-display').value  = r.cad_id_display        || '';
     document.getElementById('ie-firmware').value        = r.firmware_version      || '';
     document.getElementById('ie-codeplug').value        = r.codeplug_version      || '';
     document.getElementById('ie-last-programmed').value = r.last_programmed_date  || '';
     document.getElementById('ie-notes').value         = r.notes            || '';
     document.getElementById('ie-control-top').checked = r.control_top_replaced || false;
     document.getElementById('ie-mdc-id').value = r.mdc_id    || '';
+    updateIeMdcDecimalPreview();
     document.getElementById('ie-larics').value  = r.larics_id || '';
     document.getElementById('ie-ici').value     = r.ici_id    || '';
     document.getElementById('ie-cwirs').value   = r.cwirs_id  || '';
@@ -20996,10 +21000,10 @@ async function openInventoryForm(id) {
     document.getElementById('invEditTitle').textContent = 'Add Radio';
     ['ie-serial','ie-agency','ie-unit','ie-person','ie-emp-number','ie-notes',
      'ie-mdc-id','ie-larics','ie-ici','ie-cwirs','ie-cris',
-     'ie-alias','ie-firmware','ie-codeplug','ie-last-programmed'].forEach(fid => {
+     'ie-alias','ie-cad-id-display','ie-firmware','ie-codeplug','ie-last-programmed'].forEach(fid => {
       const el = document.getElementById(fid); if (el) el.value = '';
     });
-    ['ie-larics-warn','ie-ici-warn','ie-cwirs-warn','ie-cris-warn'].forEach(wid => {
+    ['ie-larics-warn','ie-ici-warn','ie-cwirs-warn','ie-cris-warn','ie-mdc-id-dec'].forEach(wid => {
       const el = document.getElementById(wid); if (el) el.textContent = '';
     });
     document.getElementById('ie-status').value        = 'in-stock';
@@ -21065,6 +21069,16 @@ function checkCustomIdOutOfRange(customSystemId, value) {
   if (inRange) return null;
   const rangeList = applicable.map(r => `${r.start_id}–${r.end_id}`).join(', ');
   return `is outside the configured range${applicable.length>1?'s':''} for this system (${rangeList})`;
+}
+
+// Live decimal preview under the LAC MDC ID field — matches what's
+// already shown in the read-only detail view and the RID Manager grid,
+// so the two representations are visible wherever this ID appears.
+function updateIeMdcDecimalPreview() {
+  const el = document.getElementById('ie-mdc-id-dec');
+  const val = document.getElementById('ie-mdc-id')?.value.trim() || '';
+  if (!el) return;
+  el.textContent = /^[0-9A-Fa-f]{1,4}$/.test(val) ? `dec ${ridHexToDecimal(val)}` : '';
 }
 
 function checkInventorySystemIdDuplicates() {
@@ -21543,6 +21557,7 @@ async function saveInventoryRecord() {
     agency:           document.getElementById('ie-agency').value.trim()   || null,
     purchase_date:    document.getElementById('ie-purchase-date').value   || null,
     alias:                document.getElementById('ie-alias').value.trim()          || null,
+    cad_id_display:       document.getElementById('ie-cad-id-display').value.trim() || null,
     firmware_version:     document.getElementById('ie-firmware').value.trim()       || null,
     codeplug_version:     document.getElementById('ie-codeplug').value.trim()       || null,
     last_programmed_date: document.getElementById('ie-last-programmed').value       || null,
@@ -21764,13 +21779,14 @@ function renderInventoryLog() {
 
 function exportInventoryCSV() {
   if (!inventory.length) { alert('No inventory data to export.'); return; }
-  const header = ['Serial Number','Alias','Model','Band','Status','Assigned Unit','Assigned Person','Employee #','Agency','Purchase Date','Firmware','Codeplug','Last Programmed','MDC ID','LARICS ID','ICI ID','CWIRS ID','CRIS ID','Control Top Replaced','Notes'];
+  const header = ['Serial Number','Alias','CAD ID Display','Model','Band','Status','Assigned Unit','Assigned Person','Employee #','Agency','Purchase Date','Firmware','Codeplug','Last Programmed','MDC ID','MDC ID (Decimal)','LARICS ID','ICI ID','CWIRS ID','CRIS ID','Control Top Replaced','Notes'];
   const rows = inventory.map(r => [
-    r.serial_number||'', r.alias||'', r.radio_model||'', r.radio_band||'',
+    r.serial_number||'', r.alias||'', r.cad_id_display||'', r.radio_model||'', r.radio_band||'',
     INV_STATUS_LABELS[r.status]||r.status,
     r.assigned_unit||'', r.assigned_person||'', r.emp_number||'', r.agency||'',
     r.purchase_date||'', r.firmware_version||'', r.codeplug_version||'', r.last_programmed_date||'',
-    r.mdc_id||'', r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
+    r.mdc_id||'', (/^[0-9A-Fa-f]{1,4}$/.test(r.mdc_id||'') ? ridHexToDecimal(r.mdc_id) : ''),
+    r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
     r.control_top_replaced ? 'Yes' : 'No', r.notes||''
   ]);
   downloadCSV(`radio-inventory-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
@@ -22182,9 +22198,9 @@ const CSV_TEMPLATES = {
   },
   inventory: {
     filename: 'radio-inventory-template.csv',
-    headers: ['serial_number','radio_model','radio_band','status','assigned_unit','assigned_person','emp_number','agency','purchase_date','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'],
-    sample: ['ABC123456','APX8000','VHF','in-stock','Station 7','','123456','LAFD','2023-01-15','A1B2','LAR-0451','ICI-0451','CW-0451','CR-0451','Primary portable'],
-    note: '# status: in-stock | assigned | signed-out (Assigned to Person) | out-of-service | retired | dates: YYYY-MM-DD | mdc_id: 1-4 characters, digits 0-9 or letters A-D only | emp_number: exactly 6 digits',
+    headers: ['serial_number','radio_model','radio_band','status','assigned_unit','assigned_person','cad_id_display','emp_number','agency','purchase_date','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'],
+    sample: ['ABC123456','APX8000','VHF','in-stock','Station 7','','BC-1','123456','LAFD','2023-01-15','A1B2','LAR-0451','ICI-0451','CW-0451','CR-0451','Primary portable'],
+    note: '# status: in-stock | assigned | signed-out (Assigned to Person) | out-of-service | retired | dates: YYYY-MM-DD | mdc_id (LAC): hex format, 1-4 characters, 0-9 and A-E only — F is not a valid MDC1200 digit and will be rejected; shown as decimal throughout the app for reference (e.g. A1B2 = 41394 decimal) | cad_id_display: optional, how this radio displays in CAD | emp_number: exactly 6 digits',
   },
   parts: {
     filename: 'parts-import-template.csv',
@@ -22300,10 +22316,11 @@ async function importCSV(type) {
         radio_band: r.radio_band || null, status: r.status || 'in-stock',
         assigned_unit: r.assigned_unit || null,
         assigned_person: r.assigned_person || null,
+        cad_id_display: r.cad_id_display || null,
         emp_number: (r.emp_number && /^\d{6}$/.test(r.emp_number.trim())) ? r.emp_number.trim() : null,
         agency: r.agency || null,
         purchase_date: r.purchase_date || null,
-        mdc_id: r.mdc_id ? r.mdc_id.trim().toUpperCase() : null,
+        mdc_id: (r.mdc_id && /^[0-9A-F]{1,4}$/i.test(r.mdc_id.trim()) && !/F/i.test(r.mdc_id.trim())) ? r.mdc_id.trim().toUpperCase() : null,
         larics_id: r.larics_id || null, ici_id: r.ici_id || null,
         cwirs_id: r.cwirs_id || null, cris_id: r.cris_id || null,
         notes: r.notes || null,
@@ -24942,10 +24959,14 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
 
-      <div class="form-row single">
+      <div class="form-row">
         <div class="form-field">
           <label class="form-label">Alias <span style="font-weight:400;color:var(--text-dim);">short display name assigned to this radio</span></label>
           <input class="form-input" id="ie-alias" placeholder="e.g. BC-1 Portable, Cache Radio 12">
+        </div>
+        <div class="form-field">
+          <label class="form-label">CAD ID Display <span style="font-weight:400;color:var(--text-dim);">optional</span></label>
+          <input class="form-input" id="ie-cad-id-display" placeholder="How this radio displays in CAD">
         </div>
       </div>
 
@@ -24957,7 +24978,8 @@ if ('serviceWorker' in navigator) {
         <div class="form-row">
           <div class="form-field">
             <label class="form-label">LAC MDC ID</label>
-            <input class="form-input" id="ie-mdc-id" placeholder="1-4 characters, e.g. A1B2" style="font-family:var(--font-data);" oninput="checkInventorySystemIdDuplicates()">
+            <input class="form-input" id="ie-mdc-id" placeholder="1-4 characters, e.g. A1B2" style="font-family:var(--font-data);" oninput="checkInventorySystemIdDuplicates();updateIeMdcDecimalPreview();">
+            <div id="ie-mdc-id-dec" style="font-size:12px;color:var(--text-dim);margin-top:2px;font-family:var(--font-data);"></div>
             <div id="ie-mdc-id-warn" style="font-size:12px;color:var(--status-active);min-height:14px;margin-top:2px;font-family:var(--font-data);"></div>
           </div>
           <div class="form-field">
