@@ -6607,9 +6607,10 @@ function channelToRow(ch, userName) {
 // ─────────────────────────────────────────────
 async function loadChannels() {
   setDbStatus('loading');
-  const { data, error } = await sb.from('channels').select('*').order('id');
-  if (error) { setDbStatus('error', error.message); return; }
-  channels = data.map(rowToChannel);
+  try {
+    const data = await fetchAllRows('channels', 'id');
+    channels = data.map(rowToChannel);
+  } catch (error) { setDbStatus('error', error.message); return; }
   setDbStatus('connected');
   resetSyncTimer();
   renderChannels();
@@ -14392,9 +14393,7 @@ const PART_STATUS_LABELS = { ok: 'In Stock', low: 'Low Stock', out: 'Out of Stoc
 
 async function loadPartsInventory() {
   try {
-    const { data, error } = await sb.from('parts_inventory').select('*').order('name', { ascending: true });
-    if (error) { console.warn('loadPartsInventory:', error.message); return; }
-    partsInventory = data || [];
+    partsInventory = await fetchAllRows('parts_inventory', 'name');
   } catch(e) { console.warn('loadPartsInventory:', e.message); }
 }
 
@@ -16865,8 +16864,7 @@ const TG_PRIORITY_COLOR = { Normal:'var(--text-dim)', High:'var(--status-reserve
 
 async function loadTalkgroups() {
   try {
-    const { data, error } = await sb.from('talkgroups').select('*').order('id');
-    if (error) { console.warn('Talkgroups table error:', error.message); return; }
+    const data = await fetchAllRows('talkgroups', 'id');
     talkgroups = (data || []).map(rowToTalkgroup);
   } catch(e) { console.warn('loadTalkgroups failed:', e.message); }
 }
@@ -18665,11 +18663,34 @@ const RESERVATION_TRACKED_FIELDS = [
   { key:'priority',               label:'Priority' },
 ];
 
+// Supabase caps a plain select() at 1000 rows by default — silently,
+// with no error. Any table that grows past that gets truncated in
+// memory, which then corrupts everything reading from it: duplicate
+// checks during import, search, counts, RID classification, all of
+// it, without a single warning that anything's wrong. This pages
+// through in batches of 1000 until a short page confirms the end,
+// so the in-memory copy is always genuinely complete regardless of
+// how large the table gets.
+async function fetchAllRows(table, orderColumn = null, ascending = true) {
+  const PAGE = 1000;
+  let all = [];
+  let from = 0;
+  while (true) {
+    let query = sb.from(table).select('*').range(from, from + PAGE - 1);
+    if (orderColumn) query = query.order(orderColumn, { ascending });
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data || !data.length) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break; // short page — that was the last one
+    from += PAGE;
+  }
+  return all;
+}
+
 async function loadInventory() {
   try {
-    const { data, error } = await sb.from('radio_inventory').select('*').order('serial_number');
-    if (error) { console.warn('loadInventory:', error.message); return; }
-    inventory = data || [];
+    inventory = await fetchAllRows('radio_inventory', 'serial_number');
     window._inventoryCount  = inventory.length;
     window._inventoryActive = inventory.filter(r => r.status === 'assigned' || r.status === 'signed-out').length;
     window._inventoryMaint  = 0; // maintenance status removed
@@ -19691,9 +19712,7 @@ async function loadRidCustomSystems() {
 
 async function loadRadioInventoryExtraIds() {
   try {
-    const { data, error } = await sb.from('radio_inventory_extra_ids').select('*');
-    if (error) { console.warn('loadRadioInventoryExtraIds:', error.message); return; }
-    radioInventoryExtraIds = data || [];
+    radioInventoryExtraIds = await fetchAllRows('radio_inventory_extra_ids');
   } catch(e) { console.warn('loadRadioInventoryExtraIds exception:', e.message); }
 }
 
