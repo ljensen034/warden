@@ -921,6 +921,7 @@
     width: 100%;
     max-width: 580px;
     max-height: 90vh;
+    max-height: 90dvh; /* iOS Safari calculates vh against its largest possible viewport, not what's actually visible once the address bar is showing — dvh fixes that. Browsers that don't understand dvh just ignore this line and keep the vh fallback above. */
     overflow-y: auto;
     box-shadow: 0 24px 60px rgba(0,0,0,0.6);
   }
@@ -2855,6 +2856,7 @@
     font-family: var(--font-data); font-size: 11px; font-weight: 700;
     letter-spacing: 0.06em; text-transform: uppercase;
     padding: 2px 7px; border-radius: 2px; white-space: nowrap;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis;
   }
   .inv-status-chip.in-stock      { background:rgba(0,230,118,0.12); color:var(--status-available); border:1px solid rgba(0,230,118,0.3); }
   .inv-status-chip.assigned      { background:rgba(30,136,229,0.12); color:var(--accent);          border:1px solid rgba(30,136,229,0.3); }
@@ -2877,7 +2879,9 @@
     background: var(--bg-card); border: 1px solid transparent;
     border-radius: var(--radius); margin-bottom: 3px;
     cursor: pointer; transition: var(--transition);
+    overflow: hidden; /* a grid track can't be forced wider than its column by a long unbroken value inside it once this is set */
   }
+  .inv-row > * { min-width: 0; } /* grid items default to min-width:auto, which lets intrinsic content width push a track past its defined size — this is what was causing columns to overlap */
   .inv-row:hover { border-color: var(--border-lit); background: var(--bg-hover); }
   .inv-row.retired { opacity: 0.55; }
   .inv-grid-header {
@@ -2891,7 +2895,7 @@
   .inv-custody-meta { font-family: var(--font-data); font-size: 12px; color: var(--text-dim); white-space: nowrap; min-width: 150px; }
   @media (max-width: 768px) {
     .inv-grid-header { display: none; }
-    .inv-row { grid-template-columns: 24px 100px 1fr auto; }
+    .inv-row { grid-template-columns: 24px 100px 1fr 80px; }
     .inv-row > *:nth-child(n+5) { display: none; }
   }
   .sites-row { }
@@ -22247,10 +22251,31 @@ function downloadTemplate(type) {
   a.click();
 }
 
+// Maps a handful of older/human-written column names to their current
+// canonical field key — covers the pre-fix Inventory export format
+// specifically (Title Case headers like "Employee #", "Model",
+// "Last Programmed") so a CSV exported by an older build of WARDEN
+// still imports correctly instead of silently skipping every row.
+const CSV_HEADER_ALIASES = {
+  employee: 'emp_number', emp: 'emp_number',
+  model: 'radio_model', band: 'radio_band',
+  firmware: 'firmware_version', codeplug: 'codeplug_version',
+  last_programmed: 'last_programmed_date',
+};
+
 function parseCSV(text) {
-  const lines = text.trim().split('\n').filter(l => !l.startsWith('#'));
+  const lines = text.trim().split(/\r\n|\r|\n/).filter(l => !l.startsWith('#'));
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,'').toLowerCase());
+  const headers = lines[0].split(',').map(h => {
+    // trim/unquote, lowercase, then collapse anything that isn't a
+    // letter or digit (spaces, #, /, etc.) into a single underscore —
+    // "Serial Number" and "Employee #" both normalize cleanly this
+    // way before the alias map handles the ones with different words
+    // entirely.
+    const norm = h.trim().replace(/^"|"$/g,'').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return CSV_HEADER_ALIASES[norm] || norm;
+  });
   return lines.slice(1).map(line => {
     const vals = [];
     let cur = '', inQ = false;
@@ -22333,6 +22358,21 @@ async function importCSV(type) {
     logEvent('talkgroup', 'CSV Import', `${imported} talkgroups imported, ${skipped} skipped, ${errors} errors`);
 
   } else if (type === 'inventory') {
+    // Older exports wrote the human-readable status label ("Assigned
+    // to Person") rather than the raw key ("signed-out") that's
+    // actually stored — build a one-time reverse lookup so a status
+    // value that doesn't match a known key gets resolved back from
+    // its label instead of being stored as a literal, meaningless
+    // status string.
+    const statusLabelToKey = {};
+    radioStatuses.forEach(s => { statusLabelToKey[s.label.trim().toLowerCase()] = s.key; });
+    const resolveStatus = (val) => {
+      const raw = (val || '').trim();
+      if (!raw) return 'in-stock';
+      if (radioStatuses.some(s => s.key === raw)) return raw; // already a valid key
+      return statusLabelToKey[raw.toLowerCase()] || 'in-stock';
+    };
+
     for (const r of rows) {
       if (!r.serial_number) { skipped++; continue; }
       const dup = inventory.find(x => x.serial_number === r.serial_number);
@@ -22340,7 +22380,7 @@ async function importCSV(type) {
       const row = {
         serial_number: r.serial_number, alias: r.alias || null,
         radio_model: r.radio_model || null,
-        radio_band: r.radio_band || null, status: r.status || 'in-stock',
+        radio_band: r.radio_band || null, status: resolveStatus(r.status),
         assigned_unit: r.assigned_unit || null,
         assigned_person: r.assigned_person || null,
         cad_id_display: r.cad_id_display || null,
