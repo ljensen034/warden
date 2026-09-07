@@ -2874,29 +2874,45 @@
   .inv-cond-chip.poor { color:var(--status-active); border-color:rgba(255,82,82,0.4); }
   .inv-row {
     display: grid;
-    grid-template-columns: 28px 120px 1fr 130px 120px 90px 70px 160px;
-    align-items: center; gap: 8px; padding: 9px 12px;
+    grid-template-columns: 4px repeat(7, minmax(0, 1fr));
+    align-items: center; gap: 12px; padding: 9px 14px;
     background: var(--bg-card); border: 1px solid transparent;
     border-radius: var(--radius); margin-bottom: 3px;
     cursor: pointer; transition: var(--transition);
     overflow: hidden; /* a grid track can't be forced wider than its column by a long unbroken value inside it once this is set */
   }
+  .status-color-swatch { align-self: stretch; }
   .inv-row > * { min-width: 0; } /* grid items default to min-width:auto, which lets intrinsic content width push a track past its defined size — this is what was causing columns to overlap */
   .inv-row:hover { border-color: var(--border-lit); background: var(--bg-hover); }
   .inv-row.retired { opacity: 0.55; }
   .inv-grid-header {
     display: grid;
-    grid-template-columns: 28px 120px 1fr 130px 120px 90px 70px 160px;
-    gap: 8px; padding: 4px 12px 8px;
+    grid-template-columns: 4px repeat(7, minmax(0, 1fr));
+    gap: 12px; padding: 4px 14px 8px;
     font-family: var(--font-data); font-size: 12px;
     color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em;
   }
+  .inv-grid-header > *:first-child { visibility: hidden; } /* lines up with the swatch column, carries no label of its own */
   .inv-custody-row { padding: 8px 14px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; font-size: 14px; }
   .inv-custody-meta { font-family: var(--font-data); font-size: 12px; color: var(--text-dim); white-space: nowrap; min-width: 150px; }
   @media (max-width: 768px) {
     .inv-grid-header { display: none; }
-    .inv-row { grid-template-columns: 24px 100px 1fr 80px; }
-    .inv-row > *:nth-child(n+5) { display: none; }
+    /* Below tablet width, equal-width side-by-side columns stop being
+       readable no matter how they're divided up — seven fields just
+       don't fit next to each other on a phone. Every field becomes a
+       labeled, stacked line instead, so nothing is cut off, hidden,
+       or overlapping regardless of how long the content is. */
+    .inv-row {
+      display: flex; flex-direction: column; align-items: stretch;
+      gap: 6px; padding: 12px 14px;
+    }
+    .status-color-swatch { width: 100% !important; height: 4px !important; border-radius: 2px; }
+    .inv-col { display: flex; justify-content: space-between; align-items: center; gap: 10px; white-space: normal !important; }
+    .inv-col[data-label]::before {
+      content: attr(data-label);
+      font-family: var(--font-data); font-size: 11px; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0;
+    }
   }
   .sites-row { }
   @media (max-width: 768px) {
@@ -5087,6 +5103,7 @@
         <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-left:auto;">
           <button id="rid-view-ids"          onclick="setRidViewMode('ids')"          style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:var(--accent);color:#fff;cursor:pointer;">📊 By ID</button>
           <button id="rid-view-reservations" onclick="setRidViewMode('reservations')" style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;">📋 Reservations</button>
+          <button id="rid-view-systems"      onclick="setRidViewMode('systems')"      style="font-family:var(--font-data);font-size:13px;font-weight:600;padding:5px 12px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;">🗂 By System</button>
         </div>
       </div>
 
@@ -5104,6 +5121,8 @@
         </div>
         <div id="ridReservationsGrid" style="max-height:calc(100vh - 320px);overflow-y:auto;"></div>
       </div>
+
+      <div id="ridSystemsView" style="display:none;max-height:calc(100vh - 260px);overflow-y:auto;"></div>
     </div>
 
     <!-- ── UAS MANAGER VIEW ── -->
@@ -5662,7 +5681,8 @@
             <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
               <button class="btn-secondary" style="font-size:14px;" onclick="downloadTemplate('channels')">⬇ Download Template</button>
               <input type="file" id="csvChannelsFile" accept=".csv" style="font-size:14px;color:var(--text-secondary);">
-              <button class="btn-primary"   style="font-size:14px;" onclick="importCSV('channels')">📥 Import</button>
+              <button class="btn-primary"   style="font-size:14px;" onclick="previewImportCSV('channels')">🔍 Preview Import</button>
+              <div id="importChannelsPreview" style="display:none;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;"></div>
               <div id="importChannelsProgress" style="display:none;height:6px;background:var(--bg-deep);border-radius:3px;overflow:hidden;"><div class="import-progress-fill" style="height:100%;width:0%;background:var(--accent);transition:width 0.15s;"></div></div>
               <div id="importChannelsResult" style="font-size:13px;color:var(--text-dim);min-height:18px;font-family:var(--font-data);"></div>
             </div>
@@ -5677,7 +5697,8 @@
             <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
               <button class="btn-secondary" style="font-size:14px;" onclick="downloadTemplate('talkgroups')">⬇ Download Template</button>
               <input type="file" id="csvTalkgroupsFile" accept=".csv" style="font-size:14px;color:var(--text-secondary);">
-              <button class="btn-primary"   style="font-size:14px;" onclick="importCSV('talkgroups')">📥 Import</button>
+              <button class="btn-primary"   style="font-size:14px;" onclick="previewImportCSV('talkgroups')">🔍 Preview Import</button>
+              <div id="importTalkgroupsPreview" style="display:none;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;"></div>
               <div id="importTalkgroupsProgress" style="display:none;height:6px;background:var(--bg-deep);border-radius:3px;overflow:hidden;"><div class="import-progress-fill" style="height:100%;width:0%;background:var(--accent);transition:width 0.15s;"></div></div>
               <div id="importTalkgroupsResult" style="font-size:13px;color:var(--text-dim);min-height:18px;font-family:var(--font-data);"></div>
             </div>
@@ -5692,7 +5713,8 @@
             <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
               <button class="btn-secondary" style="font-size:14px;" onclick="downloadTemplate('inventory')">⬇ Download Template</button>
               <input type="file" id="csvInventoryFile" accept=".csv" style="font-size:14px;color:var(--text-secondary);">
-              <button class="btn-primary"   style="font-size:14px;" onclick="importCSV('inventory')">📥 Import</button>
+              <button class="btn-primary"   style="font-size:14px;" onclick="previewImportCSV('inventory')">🔍 Preview Import</button>
+              <div id="importInventoryPreview" style="display:none;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;"></div>
               <div id="importInventoryProgress" style="display:none;height:6px;background:var(--bg-deep);border-radius:3px;overflow:hidden;"><div class="import-progress-fill" style="height:100%;width:0%;background:var(--accent);transition:width 0.15s;"></div></div>
               <div id="importInventoryResult" style="font-size:13px;color:var(--text-dim);min-height:18px;font-family:var(--font-data);"></div>
             </div>
@@ -5707,7 +5729,8 @@
             <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
               <button class="btn-secondary" style="font-size:14px;" onclick="downloadTemplate('parts')">⬇ Download Template</button>
               <input type="file" id="csvPartsFile" accept=".csv" style="font-size:14px;color:var(--text-secondary);">
-              <button class="btn-primary"   style="font-size:14px;" onclick="importCSV('parts')">📥 Import</button>
+              <button class="btn-primary"   style="font-size:14px;" onclick="previewImportCSV('parts')">🔍 Preview Import</button>
+              <div id="importPartsPreview" style="display:none;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;"></div>
               <div id="importPartsProgress" style="display:none;height:6px;background:var(--bg-deep);border-radius:3px;overflow:hidden;"><div class="import-progress-fill" style="height:100%;width:0%;background:var(--accent);transition:width 0.15s;"></div></div>
               <div id="importPartsResult" style="font-size:13px;color:var(--text-dim);min-height:18px;font-family:var(--font-data);"></div>
             </div>
@@ -13803,6 +13826,20 @@ function getDataHealthCategories() {
     return { radio: r, violations };
   }).filter(x => x.violations.length);
 
+  // Two checks aimed specifically at gaps a large bulk import can
+  // leave behind without anyone noticing module-by-module. Scoped
+  // narrowly on purpose — flagging every radio missing an optional
+  // field (like CAD ID Display) would just be noise, since plenty of
+  // radios legitimately don't need one.
+  const missingEmpNumber = inventory.filter(r =>
+    (r.status === 'assigned' || r.status === 'signed-out') && !(r.emp_number || '').trim()
+  );
+  const noSystemIdAtAll = inventory.filter(r => {
+    const hasCoreId = r.mdc_id || r.larics_id || r.ici_id || r.cwirs_id || r.cris_id;
+    const hasExtraId = radioInventoryExtraIds.some(x => String(x.radio_id) === String(r.id));
+    return !hasCoreId && !hasExtraId;
+  });
+
   return [
     {
       id: 'ridoutofrange', title: 'Radio System IDs outside their configured range', icon: '🆔',
@@ -13810,6 +13847,20 @@ function getDataHealthCategories() {
       describe: x => x.radio.serial_number || '(no serial)',
       sub: x => `${x.violations.join(', ')} outside configured range`,
       jump: x => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(x.radio.id); },
+    },
+    {
+      id: 'noempnumber', title: 'Assigned radios with no Employee # on file', icon: '👤',
+      items: missingEmpNumber,
+      describe: r => r.serial_number || '(no serial)',
+      sub: r => `${INV_STATUS_LABELS[r.status]||r.status} — ${r.assigned_person || r.assigned_unit || 'no assignment name recorded'}`,
+      jump: r => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(r.id); },
+    },
+    {
+      id: 'nosystemid', title: 'Radios with no System ID recorded at all', icon: '🆔',
+      items: noSystemIdAtAll,
+      describe: r => r.serial_number || '(no serial)',
+      sub: r => 'Not trackable in RID Manager under any system',
+      jump: r => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(r.id); },
     },
     {
       id: 'ridcapacity', title: 'RID ranges nearing capacity (90%+ committed)', icon: '🆔',
@@ -14815,9 +14866,7 @@ const SITE_TRACKED_FIELDS = [
 
 async function loadSites() {
   try {
-    const { data, error } = await sb.from('sites').select('*').order('name');
-    if (error) { console.warn('loadSites:', error.message); return; }
-    sites = data || [];
+    sites = await fetchAllRows('sites', 'name');
   } catch(e) { console.warn('loadSites exception:', e.message); }
 }
 
@@ -15218,6 +15267,43 @@ function generateOutOfServiceReport(filters = {}) {
   openReportPrintWindow('Radios Out of Service', body, `${oos.length} radio(s)`, describeReportFilters(REPORT_FILTER_SPECS.oos, filters));
 }
 
+// ── Radio ID Assignment Roster ──
+// The printable, per-range companion to "Export Committed IDs CSV" —
+// meant to be handed to someone doing a physical audit or kept in a
+// binder, not opened in a spreadsheet. Only committed IDs matter here
+// (who has what), not free/reserved.
+function generateRidAssignmentRosterReport(filters = {}) {
+  const rangeFilt = filters.ranges && filters.ranges.length ? filters.ranges : ridRanges.map(r => String(r.id));
+  const included = ridRanges.filter(r => rangeFilt.includes(String(r.id)));
+  let body = '';
+  if (!included.length) {
+    body = '<div class="rpt-empty">No matching RID ranges — adjust filters or add ranges in Admin → Radio IDs.</div>';
+  }
+  const rosterIndex = buildCommittedIdIndex();
+  included.forEach(range => {
+    const isMdc = range.system === 'mdc_id';
+    const sysLabel = ridRangeSystemKey(range) ? ridSystemDisplayLabel(ridRangeSystemKey(range)) : 'Any System';
+    const rows = [];
+    for (let id = range.start_id; id <= range.end_id; id++) {
+      if (isMdc && ridContainsF(ridDecimalToHex(id))) continue;
+      const { state, radio } = classifyRid(id, rosterIndex, null, range);
+      if (state !== 'committed') continue;
+      rows.push([
+        isMdc ? ridDecimalToHex(id) : id,
+        radio?.serial_number || '—',
+        radio?.radio_model || '—',
+        radio?.assigned_unit || '—',
+        radio?.assigned_person || '—',
+      ]);
+    }
+    body += `<div class="rpt-section">${escHtml(range.name)} <span style="font-weight:400;color:#888;font-size:13px;">(${sysLabel} · ${range.start_id}–${range.end_id})</span></div>`;
+    body += `<div class="rpt-count">${rows.length} committed ID${rows.length!==1?'s':''}</div>`;
+    body += rptTable(['Radio ID', 'Serial #', 'Model', 'Assigned Unit', 'Assigned Person'], rows);
+  });
+  openReportPrintWindow('Radio ID Assignment Roster', body, `${included.length} range(s)`, describeReportFilters(REPORT_FILTER_SPECS.ridroster, filters));
+}
+
+
 // ── 3. Radio IDs Available per System ──
 function generateRidAvailabilityReport(filters = {}) {
   const rangeFilt = filters.ranges && filters.ranges.length ? filters.ranges : ridRanges.map(r => String(r.id));
@@ -15374,6 +15460,9 @@ const REPORT_FILTER_SPECS = {
   ridavail: [
     { key:'ranges', type:'checklist', label:'Ranges', optionsFn: () => ridRanges.map(r => ({ value:String(r.id), label:r.name })) },
   ],
+  ridroster: [
+    { key:'ranges', type:'checklist', label:'Ranges', optionsFn: () => ridRanges.map(r => ({ value:String(r.id), label:r.name })) },
+  ],
   personnel: [
     { key:'role', type:'select', label:'Role', optionsFn: () => [...new Set(personnelRoster.map(p=>p.role_title).filter(Boolean))].sort().map(r => ({ value:r, label:r })) },
     { key:'certStatus', type:'select', label:'Certification', optionsFn: () => [{value:'expired',label:'Expired only'},{value:'expiring',label:'Expiring within 30 days'}] },
@@ -15406,6 +15495,7 @@ const REPORTS_CATALOG = [
   { id:'availability', icon:'📻', title:'Radio Availability', desc:'Snapshot of every radio grouped by status.', fn:'generateRadioAvailabilityReport' },
   { id:'oos',          icon:'🔧', title:'Radios Out of Service', desc:'All radios currently out of service, lost, or stolen.', fn:'generateOutOfServiceReport' },
   { id:'ridavail',     icon:'🆔', title:'Radio IDs Available per System', desc:'Free IDs remaining in each configured RID range.', fn:'generateRidAvailabilityReport' },
+  { id:'ridroster',    icon:'📋', title:'Radio ID Assignment Roster', desc:'Every committed ID with its radio and assignment — for a binder or an audit, not a spreadsheet.', fn:'generateRidAssignmentRosterReport' },
   { id:'personnel',    icon:'👥', title:'Personnel Roster', desc:'Full roster with certification expiration status.', fn:'generatePersonnelReport' },
   { id:'lowstock',     icon:'🧰', title:'Parts — Low Stock', desc:'Parts at or below their reorder threshold.', fn:'generateLowStockReport' },
   { id:'sites',        icon:'🗼', title:'Sites Directory', desc:'All repeater, tower, and infrastructure sites.', fn:'generateSitesReport' },
@@ -15528,15 +15618,11 @@ const SCHED_COLORS = {
 
 async function loadReservations() {
   try {
-    const { data, error } = await sb.from('reservations').select('*').order('start', { ascending: true });
-    if (error) {
-      console.error('loadReservations error:', error.message);
-      logActivityLocal(`⚠ Reservations failed to load: ${error.message}`);
-      return;
-    }
+    const data = await fetchAllRows('reservations', 'start', true);
     reservations = (data || []).map(rowToReservation);
   } catch(e) {
     console.error('loadReservations exception:', e.message);
+    logActivityLocal(`⚠ Reservations failed to load: ${e.message}`);
   }
 }
 
@@ -18753,9 +18839,7 @@ async function loadUasPersonnel() {
 
 async function loadUasMissions() {
   try {
-    const { data, error } = await sb.from('uas_missions').select('*').order('start_time', { ascending: false });
-    if (error) { console.warn('loadUasMissions:', error.message); return; }
-    uasMissions = data || [];
+    uasMissions = await fetchAllRows('uas_missions', 'start_time', false);
   } catch(e) { console.warn('loadUasMissions exception:', e.message); }
 }
 
@@ -19243,17 +19327,13 @@ function canEditPersonnel() {
 // ── Data loading ──
 async function loadPersonnelTeams() {
   try {
-    const { data, error } = await sb.from('personnel_teams').select('*').order('name', { ascending: true });
-    if (error) { console.warn('loadPersonnelTeams:', error.message); return; }
-    personnelTeams = data || [];
+    personnelTeams = await fetchAllRows('personnel_teams', 'name');
   } catch(e) { console.warn('loadPersonnelTeams exception:', e.message); }
 }
 
 async function loadPersonnelRoster() {
   try {
-    const { data, error } = await sb.from('personnel').select('*').order('name', { ascending: true });
-    if (error) { console.warn('loadPersonnelRoster:', error.message); return; }
-    personnelRoster = data || [];
+    personnelRoster = await fetchAllRows('personnel', 'name');
   } catch(e) { console.warn('loadPersonnelRoster exception:', e.message); }
 }
 
@@ -19869,6 +19949,81 @@ async function releaseRidReservation(id) {
 
 // One row per reservation block instead of one row per ID — a 20-ID
 // reservation is one line here instead of 20 rows in the main grid.
+// Whole-system utilization — one card per System (core or specialty),
+// aggregating every range that belongs to it, plus a grand total
+// across everything combined. Distinct from the per-range bars in the
+// "By ID" view: this answers "how much of our total addressable space
+// is used, across every system" in one place, rather than range by
+// range.
+function renderRidSystemsView(rangeStats) {
+  const el = document.getElementById('ridSystemsView');
+  if (!el) return;
+  if (!ridRanges.length) {
+    el.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--text-dim);">
+      <div style="font-size:28px;margin-bottom:10px;">🗂</div>
+      <div style="font-size:15px;color:var(--text-secondary);">No ranges configured yet</div>
+    </div>`;
+    return;
+  }
+  const RID_SUMMARY_SYSTEM_LABELS = { mdc_id:'LAC', larics_id:'LARICS', ici_id:'ICI', cwirs_id:'CWIRS', cris_id:'CRIS' };
+  const bySystem = {};
+  ridRanges.forEach(range => {
+    const key = ridRangeSystemKey(range) || 'unrestricted';
+    if (!bySystem[key]) bySystem[key] = { free:0, reserved:0, committed:0, total:0, codes: new Set(), rangeCount:0 };
+    const s = rangeStats[range.id] || {};
+    bySystem[key].free      += s.free      || 0;
+    bySystem[key].reserved  += s.reserved  || 0;
+    bySystem[key].committed += s.committed || 0;
+    bySystem[key].total     += s.total     || 0;
+    bySystem[key].rangeCount++;
+    (range.system_codes || []).forEach(c => bySystem[key].codes.add(c));
+  });
+
+  const grand = Object.values(bySystem).reduce((acc, s) => ({
+    free: acc.free + s.free, reserved: acc.reserved + s.reserved,
+    committed: acc.committed + s.committed, total: acc.total + s.total,
+  }), { free:0, reserved:0, committed:0, total:0 });
+  const grandPct = grand.total ? Math.round((grand.committed/grand.total)*100) : 0;
+
+  const systemCardsHTML = Object.entries(bySystem).sort((a,b) => b[1].total - a[1].total).map(([sysKey, data]) => {
+    const label = sysKey === 'unrestricted' ? 'Unrestricted' : (RID_SUMMARY_SYSTEM_LABELS[sysKey] || ridSystemDisplayLabel(sysKey));
+    const codeLabel = data.codes.size ? [...data.codes].join(', ') : '';
+    const pctC = data.total ? Math.round((data.committed/data.total)*100) : 0;
+    const pctR = data.total ? Math.round((data.reserved/data.total)*100) : 0;
+    return `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <span class="text-emphasis" style="font-family:var(--font-data);font-weight:700;color:var(--text-primary);">${escHtml(label)}</span>
+          ${codeLabel ? `<span class="text-label" style="color:var(--text-dim);margin-left:8px;">${escHtml(codeLabel)}</span>` : ''}
+          <span class="text-label" style="color:var(--text-dim);margin-left:8px;">${data.rangeCount} range${data.rangeCount!==1?'s':''}</span>
+        </div>
+        <span class="text-emphasis" style="font-family:var(--font-data);font-weight:700;color:${pctC>80?'var(--status-active)':pctC>60?'var(--status-reserved)':'var(--status-available)'};">${pctC}% committed</span>
+      </div>
+      <div style="height:10px;background:var(--bg-deep);border-radius:5px;overflow:hidden;display:flex;margin-bottom:10px;">
+        <div style="width:${pctC}%;background:${RID_STATE.committed.color};"></div>
+        <div style="width:${pctR}%;background:${RID_STATE.reserved.color};"></div>
+      </div>
+      <div style="display:flex;gap:16px;font-family:var(--font-data);font-size:13px;">
+        <span style="color:var(--text-dim);">Total <strong style="color:var(--text-primary);">${data.total.toLocaleString()}</strong></span>
+        <span style="color:${RID_STATE.committed.color};">Committed <strong>${data.committed.toLocaleString()}</strong></span>
+        <span style="color:${RID_STATE.reserved.color};">Reserved <strong>${data.reserved.toLocaleString()}</strong></span>
+        <span style="color:${RID_STATE.free.color};">Free <strong>${data.free.toLocaleString()}</strong></span>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;">
+      <div class="text-label" style="color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Total Addressable Space — All Systems Combined</div>
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">
+        <span class="text-hero" style="font-weight:700;color:var(--text-primary);font-family:var(--font-data);">${grand.total.toLocaleString()}</span>
+        <span class="text-label" style="color:var(--text-dim);">IDs across ${ridRanges.length} range${ridRanges.length!==1?'s':''} and ${Object.keys(bySystem).length} system${Object.keys(bySystem).length!==1?'s':''}</span>
+        <span class="text-emphasis" style="font-family:var(--font-data);font-weight:700;margin-left:auto;color:${grandPct>80?'var(--status-active)':grandPct>60?'var(--status-reserved)':'var(--status-available)'};">${grandPct}% committed overall</span>
+      </div>
+    </div>
+    ${systemCardsHTML}`;
+}
+
 function renderRidReservationsView() {
   const el = document.getElementById('ridReservationsGrid');
   if (!el) return;
@@ -20074,7 +20229,7 @@ function setRidFilter(f) {
 
 function setRidViewMode(mode) {
   ridViewMode = mode;
-  ['ids','reservations'].forEach(k => {
+  ['ids','reservations','systems'].forEach(k => {
     const btn = document.getElementById(`rid-view-${k}`);
     if (!btn) return;
     const active = k === mode;
@@ -20206,13 +20361,18 @@ function renderRidManager() {
     </div>`;
   }
 
-  // Toggle which view is visible, and which of the two view-mode
+  // Toggle which view is visible, and which of the three view-mode
   // buttons looks active
   document.getElementById('ridIdsView').style.display          = ridViewMode === 'ids' ? 'block' : 'none';
   document.getElementById('ridReservationsView').style.display = ridViewMode === 'reservations' ? 'block' : 'none';
+  document.getElementById('ridSystemsView').style.display      = ridViewMode === 'systems' ? 'block' : 'none';
   if (ridViewMode === 'reservations') {
     renderRidReservationsView();
     return; // reservations view doesn't need the per-ID grid built at all
+  }
+  if (ridViewMode === 'systems') {
+    renderRidSystemsView(rangeStats);
+    return; // systems view doesn't need the per-ID grid built at all either
   }
 
   // Per-range utilization bars (shown above the grid)
@@ -20719,20 +20879,20 @@ function renderInventory() {
 
     const rowHtml = `
     <div class="inv-row${r.status==='retired'?' retired':''}" onclick="${invBulkMode ? `toggleBulkSelect('${r.id}', this.closest('.inv-bulk-row-wrap').querySelector('.inv-bulk-cb'))` : `openInventoryModal('${r.id}')`}">
-      <div class="status-color-swatch" style="width:4px;height:32px;border-radius:2px;background:${invStatusColor(r.status)};flex-shrink:0;"></div>
-      <div>
+      <div class="status-color-swatch" style="width:4px;border-radius:2px;background:${invStatusColor(r.status)};flex-shrink:0;"></div>
+      <div class="inv-col" data-label="Serial">
         <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(r.serial_number||'')}">${escHtml(r.serial_number||'—')}${r.control_top_replaced?' <span style="color:var(--accent);" title="Control Top Replaced">⟲</span>':''}</div>
         ${r.alias ? `<div style="font-size:12px;color:var(--text-dim);font-family:var(--font-data);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.alias)}</div>` : ''}
       </div>
-      <div style="min-width:0;">
+      <div class="inv-col" data-label="Model / Band">
         <div style="font-size:14px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.radio_model||'—')}</div>
         <div style="font-size:12px;color:var(--text-dim);font-family:var(--font-data);">${escHtml(r.radio_band||'—')}</div>
       </div>
-      <div><span class="inv-status-chip ${r.status}">${INV_STATUS_LABELS[r.status]||r.status}</span></div>
-      <div style="font-size:13px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_unit||'—')}</div>
-      <div style="font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_person||r.agency||'—')}</div>
-      <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--accent);">${escHtml(r.mdc_id || '—')}</div>
-      <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);display:flex;flex-direction:column;gap:2px;overflow:hidden;">${sysIds || '<span style="color:var(--border);">—</span>'}</div>
+      <div class="inv-col" data-label="Status"><span class="inv-status-chip ${r.status}">${INV_STATUS_LABELS[r.status]||r.status}</span></div>
+      <div class="inv-col" data-label="Unit" style="font-size:13px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_unit||'—')}</div>
+      <div class="inv-col" data-label="Person / Agency" style="font-size:13px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_person||r.agency||'—')}</div>
+      <div class="inv-col" data-label="MDC ID" style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--accent);">${escHtml(r.mdc_id || '—')}</div>
+      <div class="inv-col" data-label="System IDs" style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);display:flex;flex-direction:column;gap:2px;overflow:hidden;">${sysIds || '<span style="color:var(--border);">—</span>'}</div>
     </div>`;
 
     // Bulk mode wraps the (otherwise untouched) row in a flex container
@@ -22397,240 +22557,288 @@ function openImportReviewModal(type, imported, skippedDetails, errorDetails) {
   document.getElementById('importReviewModal').classList.add('open');
 }
 
-async function importCSV(type) {
+// ── Bulk import v2: dry-run preview, then a single batched write ──
+// Each type's row-building logic lives in its own small pure function
+// now — no DB calls, just "given a parsed CSV row, either a ready
+// insert/upsert payload or a reason it can't be used." This is the
+// exact same validation every type already had, just extracted so
+// the preview step and the actual commit step both call the same
+// logic instead of it being duplicated (and able to drift) between
+// the two.
+const IMPORT_TABLE_CONFIG = {
+  channels:   { table: 'channels',        conflictCol: 'designator',    label: 'channel' },
+  talkgroups: { table: 'talkgroups',       conflictCol: 'tg_id',         label: 'talkgroup' },
+  inventory:  { table: 'radio_inventory',  conflictCol: 'serial_number', label: 'radio' },
+  parts:      { table: 'parts_inventory',  conflictCol: 'part_number',   label: 'part' },
+};
+
+function buildChannelRow(r) {
+  const designatorVal = r.channel_name || r.designator;
+  const rxFreqVal      = r.rx_freq || r.freq;
+  const identifier = designatorVal || r.freq || '';
+  if (!designatorVal || !rxFreqVal) return { identifier, invalidReason: 'Missing channel name/designator or frequency' };
+  const row = {
+    designator: designatorVal,
+    freq:       rxFreqVal,
+    rx_freq:    r.tx_freq || rxFreqVal,   // DB column rx_freq actually stores TX per current schema
+    status:     r.status || 'available',
+    band:       r.band || detectBand(rxFreqVal),
+    tone:       r.rx_tone || '—',
+    rx_tone:    r.rx_tone || '',
+    tx_tone:    r.tx_tone || '',
+    bandwidth:  (r.bandwidth || 'W').toUpperCase(),
+    adm:        (r.adm || 'A').toUpperCase(),
+    power:      r.power || '',
+    function:   r.function || '—',
+    agency:     r.agency || '—',
+    notes:      r.remarks || r.notes || '',
+    conflict_check: r.conflict_check !== 'false',
+    updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
+    agency_id: agencyId(),
+  };
+  return { identifier, conflictKey: designatorVal, row };
+}
+
+function buildTalkgroupRow(r) {
+  const identifier = r.tg_id || r.name || '';
+  if (!r.tg_id || !r.name) return { identifier, invalidReason: 'Missing TG ID or name' };
+  const row = {
+    tg_id: r.tg_id, system: r.system || '', name: r.name,
+    agency: r.agency || '', status: r.status || 'available',
+    encryption: r.encryption || 'None', priority: r.priority || 'Normal',
+    notes: r.notes || '',
+    updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
+    agency_id: agencyId(),
+  };
+  return { identifier, conflictKey: r.tg_id, row };
+}
+
+function buildInventoryRow(r) {
+  const identifier = r.serial_number || '';
+  if (!r.serial_number) return { identifier, invalidReason: 'Missing serial number' };
+  const statusLabelToKey = {};
+  radioStatuses.forEach(s => { statusLabelToKey[s.label.trim().toLowerCase()] = s.key; });
+  const resolveStatus = (val) => {
+    const raw = (val || '').trim();
+    if (!raw) return 'in-stock';
+    if (radioStatuses.some(s => s.key === raw)) return raw;
+    return statusLabelToKey[raw.toLowerCase()] || 'in-stock';
+  };
+  const row = {
+    serial_number: r.serial_number, alias: r.alias || null,
+    radio_model: r.radio_model || null,
+    radio_band: r.radio_band || null, status: resolveStatus(r.status),
+    assigned_unit: r.assigned_unit || null,
+    assigned_person: r.assigned_person || null,
+    cad_id_display: r.cad_id_display || null,
+    emp_number: (r.emp_number && /^\d{6}$/.test(r.emp_number.trim())) ? r.emp_number.trim() : null,
+    agency: r.agency || null,
+    purchase_date: r.purchase_date || null,
+    firmware_version: r.firmware_version || null,
+    codeplug_version: r.codeplug_version || null,
+    last_programmed_date: r.last_programmed_date || null,
+    control_top_replaced: /^(yes|true|1)$/i.test((r.control_top_replaced||'').trim()),
+    mdc_id: (r.mdc_id && /^[0-9A-F]{1,4}$/i.test(r.mdc_id.trim()) && !/F/i.test(r.mdc_id.trim())) ? r.mdc_id.trim().toUpperCase() : null,
+    larics_id: r.larics_id || null, ici_id: r.ici_id || null,
+    cwirs_id: r.cwirs_id || null, cris_id: r.cris_id || null,
+    notes: r.notes || null,
+    updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
+    agency_id: agencyId(),
+  };
+  return { identifier, conflictKey: r.serial_number, row };
+}
+
+function buildPartRow(r) {
+  const identifier = r.name || r.part_number || '';
+  if (!r.name) return { identifier, invalidReason: 'Missing part name' };
+  const row = {
+    part_number:        r.part_number || null,
+    name:                r.name,
+    category:            r.category || null,
+    quantity_on_hand:    parseInt(r.quantity_on_hand) || 0,
+    reorder_threshold:   parseInt(r.reorder_threshold) || 0,
+    reorder_quantity:    r.reorder_quantity ? parseInt(r.reorder_quantity) : null,
+    unit_cost:           r.unit_cost ? parseFloat(r.unit_cost) : null,
+    vendor:              r.vendor || null,
+    vendor_part_number:  r.vendor_part_number || null,
+    location:            r.location || null,
+    notes:               r.notes || null,
+    updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
+    agency_id: agencyId(),
+  };
+  // A part with no part_number has nothing to match against, so it can
+  // never be identified as a duplicate — it always inserts as new.
+  return { identifier, conflictKey: r.part_number || null, row };
+}
+
+const IMPORT_ROW_BUILDERS = { channels: buildChannelRow, talkgroups: buildTalkgroupRow, inventory: buildInventoryRow, parts: buildPartRow };
+
+function getExistingIdentitySet(type) {
+  if (type === 'channels')   return new Set(channels.map(c => c.designator));
+  if (type === 'talkgroups') return new Set(talkgroups.map(t => t.tgId));
+  if (type === 'inventory')  return new Set(inventory.map(r => r.serial_number));
+  if (type === 'parts')      return new Set(partsInventory.map(p => (p.part_number||'').toLowerCase()).filter(Boolean));
+  return new Set();
+}
+
+// Pure analysis — no DB writes. Categorizes every row as new, a
+// duplicate of something already in the database, a duplicate of an
+// earlier row in this same file (only the first occurrence of each
+// key proceeds — a "TO FOLLOW"-style repeated placeholder serial
+// shouldn't quietly create N different radios sharing one identity),
+// or invalid outright.
+function analyzeImportRows(type, rows) {
+  const builder = IMPORT_ROW_BUILDERS[type];
+  const existing = getExistingIdentitySet(type);
+  const seenInFile = new Set();
+  const newRows = [], dupExisting = [], dupWithinFile = [], invalidRows = [];
+  rows.forEach((r, i) => {
+    const rowNum = i + 2;
+    const built = builder(r);
+    if (built.invalidReason) {
+      invalidRows.push({ rowNum, identifier: built.identifier, reason: built.invalidReason });
+      return;
+    }
+    const key = built.conflictKey ? String(built.conflictKey).toLowerCase() : null;
+    if (key && existing.has(key)) {
+      dupExisting.push({ rowNum, identifier: built.identifier, reason: `Duplicate — a ${IMPORT_TABLE_CONFIG[type].label} with this identifier already exists`, row: built.row, conflictKey: key });
+      return;
+    }
+    if (key && seenInFile.has(key)) {
+      dupWithinFile.push({ rowNum, identifier: built.identifier, reason: 'Duplicate within this file — only the first occurrence will be used', row: built.row, conflictKey: key });
+      return;
+    }
+    if (key) seenInFile.add(key);
+    newRows.push({ rowNum, identifier: built.identifier, row: built.row });
+  });
+  return { newRows, dupExisting, dupWithinFile, invalidRows };
+}
+
+let _pendingImport = null; // { type, analysis }
+
+function previewImportCSV(type) {
   const typeCap = type.charAt(0).toUpperCase()+type.slice(1);
   const fileEl  = document.getElementById(`csv${typeCap}File`);
   const resEl   = document.getElementById(`import${typeCap}Result`);
-  const progEl  = document.getElementById(`import${typeCap}Progress`);
-  const fillEl  = progEl?.querySelector('.import-progress-fill');
+  const previewEl = document.getElementById(`import${typeCap}Preview`);
   if (!fileEl?.files[0]) { if (resEl) resEl.textContent = '⚠ Select a CSV file first.'; return; }
 
-  const text = await fileEl.files[0].text();
-  const rows = parseCSV(text);
-  if (!rows.length) { if (resEl) resEl.textContent = '⚠ No data rows found in CSV.'; return; }
+  fileEl.files[0].text().then(text => {
+    const rows = parseCSV(text);
+    if (!rows.length) { if (resEl) resEl.textContent = '⚠ No data rows found in CSV.'; return; }
+    const analysis = analyzeImportRows(type, rows);
+    _pendingImport = { type, analysis };
 
-  if (progEl) { progEl.style.display = 'block'; }
-  if (fillEl) fillEl.style.width = '0%';
-  if (resEl) resEl.textContent = `⏳ Importing 0 / ${rows.length}…`;
+    if (resEl) resEl.textContent = '';
+    if (previewEl) {
+      previewEl.style.display = 'block';
+      const dupCount = analysis.dupExisting.length;
+      previewEl.innerHTML = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <span style="font-family:var(--font-data);font-size:13px;padding:3px 10px;border-radius:var(--radius);background:var(--bg-deep);border:1px solid var(--border);color:var(--status-available);"><strong>${analysis.newRows.length}</strong> new</span>
+          ${dupCount ? `<span style="font-family:var(--font-data);font-size:13px;padding:3px 10px;border-radius:var(--radius);background:var(--bg-deep);border:1px solid var(--border);color:var(--status-reserved);"><strong>${dupCount}</strong> duplicate</span>` : ''}
+          ${analysis.dupWithinFile.length ? `<span style="font-family:var(--font-data);font-size:13px;padding:3px 10px;border-radius:var(--radius);background:var(--bg-deep);border:1px solid var(--border);color:var(--status-reserved);"><strong>${analysis.dupWithinFile.length}</strong> repeated in file</span>` : ''}
+          ${analysis.invalidRows.length ? `<span style="font-family:var(--font-data);font-size:13px;padding:3px 10px;border-radius:var(--radius);background:var(--bg-deep);border:1px solid var(--border);color:var(--status-active);"><strong>${analysis.invalidRows.length}</strong> invalid</span>` : ''}
+        </div>
+        ${dupCount ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">
+          On duplicate: <label style="margin-left:6px;cursor:pointer;"><input type="radio" name="dupMode${typeCap}" value="skip" checked> Skip</label>
+          <label style="margin-left:12px;cursor:pointer;"><input type="radio" name="dupMode${typeCap}" value="update"> Update existing record</label>
+        </div>` : ''}
+        <div style="display:flex;gap:8px;">
+          <button class="btn-primary" onclick="commitPendingImport('${type}')">✓ Confirm Import</button>
+          <button class="btn-secondary" onclick="cancelPendingImport('${type}')">Cancel</button>
+          <button class="btn-secondary" onclick="reviewPendingImportIssues('${type}')">View Row Details</button>
+        </div>`;
+    }
+  });
+}
 
+function cancelPendingImport(type) {
+  _pendingImport = null;
+  const typeCap = type.charAt(0).toUpperCase()+type.slice(1);
+  const previewEl = document.getElementById(`import${typeCap}Preview`);
+  if (previewEl) { previewEl.style.display = 'none'; previewEl.innerHTML = ''; }
+  const fileEl = document.getElementById(`csv${typeCap}File`);
+  if (fileEl) fileEl.value = '';
+}
+
+function reviewPendingImportIssues(type) {
+  if (!_pendingImport || _pendingImport.type !== type) return;
+  const { analysis } = _pendingImport;
+  openImportReviewModal(type, 0, [...analysis.dupExisting, ...analysis.dupWithinFile], analysis.invalidRows);
+}
+
+// Batches of 500 rather than one request per row — a 2000-row import
+// becomes ~4 requests instead of 2000. Skip mode sends a plain insert
+// (duplicates were already excluded during analysis); update mode
+// uses upsert against the type's identity column, so an existing
+// record's fields get overwritten by the file rather than left alone.
+async function commitPendingImport(type) {
+  if (!_pendingImport || _pendingImport.type !== type) return;
+  const { analysis } = _pendingImport;
+  const typeCap = type.charAt(0).toUpperCase()+type.slice(1);
+  const resEl   = document.getElementById(`import${typeCap}Result`);
+  const progEl  = document.getElementById(`import${typeCap}Progress`);
+  const fillEl  = progEl?.querySelector('.import-progress-fill');
+  const previewEl = document.getElementById(`import${typeCap}Preview`);
+  const fileEl  = document.getElementById(`csv${typeCap}File`);
+  const dupModeEl = document.querySelector(`input[name="dupMode${typeCap}"]:checked`);
+  const updateExisting = dupModeEl?.value === 'update';
+
+  const { table, conflictCol } = IMPORT_TABLE_CONFIG[type];
+  const rowsToWrite = [...analysis.newRows, ...(updateExisting ? analysis.dupExisting : [])];
+  const errorDetails = [...analysis.invalidRows];
   let imported = 0;
-  const skippedDetails = []; // { rowNum, identifier, reason }
-  const errorDetails   = []; // { rowNum, identifier, reason }
-  const updateProgress = (i) => {
-    const pct = Math.round(((i+1) / rows.length) * 100);
-    if (fillEl) fillEl.style.width = pct + '%';
-    if (resEl) resEl.textContent = `⏳ Importing ${i+1} / ${rows.length}…`;
-  };
+
+  if (previewEl) previewEl.style.display = 'none';
+  if (progEl) progEl.style.display = 'block';
+  if (fillEl) fillEl.style.width = '0%';
 
   bulkImportActive = true;
+  const BATCH = 500;
   try {
-
-  if (type === 'channels') {
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const rowNum = i + 2;
-      // New template uses channel_name + rx_freq + tx_freq; fall back to legacy designator/freq if present
-      const designatorVal = r.channel_name || r.designator;
-      const rxFreqVal      = r.rx_freq || r.freq;
-      const identifier = designatorVal || r.freq || '';
-      if (!designatorVal || !rxFreqVal) {
-        skippedDetails.push({ rowNum, identifier, reason: 'Missing channel name/designator or frequency' });
-        updateProgress(i); continue;
-      }
-      const existing = channels.find(c => c.designator === designatorVal);
-      if (existing) {
-        skippedDetails.push({ rowNum, identifier, reason: 'Duplicate — a channel with this designator already exists' });
-        updateProgress(i); continue;
-      }
-
-      const rxToneResolved = resolveTone(r.rx_tone);
-      const txToneResolved = resolveTone(r.tx_tone);
-
-      const row = {
-        designator: designatorVal,
-        freq:       rxFreqVal,
-        rx_freq:    r.tx_freq || rxFreqVal,   // DB column rx_freq actually stores TX per current schema
-        status:     r.status || 'available',
-        band:       r.band || detectBand(rxFreqVal),
-        tone:       r.rx_tone || '—',
-        rx_tone:    r.rx_tone || '',
-        tx_tone:    r.tx_tone || '',
-        bandwidth:  (r.bandwidth || 'W').toUpperCase(),
-        adm:        (r.adm || 'A').toUpperCase(),
-        power:      r.power || '',
-        function:   r.function || '—',
-        agency:     r.agency || '—',
-        notes:      r.remarks || r.notes || '',
-        conflict_check: r.conflict_check !== 'false',
-        updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
-        agency_id: agencyId(),
-      };
+    for (let start = 0; start < rowsToWrite.length; start += BATCH) {
+      const batch = rowsToWrite.slice(start, start + BATCH);
+      const payload = batch.map(b => b.row);
+      if (resEl) resEl.textContent = `⏳ Writing ${Math.min(start+BATCH, rowsToWrite.length)} / ${rowsToWrite.length}…`;
       try {
-        const { error } = await sb.from('channels').insert(row);
-        if (error) errorDetails.push({ rowNum, identifier, reason: error.message });
-        else imported++;
-      } catch (e) {
-        errorDetails.push({ rowNum, identifier, reason: e.message || 'Unexpected error — row skipped, import continued' });
-      }
-      updateProgress(i);
-    }
-    await loadChannels(); renderChannels();
-    logEvent('channel', 'CSV Import', `${imported} channels imported, ${skippedDetails.length} skipped, ${errorDetails.length} errors`);
-
-  } else if (type === 'talkgroups') {
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const rowNum = i + 2;
-      const identifier = r.tg_id || r.name || '';
-      if (!r.tg_id || !r.name) {
-        skippedDetails.push({ rowNum, identifier, reason: 'Missing TG ID or name' });
-        updateProgress(i); continue;
-      }
-      const row = {
-        tg_id: r.tg_id, system: r.system || '', name: r.name,
-        agency: r.agency || '', status: r.status || 'available',
-        encryption: r.encryption || 'None', priority: r.priority || 'Normal',
-        notes: r.notes || '',
-        updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
-        agency_id: agencyId(),
-      };
-      try {
-        const { error } = await sb.from('talkgroups').insert(row);
-        if (error) errorDetails.push({ rowNum, identifier, reason: error.message });
-        else imported++;
-      } catch (e) {
-        errorDetails.push({ rowNum, identifier, reason: e.message || 'Unexpected error — row skipped, import continued' });
-      }
-      updateProgress(i);
-    }
-    await loadTalkgroups(); renderTalkgroups();
-    logEvent('talkgroup', 'CSV Import', `${imported} talkgroups imported, ${skippedDetails.length} skipped, ${errorDetails.length} errors`);
-
-  } else if (type === 'inventory') {
-    // Older exports wrote the human-readable status label ("Assigned
-    // to Person") rather than the raw key ("signed-out") that's
-    // actually stored — build a one-time reverse lookup so a status
-    // value that doesn't match a known key gets resolved back from
-    // its label instead of being stored as a literal, meaningless
-    // status string.
-    const statusLabelToKey = {};
-    radioStatuses.forEach(s => { statusLabelToKey[s.label.trim().toLowerCase()] = s.key; });
-    const resolveStatus = (val) => {
-      const raw = (val || '').trim();
-      if (!raw) return 'in-stock';
-      if (radioStatuses.some(s => s.key === raw)) return raw; // already a valid key
-      return statusLabelToKey[raw.toLowerCase()] || 'in-stock';
-    };
-
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const rowNum = i + 2;
-      const identifier = r.serial_number || '';
-      if (!r.serial_number) {
-        skippedDetails.push({ rowNum, identifier, reason: 'Missing serial number' });
-        updateProgress(i); continue;
-      }
-      const dup = inventory.find(x => x.serial_number === r.serial_number);
-      if (dup) {
-        skippedDetails.push({ rowNum, identifier, reason: 'Duplicate — a radio with this serial number already exists' });
-        updateProgress(i); continue;
-      }
-      const row = {
-        serial_number: r.serial_number, alias: r.alias || null,
-        radio_model: r.radio_model || null,
-        radio_band: r.radio_band || null, status: resolveStatus(r.status),
-        assigned_unit: r.assigned_unit || null,
-        assigned_person: r.assigned_person || null,
-        cad_id_display: r.cad_id_display || null,
-        emp_number: (r.emp_number && /^\d{6}$/.test(r.emp_number.trim())) ? r.emp_number.trim() : null,
-        agency: r.agency || null,
-        purchase_date: r.purchase_date || null,
-        firmware_version: r.firmware_version || null,
-        codeplug_version: r.codeplug_version || null,
-        last_programmed_date: r.last_programmed_date || null,
-        control_top_replaced: /^(yes|true|1)$/i.test((r.control_top_replaced||'').trim()),
-        mdc_id: (r.mdc_id && /^[0-9A-F]{1,4}$/i.test(r.mdc_id.trim()) && !/F/i.test(r.mdc_id.trim())) ? r.mdc_id.trim().toUpperCase() : null,
-        larics_id: r.larics_id || null, ici_id: r.ici_id || null,
-        cwirs_id: r.cwirs_id || null, cris_id: r.cris_id || null,
-        notes: r.notes || null,
-        updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
-        agency_id: agencyId(),
-      };
-      try {
-        const { error } = await sb.from('radio_inventory').insert(row);
-        if (error) errorDetails.push({ rowNum, identifier, reason: error.message });
-        else imported++;
-      } catch (e) {
-        errorDetails.push({ rowNum, identifier, reason: e.message || 'Unexpected error — row skipped, import continued' });
-      }
-      updateProgress(i);
-    }
-    await loadInventory(); renderInventory();
-    logEvent('inventory', 'CSV Import', `${imported} radios imported, ${skippedDetails.length} skipped, ${errorDetails.length} errors`);
-
-  } else if (type === 'parts') {
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const rowNum = i + 2;
-      const identifier = r.name || r.part_number || '';
-      if (!r.name) {
-        skippedDetails.push({ rowNum, identifier, reason: 'Missing part name' });
-        updateProgress(i); continue;
-      }
-      if (r.part_number) {
-        const dup = partsInventory.find(p => (p.part_number||'').toLowerCase() === r.part_number.toLowerCase());
-        if (dup) {
-          skippedDetails.push({ rowNum, identifier, reason: 'Duplicate — a part with this part number already exists' });
-          updateProgress(i); continue;
+        const query = updateExisting
+          ? sb.from(table).upsert(payload, { onConflict: conflictCol })
+          : sb.from(table).insert(payload);
+        const { error } = await query;
+        if (error) {
+          // A whole batch failing (rather than one row) usually means a
+          // genuine schema/constraint problem, not a per-row data issue
+          // — attribute it to every row in the batch so nothing silently
+          // vanishes from the review.
+          batch.forEach(b => errorDetails.push({ rowNum: b.rowNum, identifier: b.identifier, reason: error.message }));
+        } else {
+          imported += batch.length;
         }
-      }
-      const row = {
-        part_number:        r.part_number || null,
-        name:                r.name,
-        category:            r.category || null,
-        quantity_on_hand:    parseInt(r.quantity_on_hand) || 0,
-        reorder_threshold:   parseInt(r.reorder_threshold) || 0,
-        reorder_quantity:    r.reorder_quantity ? parseInt(r.reorder_quantity) : null,
-        unit_cost:           r.unit_cost ? parseFloat(r.unit_cost) : null,
-        vendor:              r.vendor || null,
-        vendor_part_number:  r.vendor_part_number || null,
-        location:            r.location || null,
-        notes:               r.notes || null,
-        updated_by: currentUser?.name || 'Import', updated_at: new Date().toISOString(),
-        agency_id: agencyId(),
-      };
-      let inserted, error;
-      try {
-        ({ data: inserted, error } = await sb.from('parts_inventory').insert(row).select('id').single());
       } catch (e) {
-        errorDetails.push({ rowNum, identifier, reason: e.message || 'Unexpected error — row skipped, import continued' });
-        updateProgress(i); continue;
+        batch.forEach(b => errorDetails.push({ rowNum: b.rowNum, identifier: b.identifier, reason: e.message || 'Unexpected error' }));
       }
-      if (error) { errorDetails.push({ rowNum, identifier, reason: error.message }); updateProgress(i); continue; }
-      imported++;
-      if (inserted?.id) {
-        try {
-          await sb.from('parts_usage_log').insert({
-            part_id: inserted.id, action: 'added', quantity_change: row.quantity_on_hand, quantity_after: row.quantity_on_hand,
-            detail: 'Part added via CSV import', actor: currentUser?.name || 'Import', agency_id: agencyId(),
-          });
-        } catch(e) { console.warn('parts_usage_log write skipped during import:', e.message); }
-      }
-      updateProgress(i);
+      if (fillEl) fillEl.style.width = Math.round((Math.min(start+BATCH, rowsToWrite.length) / rowsToWrite.length) * 100) + '%';
     }
-    await loadPartsInventory(); renderPartsInventory();
-    logEvent('system', 'Parts CSV Import', `${imported} parts imported, ${skippedDetails.length} skipped, ${errorDetails.length} errors`);
-  }
-
   } finally {
     bulkImportActive = false;
   }
+
+  if (type === 'channels')   { await loadChannels(); renderChannels(); }
+  if (type === 'talkgroups') { await loadTalkgroups(); renderTalkgroups(); }
+  if (type === 'inventory')  { await loadInventory(); renderInventory(); }
+  if (type === 'parts')      { await loadPartsInventory(); renderPartsInventory(); }
+
+  const skippedDetails = updateExisting ? analysis.dupWithinFile : [...analysis.dupExisting, ...analysis.dupWithinFile];
+  logEvent(type === 'inventory' ? 'inventory' : type === 'channels' ? 'channel' : type === 'talkgroups' ? 'talkgroup' : 'system',
+    `${IMPORT_TABLE_CONFIG[type].label} CSV Import`, `${imported} imported, ${skippedDetails.length} skipped, ${errorDetails.length} errors`);
 
   if (progEl) progEl.style.display = 'none';
   _lastImportReview = { type, imported, skippedDetails, errorDetails };
   if (resEl) resEl.innerHTML = `<span style="color:var(--status-available);">✓ ${imported} imported</span>${skippedDetails.length?` · ${skippedDetails.length} skipped`:''}${errorDetails.length?` · <span style="color:var(--status-active);">${errorDetails.length} errors</span>`:''}` +
     (skippedDetails.length || errorDetails.length ? ` · <button class="btn-secondary" style="font-size:12px;padding:2px 8px;margin-left:4px;" onclick="reopenLastImportReview()">View Details</button>` : '');
-  fileEl.value = '';
+  if (fileEl) fileEl.value = '';
+  _pendingImport = null;
 
   if (skippedDetails.length || errorDetails.length) {
     openImportReviewModal(type, imported, skippedDetails, errorDetails);
@@ -22648,9 +22856,7 @@ let uasMissionEditingId = null;
 
 async function loadIncidents() {
   try {
-    const { data, error } = await sb.from('incidents').select('*').order('created_at', { ascending: false });
-    if (error) { console.warn('loadIncidents:', error.message); return; }
-    incidents = data || [];
+    incidents = await fetchAllRows('incidents', 'created_at', false);
   } catch(e) { console.warn('loadIncidents exception:', e.message); }
 }
 
@@ -23996,9 +24202,7 @@ let cprViewingId    = null;
 
 async function loadCommPlanReqs() {
   try {
-    const { data, error } = await sb.from('comm_plan_requests').select('*').order('created_at', { ascending: false });
-    if (error) { console.warn('loadCommPlanReqs:', error.message); return; }
-    commPlanReqs = data || [];
+    commPlanReqs = await fetchAllRows('comm_plan_requests', 'created_at', false);
     window._commPlanReqs = commPlanReqs;
     updateCommReqBadge();
   } catch(e) { console.warn('loadCommPlanReqs:', e.message); }
