@@ -4858,6 +4858,7 @@
           <div style="display:flex;gap:8px;">
             <button class="btn-secondary" id="invBulkToggleBtn" style="font-size:14px;" onclick="toggleInventoryBulkMode()">☐ Select</button>
             <button class="btn-secondary" id="invExportBtn" style="font-size:14px;" onclick="exportInventoryCSV()">⬇ CSV</button>
+            <button class="btn-secondary" onclick="jumpToInventoryImport()" title="Import radios from a CSV file">⬆ Import CSV</button>
             <button class="btn-secondary" style="font-size:14px;" onclick="openSystemIdImportModal()" title="Bulk import LARICS/ICI/CWIRS/CRIS system IDs from CSV">⬆ System IDs</button>
             <button class="btn-primary"   id="invAddBtn"    style="font-size:14px;" onclick="openInventoryForm(null)">+ Add Radio</button>
           </div>
@@ -5676,7 +5677,7 @@
           </div>
 
           <!-- Inventory import -->
-          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div id="admin-import-inventory-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:box-shadow 0.3s, border-color 0.3s;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
               <div style="font-family:var(--font-data);font-size:13px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📦 Import Radio Inventory</div>
               <div style="font-size:13px;color:var(--text-dim);margin-top:3px;">CSV with headers matching the inventory template</div>
@@ -21777,17 +21778,41 @@ function renderInventoryLog() {
   }).join('');
 }
 
+// The actual import UI lives under Admin → Import, not here — this
+// just gets someone there and makes it obvious which card is the one
+// they were looking for, since that panel also has Channels/
+// Talkgroups/Parts import cards sitting right next to it.
+function jumpToInventoryImport() {
+  switchMainTab('admin');
+  setTimeout(() => {
+    switchAdminTab('import');
+    const card = document.getElementById('admin-import-inventory-card');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.borderColor = 'var(--accent)';
+      card.style.boxShadow = '0 0 0 3px rgba(30,136,229,0.25)';
+      setTimeout(() => { card.style.borderColor = ''; card.style.boxShadow = ''; }, 2000);
+    }
+  }, 100);
+}
+
+// Header order and keys deliberately mirror CSV_TEMPLATES.inventory
+// exactly — same columns, same snake_case names, same raw status key
+// (not the display label) — so a file exported here can be edited and
+// fed straight back into Admin → Import without a column mismatch.
+// This does mean a few fields the old export included (Alias,
+// Firmware, Codeplug, Last Programmed, Control Top Replaced, the MDC
+// decimal reference) are no longer in this file, since Import doesn't
+// read them — ask if those should be added to Import too if losing
+// them from this export is a problem.
 function exportInventoryCSV() {
   if (!inventory.length) { alert('No inventory data to export.'); return; }
-  const header = ['Serial Number','Alias','CAD ID Display','Model','Band','Status','Assigned Unit','Assigned Person','Employee #','Agency','Purchase Date','Firmware','Codeplug','Last Programmed','MDC ID','MDC ID (Decimal)','LARICS ID','ICI ID','CWIRS ID','CRIS ID','Control Top Replaced','Notes'];
+  const header = ['serial_number','radio_model','radio_band','status','assigned_unit','assigned_person','cad_id_display','emp_number','agency','purchase_date','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'];
   const rows = inventory.map(r => [
-    r.serial_number||'', r.alias||'', r.cad_id_display||'', r.radio_model||'', r.radio_band||'',
-    INV_STATUS_LABELS[r.status]||r.status,
-    r.assigned_unit||'', r.assigned_person||'', r.emp_number||'', r.agency||'',
-    r.purchase_date||'', r.firmware_version||'', r.codeplug_version||'', r.last_programmed_date||'',
-    r.mdc_id||'', (/^[0-9A-Fa-f]{1,4}$/.test(r.mdc_id||'') ? ridHexToDecimal(r.mdc_id) : ''),
-    r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
-    r.control_top_replaced ? 'Yes' : 'No', r.notes||''
+    r.serial_number||'', r.radio_model||'', r.radio_band||'', r.status||'in-stock',
+    r.assigned_unit||'', r.assigned_person||'', r.cad_id_display||'', r.emp_number||'', r.agency||'',
+    r.purchase_date||'', r.mdc_id||'', r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
+    r.notes||''
   ]);
   downloadCSV(`radio-inventory-${new Date().toLocaleDateString('en-CA')}.csv`, header, rows);
 }
