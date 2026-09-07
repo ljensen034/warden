@@ -4932,7 +4932,7 @@
         <div id="invSummaryStrip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
 
         <div class="inv-grid-header">
-          <span></span><span>Serial Number</span><span>Model / Band</span><span>Status</span><span>Unit</span><span>Person / Agency</span><span>MDC ID</span><span>System IDs</span>
+          <span></span><span>Serial Number</span><span>Model / Band</span><span>Status</span><span>Unit / Person</span><span>Agency</span><span>MDC ID</span><span>System IDs</span>
         </div>
         <div id="inventoryGrid"></div>
         <div id="inventoryEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
@@ -11802,7 +11802,7 @@ function collectGlobalSearchResults(query) {
 
   inventory.forEach(r => {
     const hay = [r.serial_number, r.alias, r.cad_id_display, r.mdc_id, r.larics_id, r.ici_id, r.cwirs_id, r.cris_id, r.assigned_unit, r.assigned_person, r.emp_number].filter(Boolean).join(' ').toLowerCase();
-    if (hay.includes(q)) push('Inventory', '📦', r.serial_number || '(no serial)', [r.alias, r.radio_model, r.mdc_id?'MDC '+r.mdc_id:''].filter(Boolean).join(' · '),
+    if (hay.includes(q)) push('Inventory', '📦', r.serial_number || '(no serial)', [r.assigned_unit||r.assigned_person, r.radio_model, r.mdc_id?'MDC '+r.mdc_id:''].filter(Boolean).join(' · '),
       () => { switchMainTab('inventory'); switchInventoryTab('list'); openInventoryModal(r.id); });
   });
 
@@ -18762,18 +18762,13 @@ async function renderRecordHistoryPanel(containerId, tableName, recordId) {
 // Tracked-field maps — same shape as the TRACKED array inside diffChannelFields()
 const INV_TRACKED_FIELDS = [
   { key:'serial_number',       label:'Serial' },
-  { key:'alias',                label:'Alias' },
   { key:'cad_id_display',       label:'CAD ID Display' },
   { key:'radio_model',          label:'Model' },
   { key:'radio_band',           label:'Band' },
   { key:'status',               label:'Status', fmt: v => INV_STATUS_LABELS[v] || v },
-  { key:'assigned_unit',        label:'Unit' },
-  { key:'assigned_person',      label:'Person' },
+  { key:'assigned_unit',        label:'Unit/Person' },
   { key:'emp_number',           label:'Employee #' },
   { key:'agency',               label:'Agency' },
-  { key:'firmware_version',     label:'Firmware' },
-  { key:'codeplug_version',     label:'Codeplug' },
-  { key:'last_programmed_date', label:'Last Programmed' },
   { key:'mdc_id',                label:'MDC ID' },
   { key:'larics_id',            label:'LARICS' },
   { key:'ici_id',               label:'ICI' },
@@ -21171,15 +21166,14 @@ function renderInventory() {
       <div class="status-color-swatch" style="width:4px;border-radius:2px;background:${invStatusColor(r.status)};flex-shrink:0;"></div>
       <div class="inv-col" data-label="Serial">
         <div class="text-emphasis" style="font-family:var(--font-data);font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(r.serial_number||'')}">${escHtml(r.serial_number||'—')}${r.control_top_replaced?' <span style="color:var(--accent);" title="Control Top Replaced">⟲</span>':''}</div>
-        ${r.alias ? `<div class="text-body" style="color:var(--text-dim);font-family:var(--font-data);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.alias)}</div>` : ''}
       </div>
       <div class="inv-col" data-label="Model / Band">
         <div class="text-body" style="color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.radio_model||'—')}</div>
         <div class="text-label" style="color:var(--text-dim);font-family:var(--font-data);">${escHtml(r.radio_band||'—')}</div>
       </div>
       <div class="inv-col" data-label="Status"><span class="inv-status-chip ${r.status}">${INV_STATUS_LABELS[r.status]||r.status}</span></div>
-      <div class="inv-col text-body" data-label="Unit" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_unit||'—')}</div>
-      <div class="inv-col text-body" data-label="Person / Agency" style="color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_person||r.agency||'—')}</div>
+      <div class="inv-col text-body" data-label="Unit / Person" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.assigned_unit || r.assigned_person || '—')}</div>
+      <div class="inv-col text-body" data-label="Agency" style="color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(r.agency||'—')}</div>
       <div class="inv-col text-emphasis" data-label="MDC ID" style="font-family:var(--font-data);font-weight:700;color:var(--accent);">${escHtml(r.mdc_id || '—')}</div>
       <div class="inv-col text-body" data-label="System IDs" style="font-family:var(--font-data);color:var(--text-dim);display:flex;flex-direction:column;gap:2px;overflow:hidden;">${sysIds || '<span style="color:var(--border);">—</span>'}</div>
     </div>`;
@@ -21248,7 +21242,6 @@ async function openInventoryModal(id) {
       ${r.photo_url ? `<img src="${escHtml(r.photo_url)}" style="width:56px;height:56px;border-radius:var(--radius);object-fit:cover;border:1px solid var(--border);flex-shrink:0;" alt="Radio photo">` : ''}
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <div style="font-family:var(--font-data);font-size:24px;font-weight:700;color:var(--text-primary);">${escHtml(r.serial_number||'—')}</div>
-        ${r.alias ? `<span style="font-size:16px;color:var(--accent);">"${escHtml(r.alias)}"</span>` : ''}
         <span class="inv-status-chip ${r.status}">${INV_STATUS_LABELS[r.status]||r.status}</span>
         ${r.control_top_replaced ? `<span style="font-family:var(--font-data);font-size:12px;padding:2px 8px;border-radius:2px;background:rgba(30,136,229,0.12);color:var(--accent);border:1px solid rgba(30,136,229,0.3);">⟲ CONTROL TOP REPLACED</span>` : ''}
       </div>
@@ -21257,13 +21250,9 @@ async function openInventoryModal(id) {
       ${field('Radio Model',   r.radio_model)}
       ${field('Radio Band',    r.radio_band)}
       ${field('Agency',        r.agency)}
-      ${field('Assigned Unit', r.assigned_unit)}
-      ${field('Assigned Person', r.assigned_person)}
+      ${field('Assigned Unit / Person', r.assigned_unit || r.assigned_person)}
       ${field('CAD ID Display', r.cad_id_display)}
       ${field('Purchase Date', fmtDate(r.purchase_date))}
-      ${field('Firmware',        r.firmware_version)}
-      ${field('Codeplug',        r.codeplug_version)}
-      ${field('Last Programmed', fmtDate(r.last_programmed_date))}
     </div>
     ${r.notes ? `<div style="font-size:14px;color:var(--text-secondary);padding:10px 12px;background:var(--bg-deep);border-radius:var(--radius);line-height:1.6;margin-bottom:8px;">${escHtml(r.notes)}</div>` : ''}
     ${sysIdBlock}`;
@@ -21510,18 +21499,16 @@ async function openInventoryForm(id) {
     document.getElementById('invEditTitle').textContent = `Edit — ${r.serial_number}`;
     document.getElementById('ie-serial').value        = r.serial_number    || '';
     document.getElementById('ie-status').value        = r.status           || 'in-stock';
-    document.getElementById('ie-unit').value          = r.assigned_unit    || '';
-    document.getElementById('ie-person').value        = r.assigned_person  || '';
+    // Combined field — join both legacy columns if a record from before
+    // this change happens to have both populated, so nothing gets silently
+    // dropped just by opening the edit form.
+    document.getElementById('ie-unit').value          = [r.assigned_unit, r.assigned_person].filter(Boolean).join(' / ');
     document.getElementById('ie-emp-number').value    = r.emp_number       || '';
     checkInventoryEmpNumber();
     document.getElementById('ie-agency').value        = r.agency           || '';
     document.getElementById('ie-purchase-date').value = r.purchase_date    || '';
-    document.getElementById('ie-alias').value           = r.alias                 || '';
     renderIePhotoPreview(r.photo_url || null);
     document.getElementById('ie-cad-id-display').value  = r.cad_id_display        || '';
-    document.getElementById('ie-firmware').value        = r.firmware_version      || '';
-    document.getElementById('ie-codeplug').value        = r.codeplug_version      || '';
-    document.getElementById('ie-last-programmed').value = r.last_programmed_date  || '';
     document.getElementById('ie-notes').value         = r.notes            || '';
     document.getElementById('ie-control-top').checked = r.control_top_replaced || false;
     document.getElementById('ie-mdc-id').value = r.mdc_id    || '';
@@ -21538,9 +21525,9 @@ async function openInventoryForm(id) {
   } else {
     document.getElementById('invEditTitle').textContent = 'Add Radio';
     renderIePhotoPreview(null);
-    ['ie-serial','ie-agency','ie-unit','ie-person','ie-emp-number','ie-notes',
+    ['ie-serial','ie-agency','ie-unit','ie-emp-number','ie-notes',
      'ie-mdc-id','ie-larics','ie-ici','ie-cwirs','ie-cris',
-     'ie-alias','ie-cad-id-display','ie-firmware','ie-codeplug','ie-last-programmed'].forEach(fid => {
+     'ie-cad-id-display'].forEach(fid => {
       const el = document.getElementById(fid); if (el) el.value = '';
     });
     ['ie-larics-warn','ie-ici-warn','ie-cwirs-warn','ie-cris-warn','ie-mdc-id-dec'].forEach(wid => {
@@ -22340,15 +22327,10 @@ async function saveInventoryRecord() {
     radio_band:       document.getElementById('ie-band').value       || null,
     status:           document.getElementById('ie-status').value     || 'in-stock',
     assigned_unit:    document.getElementById('ie-unit').value.trim()   || null,
-    assigned_person:  document.getElementById('ie-person').value.trim() || null,
     emp_number:       empNumber || null,
     agency:           document.getElementById('ie-agency').value.trim()   || null,
     purchase_date:    document.getElementById('ie-purchase-date').value   || null,
-    alias:                document.getElementById('ie-alias').value.trim()          || null,
     cad_id_display:       document.getElementById('ie-cad-id-display').value.trim() || null,
-    firmware_version:     document.getElementById('ie-firmware').value.trim()       || null,
-    codeplug_version:     document.getElementById('ie-codeplug').value.trim()       || null,
-    last_programmed_date: document.getElementById('ie-last-programmed').value       || null,
     notes:            document.getElementById('ie-notes').value.trim()    || null,
     mdc_id:           mdcId,
     larics_id:        larics,
@@ -22360,6 +22342,10 @@ async function saveInventoryRecord() {
     updated_at:       new Date().toISOString(),
     agency_id:        agencyId(),
   };
+  // assigned_person, alias, firmware_version, codeplug_version, and
+  // last_programmed_date are no longer edited from this form — deliberately
+  // left out of the update payload (rather than nulled) so any legacy data
+  // already in those columns is left alone instead of being wiped on save.
   // Only included if the photo section was actually touched this
   // session — omitting the key entirely on an update means the
   // existing photo_url column value is left alone, not overwritten.
@@ -22378,8 +22364,8 @@ async function saveInventoryRecord() {
     const changed = [];
     if (prev) {
       [['serial_number','Serial'],['radio_model','Model'],['radio_band','Band'],
-       ['status','Status'],['assigned_unit','Unit'],
-       ['assigned_person','Person'],['agency','Agency'],
+       ['status','Status'],['assigned_unit','Unit/Person'],
+       ['agency','Agency'],
        ['control_top_replaced','Ctrl Top']
       ].forEach(([key,label]) => {
         if (String(prev[key]||'') !== String(row[key]||''))
@@ -22592,17 +22578,16 @@ function jumpToInventoryImport() {
 // exactly — same columns, same snake_case names, same raw status key
 // (not the display label) and Yes/No for the boolean field, so a file
 // exported here can be edited and fed straight back into Admin →
-// Import without a column mismatch. Import was extended to cover
-// Alias, Firmware, Codeplug, Last Programmed, and Control Top
-// Replaced rather than dropping them from this export, so both sides
-// now match at the fuller set instead of the smaller one.
+// Export mirrors the simplified inventory form — one combined
+// Assigned Unit/Person column and CAD ID Display, no separate alias,
+// firmware, codeplug, or last-programmed columns.
 function exportInventoryCSV() {
   if (!inventory.length) { alert('No inventory data to export.'); return; }
-  const header = ['serial_number','alias','radio_model','radio_band','status','assigned_unit','assigned_person','cad_id_display','emp_number','agency','purchase_date','firmware_version','codeplug_version','last_programmed_date','control_top_replaced','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'];
+  const header = ['serial_number','radio_model','radio_band','status','assigned_unit','cad_id_display','emp_number','agency','purchase_date','control_top_replaced','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'];
   const rows = inventory.map(r => [
-    r.serial_number||'', r.alias||'', r.radio_model||'', r.radio_band||'', r.status||'in-stock',
-    r.assigned_unit||'', r.assigned_person||'', r.cad_id_display||'', r.emp_number||'', r.agency||'',
-    r.purchase_date||'', r.firmware_version||'', r.codeplug_version||'', r.last_programmed_date||'',
+    r.serial_number||'', r.radio_model||'', r.radio_band||'', r.status||'in-stock',
+    r.assigned_unit || r.assigned_person || '', r.cad_id_display||'', r.emp_number||'', r.agency||'',
+    r.purchase_date||'',
     r.control_top_replaced ? 'Yes' : 'No',
     r.mdc_id||'', r.larics_id||'', r.ici_id||'', r.cwirs_id||'', r.cris_id||'',
     r.notes||''
@@ -23016,9 +23001,9 @@ const CSV_TEMPLATES = {
   },
   inventory: {
     filename: 'radio-inventory-template.csv',
-    headers: ['serial_number','alias','radio_model','radio_band','status','assigned_unit','assigned_person','cad_id_display','emp_number','agency','purchase_date','firmware_version','codeplug_version','last_programmed_date','control_top_replaced','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'],
-    sample: ['ABC123456','BC-1','APX8000','VHF','in-stock','Station 7','','BC-1','123456','LAFD','2023-01-15','R28.20.10','v14','2024-06-01','No','A1B2','LAR-0451','ICI-0451','CW-0451','CR-0451','Primary portable'],
-    note: '# status: in-stock | assigned | signed-out (Assigned to Person) | out-of-service | retired | dates: YYYY-MM-DD | mdc_id (LAC): hex format, 1-4 characters, 0-9 and A-E only — F is not a valid MDC1200 digit and will be rejected; shown as decimal throughout the app for reference (e.g. A1B2 = 41394 decimal) | cad_id_display: optional, how this radio displays in CAD | emp_number: exactly 6 digits | control_top_replaced: Yes or No',
+    headers: ['serial_number','radio_model','radio_band','status','assigned_unit','cad_id_display','emp_number','agency','purchase_date','control_top_replaced','mdc_id','larics_id','ici_id','cwirs_id','cris_id','notes'],
+    sample: ['ABC123456','APX8000','VHF','in-stock','Station 7','BC-1','123456','LAFD','2023-01-15','No','A1B2','LAR-0451','ICI-0451','CW-0451','CR-0451','Primary portable'],
+    note: '# status: in-stock | assigned | signed-out (Assigned to Person) | out-of-service | retired | dates: YYYY-MM-DD | mdc_id (LAC): hex format, 1-4 characters, 0-9 and A-E only — F is not a valid MDC1200 digit and will be rejected; shown as decimal throughout the app for reference (e.g. A1B2 = 41394 decimal) | assigned_unit: unit, location, or person name — whichever this radio is currently assigned to | cad_id_display: optional, how this radio displays in CAD | emp_number: exactly 6 digits | control_top_replaced: Yes or No',
   },
   parts: {
     filename: 'parts-import-template.csv',
@@ -26085,22 +26070,12 @@ if ('serviceWorker' in navigator) {
 
       <div class="form-row">
         <div class="form-field">
-          <label class="form-label">Alias <span style="font-weight:400;color:var(--text-dim);">short display name assigned to this radio</span></label>
-          <input class="form-input" id="ie-alias" placeholder="e.g. BC-1 Portable, Cache Radio 12">
+          <label class="form-label">Assigned Unit / Person</label>
+          <input class="form-input" id="ie-unit" placeholder="E51, Station 7, Main Cache, or a name if signed out…">
         </div>
         <div class="form-field">
           <label class="form-label">CAD ID Display <span style="font-weight:400;color:var(--text-dim);">optional</span></label>
           <input class="form-input" id="ie-cad-id-display" placeholder="How this radio displays in CAD">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-field">
-          <label class="form-label">Assigned Unit / Location</label>
-          <input class="form-input" id="ie-unit" placeholder="E51, Station 7, Main Cache…">
-        </div>
-        <div class="form-field">
-          <label class="form-label">Assigned Person</label>
-          <input class="form-input" id="ie-person" placeholder="Name if signed out">
         </div>
       </div>
 
@@ -26157,24 +26132,6 @@ if ('serviceWorker' in navigator) {
         </div>
         <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">For specialty systems beyond the 5 above — each one still gets full RID Manager range tracking.</div>
         <div id="ie-extra-ids-list"></div>
-      </div>
-
-      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--bg-deep);margin-bottom:6px;">
-        <div style="font-family:var(--font-data);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">⚙ Configuration</div>
-        <div class="form-row triple">
-          <div class="form-field">
-            <label class="form-label">Firmware Version</label>
-            <input class="form-input" id="ie-firmware" placeholder="e.g. R26.00.00" style="font-family:var(--font-data);">
-          </div>
-          <div class="form-field">
-            <label class="form-label">Codeplug Version</label>
-            <input class="form-input" id="ie-codeplug" placeholder="e.g. v14-South" style="font-family:var(--font-data);">
-          </div>
-          <div class="form-field">
-            <label class="form-label">Last Programmed</label>
-            <input class="form-input" id="ie-last-programmed" type="date">
-          </div>
-        </div>
       </div>
 
       <div class="form-row">
