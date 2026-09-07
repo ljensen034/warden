@@ -6093,6 +6093,16 @@
           <span class="toggle-slider"></span>
         </label>
       </div>
+      <div class="form-toggle-row">
+        <div>
+          <div class="form-toggle-title">Exclude from Recommend Channels</div>
+          <div class="form-toggle-desc">Never suggested by the 🎯 recommendation engine, regardless of score</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="f-exclude-recommend">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeAddModal()">Cancel</button>
@@ -6637,6 +6647,7 @@ function rowToChannel(row) {
     updatedBy:     row.updated_by  || '',
     updatedAt:     row.updated_at  || '',
     conflictCheck: row.conflict_check !== false,
+    excludeFromRecommendations: row.exclude_from_recommendations === true,
   };
 }
 
@@ -8727,6 +8738,8 @@ function openAddModal() {
   populateTroDropdown();
   const cc = document.getElementById('f-conflict-check');
   if (cc) cc.checked = true;
+  const excl = document.getElementById('f-exclude-recommend');
+  if (excl) excl.checked = false;
   document.getElementById('conflictWarning')?.remove();
   document.getElementById('addModal').classList.add('open');
 }
@@ -8759,6 +8772,8 @@ function openEditModal(id) {
   onToneInput('tx');
   const cc = document.getElementById('f-conflict-check');
   if (cc) cc.checked = ch.conflictCheck !== false;
+  const excl = document.getElementById('f-exclude-recommend');
+  if (excl) excl.checked = ch.excludeFromRecommendations === true;
   document.getElementById('conflictWarning')?.remove();
   document.getElementById('addModal').classList.add('open');
 }
@@ -8807,6 +8822,7 @@ async function saveChannel() {
     warning:         document.getElementById('f-warning').value.trim()    || null,
     notes:           document.getElementById('f-notes').value.trim()     || '',
     conflict_check:  conflictCheck,
+    exclude_from_recommendations: document.getElementById('f-exclude-recommend')?.checked || false,
     updated_by:      who,
     updated_at:      new Date().toISOString(),
   };
@@ -8873,9 +8889,11 @@ async function saveChannel() {
 // ICS 205
 // ─────────────────────────────────────────────
 let ics205CurrentIncidentId = null; // tracks which incident (if any) the open ICS 205 preview is scoped to
+let ics205CurrentCprId      = null; // same, for a comm plan request instead of an incident
 
-function openICS205(channelIds, incidentId) {
+function openICS205(channelIds, incidentId, cprId) {
   ics205CurrentIncidentId = incidentId || null;
+  ics205CurrentCprId      = cprId || null;
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const timeStr = `${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')} UTC`;
@@ -8883,19 +8901,36 @@ function openICS205(channelIds, incidentId) {
   // Resolve which channels to include — explicit ID list, or an incident's linked channels, or the full plan
   let scopedChannels = channels;
   let inc = null;
+  let cpr = null;
   if (incidentId) {
     inc = incidents.find(i => String(i.id) === String(incidentId));
     const ids = (inc?.channel_ids || []).map(String);
+    scopedChannels = channels.filter(c => ids.includes(String(c.id)));
+  } else if (cprId) {
+    cpr = commPlanReqs.find(r => String(r.id) === String(cprId));
+    const ids = (cpr?.approved_channel_ids || []).map(String);
     scopedChannels = channels.filter(c => ids.includes(String(c.id)));
   } else if (channelIds && channelIds.length) {
     const idSet = new Set(channelIds.map(String));
     scopedChannels = channels.filter(c => idSet.has(String(c.id)));
   }
 
-  const incidentName    = inc?.name      || '';
-  const incidentLocation = inc?.location  || '';
-  const opPeriod          = inc?.op_period || '';
-  const preparedBy         = currentUser?.name || '';
+  const fmtCprOpPeriod = r => {
+    if (!r?.op_start_date) return '';
+    const fmtOne = (d, t) => {
+      const dateStr = new Date(d + 'T00:00:00').toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'});
+      const timeStr = t ? new Date(`2000-01-01T${t}`).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
+      return `${dateStr}${timeStr ? ' ' + timeStr : ''}`;
+    };
+    const start = fmtOne(r.op_start_date, r.op_start_time);
+    const end   = r.op_end_date ? fmtOne(r.op_end_date, r.op_end_time) : '';
+    return end ? `${start} – ${end}` : start;
+  };
+
+  const incidentName     = inc?.name      || cpr?.event_name      || '';
+  const incidentLocation = inc?.location  || cpr?.location_name || cpr?.location_address || '';
+  const opPeriod         = inc?.op_period || fmtCprOpPeriod(cpr) || '';
+  const preparedBy       = currentUser?.name || '';
 
   // Build exactly 16 rows — LACoFD ICS 205 form has 16 fixed channel slots, blank rows if unused
   const ROW_COUNT = 16;
@@ -8929,7 +8964,7 @@ function openICS205(channelIds, incidentId) {
     </tr>`;
   }).join('');
 
-  document.getElementById('ics205Title').textContent = inc ? `ICS 205 — ${inc.name}` : 'ICS 205 — Incident Radio Communications Plan';
+  document.getElementById('ics205Title').textContent = incidentName ? `ICS 205 — ${incidentName}` : 'ICS 205 — Incident Radio Communications Plan';
 
   document.getElementById('ics205Body').innerHTML = `
     <div style="padding:16px;">
@@ -8976,7 +9011,7 @@ function openICS205(channelIds, incidentId) {
           <td colspan="5"></td>
           <td class="lac205-footer-label" colspan="7">
             County: <strong>LAC</strong> &nbsp;&nbsp; State: <strong>CA</strong> &nbsp;&nbsp;&nbsp;&nbsp;
-            Latitude: ${escHtml(inc?.lat || '')} &nbsp;&nbsp; Longitude: ${escHtml(inc?.lon || '')}
+            Latitude: ${escHtml(inc?.lat || cpr?.location_lat || '')} &nbsp;&nbsp; Longitude: ${escHtml(inc?.lon || cpr?.location_lon || '')}
             ${incidentLocation ? `&nbsp;&nbsp;&nbsp;(${escHtml(incidentLocation)})` : ''}
           </td>
         </tr>
@@ -9029,6 +9064,9 @@ function printICS205() {
   if (ics205CurrentIncidentId) {
     const inc = incidents.find(i => String(i.id) === String(ics205CurrentIncidentId));
     logEvent('incident', 'ICS 205 Generated', `${inc?.name || 'Incident'} — communications plan printed/exported`, { incident: inc?.name, incidentId: ics205CurrentIncidentId });
+  } else if (ics205CurrentCprId) {
+    const r = commPlanReqs.find(x => String(x.id) === String(ics205CurrentCprId));
+    logEvent('system', 'ICS 205 Generated', `${r?.event_name || 'Comm Plan Request'} — communications plan printed/exported`, { request_id: ics205CurrentCprId });
   } else {
     logEvent('channel', 'ICS 205 Generated', 'Full channel plan ICS 205 printed/exported', {});
   }
@@ -17088,6 +17126,7 @@ function rowToTalkgroup(row) {
     priority:   row.priority    || 'Normal',
     date:       row.op_date     || '',
     notes:      row.notes       || '',
+    excludeFromRecommendations: row.exclude_from_recommendations === true,
   };
 }
 
@@ -17102,6 +17141,7 @@ function talkgroupToRow(tg, who) {
     priority:   tg.priority    || 'Normal',
     op_date:    tg.date        || null,
     notes:      tg.notes       || '',
+    exclude_from_recommendations: tg.excludeFromRecommendations || false,
     updated_by: who            || currentUser?.name || 'Unknown',
     updated_at: new Date().toISOString(),
   };
@@ -17221,6 +17261,7 @@ function openTalkgroupModal(id) {
     document.getElementById('tg-date').value           = tg.date || '';
     document.getElementById('tg-notes-inline').value   = tg.notes || '';
     document.getElementById('tg-notes').value          = tg.notes || '';
+    document.getElementById('tg-exclude-recommend').checked = tg.excludeFromRecommendations === true;
     const delBtn = document.getElementById('tg-delete-btn');
     if (delBtn) delBtn.style.display = 'inline-flex';
   } else {
@@ -17230,6 +17271,7 @@ function openTalkgroupModal(id) {
     document.getElementById('tg-encryption').value = 'None';
     document.getElementById('tg-priority').value   = 'Normal';
     document.getElementById('tg-date').value       = todayPT;
+    document.getElementById('tg-exclude-recommend').checked = false;
     const delBtn = document.getElementById('tg-delete-btn');
     if (delBtn) delBtn.style.display = 'none';
   }
@@ -17269,6 +17311,7 @@ async function saveTalkgroup() {
     priority:   document.getElementById('tg-priority').value,
     date:       document.getElementById('tg-date').value || '',
     notes,
+    excludeFromRecommendations: document.getElementById('tg-exclude-recommend')?.checked || false,
   }, who);
 
   if (tgEditingId) {
@@ -17546,6 +17589,7 @@ async function recommendChannels(params) {
 
   const candidates = channels
     .filter(ch => ch.status === 'available') // hard requirement — never recommend a channel that isn't free right now
+    .filter(ch => !ch.excludeFromRecommendations) // per-channel opt-out, set in Edit Channel
     .map(ch => {
       const breakdown = [];
       let score = 0;
@@ -17632,6 +17676,7 @@ async function recommendChannels(params) {
 async function recommendTalkgroups({ startISO, endISO, priority = 'Normal', excludeId = null, excludeType = null, limit = 5 }) {
   const candidates = talkgroups
     .filter(tg => tg.status === 'available')
+    .filter(tg => !tg.excludeFromRecommendations) // per-talkgroup opt-out, set in Edit Talkgroup
     .map(tg => {
       const breakdown = [];
       let score = 0;
@@ -24815,6 +24860,8 @@ function resetPublicForm() {
 // ── Admin side: list, filter, detail, status changes, convert to reservation ──
 let commPlanReqs   = [];
 let cprViewingId    = null;
+let cprLoadedNotes  = ''; // snapshot of review_notes as loaded, so closing the modal can tell if anything unsaved would be lost
+let cprLoadedApprovedIds = ''; // snapshot of approved_channel_ids (joined) as loaded, same purpose
 
 async function loadCommPlanReqs() {
   try {
@@ -24965,11 +25012,77 @@ function openCprModal(id) {
     </div>` : ''}
   `;
 
+  // Approved Channels checklist — pre-check anything already saved as
+  // approved, or (for a request never reviewed yet) anything whose
+  // designator text-matches what the requestor typed in as free text.
+  const sel = document.getElementById('cpr-approved-channels');
+  if (sel) {
+    const approvedIds = new Set((r.approved_channel_ids || []).map(String));
+    const requestedLower = (r.requested_channels || []).map(c => c.toLowerCase());
+    const eligible = channels.filter(c => c.status !== 'retired');
+    sel.innerHTML = eligible.map(c => {
+      const label = `${c.designator}${c.function && c.function !== '—' ? ' — ' + c.function : ''} (${c.freq} MHz)`;
+      const preselect = approvedIds.size
+        ? approvedIds.has(String(c.id))
+        : requestedLower.some(rc => rc.includes(c.designator.toLowerCase()) || c.designator.toLowerCase().includes(rc));
+      return `<option value="${c.id}"${preselect ? ' selected' : ''}>${escHtml(label)}</option>`;
+    }).join('');
+    renderChecklistFromSelect('cpr-approved-channels', 'cpr-approved-channels-checklist');
+  }
+  cprLoadedApprovedIds = getCprApprovedChannelIds().join(',');
+
   document.getElementById('cpr-review-notes').value = r.review_notes || '';
+  cprLoadedNotes = r.review_notes || '';
   document.getElementById('cprModal').classList.add('open');
 }
 
+function getCprApprovedChannelIds() {
+  const sel = document.getElementById('cpr-approved-channels');
+  if (!sel) return [];
+  return [...sel.selectedOptions].map(o => o.value);
+}
+
+// Saves the internal review notes AND the approved-channels selection
+// together, without changing the request's status — for the common case
+// of building out the plan on a request that's still pending, or coming
+// back to adjust it after it's already been reviewed/denied/fulfilled.
+async function saveCprNotes() {
+  const r = commPlanReqs.find(x => String(x.id) === String(cprViewingId));
+  if (!r) return;
+  const reviewNotes = document.getElementById('cpr-review-notes').value.trim();
+  const approvedIds = getCprApprovedChannelIds();
+
+  const { error } = await sb.from('comm_plan_requests').update({
+    review_notes: reviewNotes || null,
+    approved_channel_ids: approvedIds,
+    reviewed_by:  currentUser?.name || 'Unknown',
+    reviewed_at:  new Date().toISOString(),
+  }).eq('id', cprViewingId);
+  if (error) { alert('Error saving: ' + error.message); return; }
+
+  cprLoadedNotes = reviewNotes;
+  cprLoadedApprovedIds = approvedIds.join(',');
+  logEvent('system', 'Comm Plan Request Notes Saved', `${r.event_name} — ${r.requestee_name}`, { request_id: cprViewingId });
+  await loadCommPlanReqs();
+  pushNotification('available', '✓ Saved');
+}
+
 function closeCprModal() {
+  // Don't silently lose notes or channel picks someone made but never
+  // explicitly saved — persist them on the way out rather than making
+  // "Close" a trap.
+  const current = document.getElementById('cpr-review-notes')?.value.trim() || '';
+  const currentApproved = getCprApprovedChannelIds();
+  const notesChanged    = cprViewingId && current !== (cprLoadedNotes || '');
+  const approvedChanged = cprViewingId && currentApproved.join(',') !== (cprLoadedApprovedIds || '');
+  if (notesChanged || approvedChanged) {
+    sb.from('comm_plan_requests').update({
+      review_notes: current || null,
+      approved_channel_ids: currentApproved,
+      reviewed_by:  currentUser?.name || 'Unknown',
+      reviewed_at:  new Date().toISOString(),
+    }).eq('id', cprViewingId).then(() => loadCommPlanReqs());
+  }
   document.getElementById('cprModal').classList.remove('open');
   cprViewingId = null;
 }
@@ -24978,16 +25091,20 @@ async function setCprStatus(status) {
   const r = commPlanReqs.find(x => String(x.id) === String(cprViewingId));
   if (!r) return;
   const reviewNotes = document.getElementById('cpr-review-notes').value.trim();
+  const approvedIds = getCprApprovedChannelIds();
 
   const { error } = await sb.from('comm_plan_requests').update({
     status,
     review_notes: reviewNotes || null,
+    approved_channel_ids: approvedIds,
     reviewed_by:  currentUser?.name || 'Unknown',
     reviewed_at:  new Date().toISOString(),
   }).eq('id', cprViewingId);
 
   if (error) { alert('Error: ' + error.message); return; }
 
+  cprLoadedNotes = reviewNotes;
+  cprLoadedApprovedIds = approvedIds.join(',');
   logEvent('system', `Comm Plan Request ${status === 'denied' ? 'Denied' : 'Reviewed'}`,
     `${r.event_name} — ${r.requestee_name}`, { request_id: cprViewingId });
 
@@ -24996,10 +25113,65 @@ async function setCprStatus(status) {
   renderCommPlanReqs();
 }
 
+// Generates the ICS 205 scoped to this request's Approved Channels list —
+// saves first (so the plan reflects whatever's currently checked, even if
+// never explicitly hit Save) then opens the same preview/print flow every
+// other ICS 205 in the app uses.
+async function generateCprICS205() {
+  const approvedIds = getCprApprovedChannelIds();
+  if (!approvedIds.length) {
+    if (!(await themedConfirm('No channels are checked under Approved Channels — generate an empty ICS 205 anyway?'))) return;
+  }
+  await saveCprNotes();
+  openICS205(null, null, cprViewingId);
+}
+
+// Realistically a mailto: link, not a sent email — WARDEN's email hook
+// (Admin → Notifications) only delivers to the comms staff's own configured
+// address for internal alerts, not to arbitrary public requestors. This
+// opens the reviewer's own mail client pre-filled with the approved plan
+// in plain text, so at minimum the content reaches the requestor even
+// without an attachment; the printed/PDF ICS 205 can be attached manually.
+function emailCprRequestor() {
+  const r = commPlanReqs.find(x => String(x.id) === String(cprViewingId));
+  if (!r) return;
+  if (!r.requestee_email) { alert('No requestor email on file for this request.'); return; }
+
+  const approvedIds = new Set(getCprApprovedChannelIds());
+  const approved = channels.filter(c => approvedIds.has(String(c.id)));
+
+  const subject = `Communications Plan — ${r.event_name || 'Your Request'}`;
+  const lines = [
+    `Hi ${r.requestee_name || ''},`.trim() + ',',
+    '',
+    `Here is the approved communications plan for ${r.event_name || 'your event'}:`,
+    '',
+    ...(approved.length
+      ? approved.map(c => `• ${c.designator} — ${c.function && c.function !== '—' ? c.function : 'General'} — ${c.freq} MHz`)
+      : ['(No channels have been approved yet.)']),
+    '',
+    'A full ICS 205 Incident Radio Communications Plan is attached/enclosed separately.',
+    '',
+    'Thank you,',
+    currentUser?.name || 'Communications Unit',
+  ];
+  const body = lines.join('\n');
+
+  const mailto = `mailto:${encodeURIComponent(r.requestee_email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+  logEvent('system', 'Comm Plan Request Emailed', `${r.event_name} — mail client opened for ${r.requestee_email}`, { request_id: cprViewingId });
+}
+
 // ── Convert request to a reservation — pre-fills the reservation modal ──
 function convertCprToReservation() {
   const r = commPlanReqs.find(x => String(x.id) === String(cprViewingId));
   if (!r) return;
+
+  // Grab the Approved Channels selection before the modal closes and resets
+  // it — falling back to whatever was already saved if nothing's checked
+  // live (e.g. jumping straight to Convert without opening the checklist).
+  const liveApproved = getCprApprovedChannelIds();
+  const approvedIds = liveApproved.length ? liveApproved : (r.approved_channel_ids || []).map(String);
 
   closeCprModal();
   switchMainTab('schedule');
@@ -25037,15 +25209,18 @@ function convertCprToReservation() {
         document.getElementById('sr-street').value = r.location_name;
       }
 
-      // If a channel was chosen via the 🎯 Recommend Channels engine, pre-select it
-      if (window._cprRecommendedChannelId) {
+      // Pre-select every Approved Channel (or, absent any, whatever single
+      // channel was chosen directly via the 🎯 Recommend Channels engine).
+      const preselectIds = new Set(approvedIds.map(String));
+      if (window._cprRecommendedChannelId) preselectIds.add(String(window._cprRecommendedChannelId));
+      if (preselectIds.size) {
         const sel = document.getElementById('sr-channel');
         if (sel) {
-          [...sel.options].forEach(o => { o.selected = String(o.value) === String(window._cprRecommendedChannelId); });
+          [...sel.options].forEach(o => { o.selected = preselectIds.has(String(o.value)); });
           renderChecklistFromSelect('sr-channel', 'sr-channel-checklist');
         }
-        window._cprRecommendedChannelId = null;
       }
+      window._cprRecommendedChannelId = null;
 
       checkTimeConflicts();
     }, 150);
@@ -25054,6 +25229,7 @@ function convertCprToReservation() {
   // Mark the request as fulfilled but keep it visible for audit trail
   sb.from('comm_plan_requests').update({
     status: 'fulfilled',
+    approved_channel_ids: approvedIds,
     reviewed_by: currentUser?.name || 'Unknown',
     reviewed_at: new Date().toISOString(),
   }).eq('id', r.id).then(async () => {
@@ -25453,6 +25629,16 @@ if ('serviceWorker' in navigator) {
         <div class="form-field">
           <textarea class="form-textarea" id="tg-notes" placeholder="Patch info, scan lists, special instructions…"></textarea>
         </div>
+      </div>
+      <div class="form-toggle-row">
+        <div>
+          <div class="form-toggle-title">Exclude from Recommend Channels</div>
+          <div class="form-toggle-desc">Never suggested by the 🎯 recommendation engine, regardless of score</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="tg-exclude-recommend">
+          <span class="toggle-slider"></span>
+        </label>
       </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;row-gap:8px;">
@@ -26339,6 +26525,13 @@ if ('serviceWorker' in navigator) {
       <div id="cprDetailSection"></div>
 
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
+        <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Approved Channels</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">Checked here becomes the ICS 205 sent back to the requestor — pre-checked against what they asked for, but yours to adjust.</div>
+        <select multiple id="cpr-approved-channels" style="display:none;"></select>
+        <div id="cpr-approved-channels-checklist" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);"></div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
         <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Internal Review Notes</div>
         <div class="form-row single">
           <div class="form-field">
@@ -26349,12 +26542,15 @@ if ('serviceWorker' in navigator) {
     </div>
     <div class="modal-footer" style="flex-shrink:0;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn-secondary" style="font-size:14px;" onclick="saveCprNotes()">💾 Save</button>
         <button class="btn-secondary" style="font-size:14px;" onclick="setCprStatus('reviewed')">Mark Reviewed</button>
         <button class="btn-secondary" style="font-size:14px;color:var(--status-active);" onclick="setCprStatus('denied')">Deny</button>
       </div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="closeCprModal()">Close</button>
         <button class="btn-secondary" onclick="openRecommendChannels('cpr', cprViewingId)">🎯 Recommend Channels</button>
+        <button class="btn-secondary" onclick="generateCprICS205()">📄 ICS 205</button>
+        <button class="btn-secondary" onclick="emailCprRequestor()">✉ Email Requestor</button>
         <button class="btn-primary" onclick="convertCprToReservation()">→ Convert to Reservation</button>
       </div>
     </div>
