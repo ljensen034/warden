@@ -22870,15 +22870,33 @@ async function renderAdminRadioConfig() {
 async function renderTroZoneList() {
   const el = document.getElementById('troZoneList');
   if (!el) return;
-  const { data } = await sb.from('tro_zones').select('*')
+  let { data } = await sb.from('tro_zones').select('*')
     .eq('agency_id', currentAgency?.id)
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true });
-  const items = data || [];
+  let items = data || [];
+
+  // First time this agency has ever opened this panel — seed the 9
+  // built-in zone names as real, editable rows instead of just showing
+  // them as static fallback text. Once seeded, they're ordinary rows:
+  // addable to, deletable, reorderable — same as Channel Functions —
+  // rather than a separate "defaults" mode that vanishes the instant a
+  // custom zone gets added.
+  if (!items.length) {
+    const defaults = ['COUNTYWIDE UHF','COUNTYWIDE VHF','SOUTH','CENTRAL','SGV','NORTH','LARTCS UHF','LARTCS VHF','LARTCS 800'];
+    const seedRows = defaults.map((name, i) => ({ name, agency_id: currentAgency?.id, sort_order: i }));
+    const { error: seedErr } = await sb.from('tro_zones').insert(seedRows);
+    if (!seedErr) {
+      const refetch = await sb.from('tro_zones').select('*')
+        .eq('agency_id', currentAgency?.id)
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true });
+      items = refetch.data || [];
+    }
+  }
 
   if (!items.length) {
-    el.innerHTML = '<div style="color:var(--text-dim);font-size:14px;margin-bottom:8px;">No custom zones — using defaults.<br>Add zones to override.</div>'
-      + defaultTroZoneRows();
+    el.innerHTML = '<div style="color:var(--text-dim);font-size:14px;">No zones yet.</div>';
     return;
   }
 
@@ -22891,13 +22909,6 @@ async function renderTroZoneList() {
       <span style="font-family:var(--font-data);font-size:14px;color:var(--text-primary);flex:1;">${escHtml(z.name)}</span>
       <button onclick="deleteTroZone('${z.id}','${escHtml(z.name)}')" style="background:none;border:none;color:var(--status-active);cursor:pointer;font-size:16px;padding:0 4px;" title="Delete">✕</button>
     </div>`).join('');
-}
-
-function defaultTroZoneRows() {
-  return '<div style="margin-top:6px;">'
-    + ['COUNTYWIDE UHF','COUNTYWIDE VHF','SOUTH','CENTRAL','SGV','NORTH','LARTCS UHF','LARTCS VHF','LARTCS 800']
-      .map(z => `<div style="font-family:var(--font-data);font-size:14px;color:var(--text-dim);padding:3px 0;">${z}</div>`).join('')
-    + '</div>';
 }
 
 async function addTroZone() {
