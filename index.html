@@ -133,7 +133,7 @@
   }
 
   /* ── MODE FONT IMPORTS ── */
-  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
   /* ═══════════════════════════════════════════════════════════
      MODE SYSTEM — independent of Theme (color). Themes control
@@ -268,6 +268,122 @@
   [data-mode="field"] .stat-label { font-size: 14px; font-weight: 600; }
   [data-mode="field"] .mobile-nav-btn { min-height: 68px; }
   [data-mode="field"] .mobile-nav-btn .nav-icon { font-size: 26px; }
+
+  /* ── MODE: CALM — spacious, minimal, Apple/Notion-style finish. Same
+     list/row layout and field density as Standard — nothing hidden, no
+     card-grid restructuring like Modern Ops does — just softer shapes,
+     a quieter type-forward feel, and real room to breathe. Meant to read
+     less like a dispatch console and more like an everyday, friendly
+     application, without changing what information is on screen. ── */
+  [data-mode="calm"] {
+    --radius: 12px;
+    --font-ui:   'Inter', sans-serif;
+    --font-data: 'Inter', sans-serif;
+  }
+  [data-mode="calm"] body { letter-spacing: 0.01em; }
+
+  /* Rows keep the exact same list structure and headers stay visible —
+     just softer dividers, more vertical room, and a gentle hover instead
+     of a hard colored bar. */
+  [data-mode="calm"] .channel-row,
+  [data-mode="calm"] .inv-row,
+  [data-mode="calm"] .res-row,
+  [data-mode="calm"] .part-row,
+  [data-mode="calm"] .tg-row {
+    padding-top: 12px !important; padding-bottom: 12px !important;
+    border-left: none !important;
+    transition: background 150ms ease;
+  }
+  [data-mode="calm"] .channel-row:hover,
+  [data-mode="calm"] .inv-row:hover,
+  [data-mode="calm"] .res-row:hover,
+  [data-mode="calm"] .part-row:hover,
+  [data-mode="calm"] .tg-row:hover {
+    background: var(--bg-hover) !important;
+    border-radius: 10px;
+  }
+  [data-mode="calm"] .channel-grid-header,
+  [data-mode="calm"] .inv-grid-header,
+  [data-mode="calm"] .res-grid-header,
+  [data-mode="calm"] .admin-ch-grid-header {
+    font-weight: 500 !important; letter-spacing: 0.02em !important; text-transform: none !important;
+  }
+
+  /* Status pills already use soft tinted backgrounds with semantic colors
+     underneath — kept exactly as-is for correctness. Only the shape and
+     shoutiness of the text soften here: full pill radius, no all-caps,
+     no heavy tracking. */
+  [data-mode="calm"] .status-pill,
+  [data-mode="calm"] .inv-status-chip,
+  [data-mode="calm"] .cpr-status-chip,
+  [data-mode="calm"] .part-status-chip,
+  [data-mode="calm"] .res-pill,
+  [data-mode="calm"] .sched-status-chip {
+    border-radius: 20px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  /* Buttons — gentle radius, no shouty uppercase/tracking, soft lift
+     on the primary action instead of a flat block of color */
+  [data-mode="calm"] .btn-primary,
+  [data-mode="calm"] .btn-secondary,
+  [data-mode="calm"] .btn-danger {
+    border-radius: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+  [data-mode="calm"] .btn-primary { box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+
+  /* Inputs — roomier and rounder */
+  [data-mode="calm"] .form-input,
+  [data-mode="calm"] .form-select,
+  [data-mode="calm"] .form-textarea,
+  [data-mode="calm"] .search-input {
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+  }
+  [data-mode="calm"] .form-label {
+    text-transform: none !important;
+    letter-spacing: 0.01em !important;
+    font-weight: 500 !important;
+  }
+
+  /* Modals and landing cards — generous radius and a soft shadow instead
+     of a hard-edged console panel */
+  [data-mode="calm"] .modal {
+    border-radius: 20px !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+  [data-mode="calm"] .modal-title {
+    font-weight: 600 !important; letter-spacing: 0 !important; text-transform: none !important;
+  }
+  [data-mode="calm"] .module-card {
+    border-radius: 16px !important;
+    padding: 26px !important;
+  }
+  [data-mode="calm"] .module-card:hover { transform: translateY(-3px); }
+
+  /* Dashboard stat cells — a quiet rounded card instead of a flat cell */
+  [data-mode="calm"] .stat-cell {
+    border-radius: 14px !important;
+    padding: 14px 18px !important;
+  }
+  [data-mode="calm"] .stat-count { font-weight: 600 !important; letter-spacing: 0 !important; }
+  [data-mode="calm"] .stat-label { font-weight: 400 !important; letter-spacing: 0.02em !important; text-transform: none !important; }
+
+  /* Topbar — a touch more air, softer presence */
+  [data-mode="calm"] .topbar { padding: 0 24px !important; }
+
+  /* Key identifiers (channel designators, trigger IDs, resource names) —
+     reads like a normal app label instead of a tracked-out radio readout */
+  [data-mode="calm"] .ch-designator,
+  [data-mode="calm"] .trigger-id,
+  [data-mode="calm"] .res-name {
+    letter-spacing: 0 !important; font-weight: 600 !important;
+  }
 
   /* ── THEME SWITCHER UI ── */
   .theme-switcher {
@@ -4419,6 +4535,13 @@
         </div>
         <span class="theme-check" style="display:none;" id="mcheck-field">✓</span>
       </div>
+      <div class="theme-option mode-option" data-mode="calm" onclick="setMode('calm',this)">
+        <div class="theme-option-info">
+          <div class="theme-option-name">Calm Mode</div>
+          <div class="theme-option-desc">Spacious, minimal, everyday-app feel — same data, quieter finish</div>
+        </div>
+        <span class="theme-check" style="display:none;" id="mcheck-calm">✓</span>
+      </div>
     </div>
   </div>
   <div class="topbar-user" id="topbarUser" style="margin-left:4px;"></div>
@@ -8449,25 +8572,56 @@ function bulkExportICS205() {
 }
 
 // ── Bulk Edit Modal ──
+// Bulk Edit Channels — each field starts disabled (native `disabled`
+// attribute, not pointer-events:none) until its checkbox is checked, so
+// "Only checked fields will be applied" is enforced by making the field
+// itself genuinely unusable, not just dimmed. Clicking directly into a
+// still-locked field auto-enables it instead of the click silently
+// going nowhere — pointer-events:none previously ate those clicks with
+// no feedback at all, which is exactly what "can't type or select"
+// looks like from the outside.
+function bulkEditSetFieldEnabled(prefix, enabled) {
+  const wrap = document.getElementById(`bulkEdit-${prefix}-field`);
+  if (wrap) {
+    // Cosmetic dimming only — deliberately NOT setting the native `disabled`
+    // attribute on the actual inputs/selects. A disabled form control never
+    // dispatches click/focus/input events at all (not even bubbled to a
+    // parent), so a field that started disabled could never be clicked or
+    // typed into in the first place. Whether a field actually applies is
+    // gated by the checkbox state alone, read at Apply time.
+    wrap.style.opacity = enabled ? '1' : '0.4';
+  }
+  const cb = document.getElementById(`bulkEdit-${prefix}-enabled`);
+  if (cb) cb.checked = enabled;
+}
+
+function bulkEditAutoEnable(prefix) {
+  const cb = document.getElementById(`bulkEdit-${prefix}-enabled`);
+  if (cb && !cb.checked) bulkEditSetFieldEnabled(prefix, true);
+}
+
 function openBulkEditModal() {
   if (!bulkSelectedChannels.size) return;
-  // Reset all fields to unchecked / empty
-  ['status', 'activefor', 'agency', 'function', 'tro'].forEach(f => {
-    const cb = document.getElementById(`bulkEdit-${f}-enabled`);
-    const field = document.getElementById(`bulkEdit-${f}-field`);
-    if (cb) cb.checked = false;
-    if (field) { field.style.opacity = '0.4'; field.style.pointerEvents = 'none'; }
-  });
+  // Reset all fields to unchecked / disabled
+  ['status', 'activefor', 'agency', 'function', 'tro'].forEach(f => bulkEditSetFieldEnabled(f, false));
   document.querySelectorAll('input[name="bulkEditStatus"]').forEach(r => r.checked = false);
   document.getElementById('bulkEdit-activefor').value = '';
   document.getElementById('bulkEdit-agency').value    = '';
-  document.getElementById('bulkEdit-tro').value       = '';
 
   // Populate function dropdown from the agency's configured list
   const funcSel = document.getElementById('bulkEdit-function');
   if (funcSel) {
     funcSel.innerHTML = '<option value="">— Select function —</option>' +
       channelFunctions.map(f => `<option value="${escHtml(f)}">${escHtml(f)}</option>`).join('');
+  }
+
+  // Populate TRO dropdown from the agency's actual configured zones
+  // (TRO_ZONES) rather than a hardcoded list that goes stale the moment
+  // someone customizes zones in Admin → Radio Config.
+  const troSel = document.getElementById('bulkEdit-tro');
+  if (troSel) {
+    troSel.innerHTML = '<option value="">— None / Clear —</option>' +
+      TRO_ZONES.map(z => `<option value="${escHtml(z)}">${escHtml(z)}</option>`).join('');
   }
 
   document.getElementById('bulkEditCount').textContent = bulkSelectedChannels.size;
@@ -9720,6 +9874,7 @@ const MODES = {
   refined:  { icon: '◈',  label: 'Refined Console' },
   modern:   { icon: '◍',  label: 'Modern Ops' },
   field:    { icon: '◼',  label: 'Field / Glance Mode' },
+  calm:     { icon: '○',  label: 'Calm Mode' },
 };
 
 let currentTheme = 'night';
@@ -27316,21 +27471,21 @@ if ('serviceWorker' in navigator) {
       <!-- Status field -->
       <div style="margin-bottom:16px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
-          <input type="checkbox" id="bulkEdit-status-enabled" onchange="document.getElementById('bulkEdit-status-field').style.opacity=this.checked?'1':'0.4';document.getElementById('bulkEdit-status-field').style.pointerEvents=this.checked?'':'none';" style="width:16px;height:16px;accent-color:var(--accent);">
+          <input type="checkbox" id="bulkEdit-status-enabled" onchange="bulkEditSetFieldEnabled('status', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
           <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Status</span>
         </label>
-        <div id="bulkEdit-status-field" style="opacity:0.4;pointer-events:none;">
+        <div id="bulkEdit-status-field" style="opacity:0.4;">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);flex:1;min-width:120px;">
-              <input type="radio" name="bulkEditStatus" value="available" style="accent-color:var(--status-available);">
+              <input type="radio" name="bulkEditStatus" value="available" onclick="bulkEditAutoEnable('status')" style="accent-color:var(--status-available);">
               <span class="status-pill available" style="font-size:14px;">Available</span>
             </label>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);flex:1;min-width:120px;">
-              <input type="radio" name="bulkEditStatus" value="active" style="accent-color:var(--status-active);">
+              <input type="radio" name="bulkEditStatus" value="active" onclick="bulkEditAutoEnable('status')" style="accent-color:var(--status-active);">
               <span class="status-pill active" style="font-size:14px;">In Use</span>
             </label>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);flex:1;min-width:120px;">
-              <input type="radio" name="bulkEditStatus" value="reserved" style="accent-color:var(--status-reserved);">
+              <input type="radio" name="bulkEditStatus" value="reserved" onclick="bulkEditAutoEnable('status')" style="accent-color:var(--status-reserved);">
               <span class="status-pill reserved" style="font-size:14px;">Reserved</span>
             </label>
           </div>
@@ -27340,11 +27495,11 @@ if ('serviceWorker' in navigator) {
       <!-- Inc/Event name field -->
       <div style="margin-bottom:16px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
-          <input type="checkbox" id="bulkEdit-activefor-enabled" onchange="document.getElementById('bulkEdit-activefor-field').style.opacity=this.checked?'1':'0.4';document.getElementById('bulkEdit-activefor-field').style.pointerEvents=this.checked?'':'none';" style="width:16px;height:16px;accent-color:var(--accent);">
+          <input type="checkbox" id="bulkEdit-activefor-enabled" onchange="bulkEditSetFieldEnabled('activefor', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
           <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Incident / Event Name</span>
         </label>
-        <div id="bulkEdit-activefor-field" style="opacity:0.4;pointer-events:none;">
-          <input class="form-input" type="text" id="bulkEdit-activefor" placeholder="e.g. Station Fire — Div Alpha" style="width:100%;box-sizing:border-box;">
+        <div id="bulkEdit-activefor-field" style="opacity:0.4;">
+          <input class="form-input" type="text" id="bulkEdit-activefor" placeholder="e.g. Station Fire — Div Alpha" onfocus="bulkEditAutoEnable('activefor')" oninput="bulkEditAutoEnable('activefor')" style="width:100%;box-sizing:border-box;">
           <div style="font-size:12px;color:var(--text-dim);margin-top:6px;">Leave blank to clear the event name on all selected channels.</div>
         </div>
       </div>
@@ -27352,11 +27507,11 @@ if ('serviceWorker' in navigator) {
       <!-- Agency field -->
       <div style="margin-bottom:12px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
-          <input type="checkbox" id="bulkEdit-agency-enabled" onchange="document.getElementById('bulkEdit-agency-field').style.opacity=this.checked?'1':'0.4';document.getElementById('bulkEdit-agency-field').style.pointerEvents=this.checked?'':'none';" style="width:16px;height:16px;accent-color:var(--accent);">
+          <input type="checkbox" id="bulkEdit-agency-enabled" onchange="bulkEditSetFieldEnabled('agency', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
           <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Department / Agency</span>
         </label>
-        <div id="bulkEdit-agency-field" style="opacity:0.4;pointer-events:none;">
-          <input class="form-input" type="text" id="bulkEdit-agency" placeholder="e.g. LACoFD, LASD, LAPD" style="width:100%;box-sizing:border-box;">
+        <div id="bulkEdit-agency-field" style="opacity:0.4;">
+          <input class="form-input" type="text" id="bulkEdit-agency" placeholder="e.g. LACoFD, LASD, LAPD" onfocus="bulkEditAutoEnable('agency')" oninput="bulkEditAutoEnable('agency')" style="width:100%;box-sizing:border-box;">
           <div style="font-size:12px;color:var(--text-dim);margin-top:6px;">Leave blank to clear agency on all selected channels.</div>
         </div>
       </div>
@@ -27364,11 +27519,11 @@ if ('serviceWorker' in navigator) {
       <!-- Function / Purpose field -->
       <div style="margin-bottom:12px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
-          <input type="checkbox" id="bulkEdit-function-enabled" onchange="document.getElementById('bulkEdit-function-field').style.opacity=this.checked?'1':'0.4';document.getElementById('bulkEdit-function-field').style.pointerEvents=this.checked?'':'none';" style="width:16px;height:16px;accent-color:var(--accent);">
+          <input type="checkbox" id="bulkEdit-function-enabled" onchange="bulkEditSetFieldEnabled('function', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
           <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Function / Purpose</span>
         </label>
-        <div id="bulkEdit-function-field" style="opacity:0.4;pointer-events:none;">
-          <select class="form-select" id="bulkEdit-function" style="width:100%;box-sizing:border-box;">
+        <div id="bulkEdit-function-field" style="opacity:0.4;">
+          <select class="form-select" id="bulkEdit-function" onfocus="bulkEditAutoEnable('function')" onchange="bulkEditAutoEnable('function')" onmousedown="bulkEditAutoEnable('function')" style="width:100%;box-sizing:border-box;">
             <option value="">— Select function —</option>
           </select>
           <div style="font-size:12px;color:var(--text-dim);margin-top:6px;">Applies the selected function to all chosen channels.</div>
@@ -27378,21 +27533,12 @@ if ('serviceWorker' in navigator) {
       <!-- TRO Assignment field -->
       <div style="padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
-          <input type="checkbox" id="bulkEdit-tro-enabled" onchange="document.getElementById('bulkEdit-tro-field').style.opacity=this.checked?'1':'0.4';document.getElementById('bulkEdit-tro-field').style.pointerEvents=this.checked?'':'none';" style="width:16px;height:16px;accent-color:var(--accent);">
+          <input type="checkbox" id="bulkEdit-tro-enabled" onchange="bulkEditSetFieldEnabled('tro', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
           <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">TRO Assignment</span>
         </label>
-        <div id="bulkEdit-tro-field" style="opacity:0.4;pointer-events:none;">
-          <select class="form-select" id="bulkEdit-tro" style="width:100%;box-sizing:border-box;">
+        <div id="bulkEdit-tro-field" style="opacity:0.4;">
+          <select class="form-select" id="bulkEdit-tro" onfocus="bulkEditAutoEnable('tro')" onchange="bulkEditAutoEnable('tro')" onmousedown="bulkEditAutoEnable('tro')" style="width:100%;box-sizing:border-box;">
             <option value="">— None / Clear —</option>
-            <option value="SOUTH">SOUTH</option>
-            <option value="CENTRAL">CENTRAL</option>
-            <option value="SGV">SGV</option>
-            <option value="NORTH">NORTH</option>
-            <option value="COUNTYWIDE UHF">COUNTYWIDE UHF</option>
-            <option value="COUNTYWIDE VHF">COUNTYWIDE VHF</option>
-            <option value="LARTCS UHF">LARTCS UHF</option>
-            <option value="LARTCS VHF">LARTCS VHF</option>
-            <option value="LARTCS 800">LARTCS 800</option>
           </select>
           <div style="font-size:12px;color:var(--text-dim);margin-top:6px;">Select "— None / Clear —" to remove the TRO assignment from all selected channels.</div>
         </div>
