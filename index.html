@@ -1950,6 +1950,61 @@
   .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
   .toggle-switch input:checked + .toggle-slider:before { transform: translateX(16px); }
 
+  /* ── PERMISSION BOX GRID — Admin > Users > Module Access. Each module
+     is a clickable box with a real checkbox in the corner (not a hidden
+     custom control) — clicking anywhere on the box toggles it since the
+     whole box is a <label> wrapping its checkbox, which is standard,
+     always-reliable HTML behavior. A checked box gets an accent border
+     and tinted background so granted modules are visible at a glance
+     without reading every checkbox individually. ── */
+  .perm-box-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+  .perm-box {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px 12px 36px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .perm-box:hover { border-color: var(--border-lit); }
+  .perm-box:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .perm-box > input[type="checkbox"] {
+    position: absolute;
+    top: 12px; left: 12px;
+    width: 16px; height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    margin: 0;
+  }
+  .perm-box-icon  { font-size: 18px; line-height: 1; }
+  .perm-box-title { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+  .perm-box-desc  { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+  .perm-box-wide  { grid-column: span 2; }
+  .perm-box-subrow {
+    display: flex; gap: 16px; align-items: center;
+    margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border);
+  }
+  .perm-box-sub {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; color: var(--text-secondary); cursor: pointer;
+  }
+  .perm-box-sub input { accent-color: var(--accent); cursor: pointer; }
+  @media (max-width: 480px) {
+    .perm-box-grid { grid-template-columns: 1fr 1fr; }
+    .perm-box-wide { grid-column: span 2; }
+  }
+
   .tone-select {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -3554,6 +3609,67 @@
   .module-card-stats { display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
   .module-stat       { font-family: var(--font-data); font-size:14px; color: var(--text-dim); }
   .module-stat strong { color: var(--text-secondary); }
+
+  /* New glanceable elements — present in the markup everywhere, but only
+     actually shown on mobile (below). Kept hidden on desktop so the
+     existing landing page there is untouched. */
+  .module-card-top, .module-card-icon-badge, .module-card-hero, .module-card-hero-label, .module-card-eyebrow {
+    display: none;
+  }
+
+  /* ── MOBILE QUICK-ACTIONS DASHBOARD — Admin asked for a cleaner, more
+     glanceable feel on phones: a 2-column grid of colorful tinted tiles,
+     one big glanceable number (or a status word like "OPEN" for modules
+     with no live count) instead of the desktop card's fuller description
+     and multi-stat breakdown. Tap the tile for the full module — detail
+     still lives there, it's just not crammed onto the tile itself.
+     Desktop landing page is untouched; this is scoped to the phone
+     breakpoint only. ── */
+  @media (max-width: 768px) {
+    #landingModuleGrid {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px !important;
+    }
+    .module-card {
+      padding: 14px 14px 16px;
+      border-radius: 16px;
+      gap: 0;
+      border: 1px solid color-mix(in srgb, var(--card-accent, var(--accent)) 30%, var(--border));
+      background: linear-gradient(160deg, color-mix(in srgb, var(--card-accent, var(--accent)) 16%, var(--bg-panel)) 0%, var(--bg-panel) 70%);
+    }
+    .module-card:active { transform: scale(0.97); }
+    .module-card-icon, .module-card-title, .module-card-desc, .module-card-stats {
+      display: none; /* replaced by the hero number + eyebrow below on mobile */
+    }
+    .module-card-top {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .module-card-eyebrow {
+      display: block;
+      font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--text-dim); line-height: 1.3;
+      padding-right: 6px;
+    }
+    .module-card-icon-badge {
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      width: 30px; height: 30px;
+      border-radius: 9px;
+      font-size: 15px;
+      background: color-mix(in srgb, var(--card-accent, var(--accent)) 28%, transparent);
+    }
+    .module-card-hero {
+      display: block;
+      font-family: var(--font-ui); font-size: 30px; font-weight: 700;
+      line-height: 1; color: var(--text-primary);
+    }
+    .module-card-hero-label {
+      display: block;
+      font-size: 12px; color: var(--text-dim); margin-top: 4px; line-height: 1.3;
+    }
+  }
 
   /* ── ADMIN SUB-TABS ── */
   .admin-sub-tab {
@@ -10224,9 +10340,9 @@ function showLandingPage() {
       stats:()=>{ const a=incidents.filter(i=>i.status==='active').length; return `<span class="module-stat"><strong>${a}</strong> active</span>`; } },
     { id:'commreq',    icon:'📝', title:'Comm Plan Req', desc:'Public communications plan request intake — no login needed to submit.', accent:'#26a69a',
       stats:()=>{ const p=(window._commPlanReqs||[]).filter(r=>r.status==='pending').length; return `<span class="module-stat"><strong>${p}</strong> pending</span>`; } },
-    u.canViewResources ? { id:'vehicles', icon:'🚒', title:'Vehicles', desc:'Response vehicle status, deployment, and expected return.', accent:'var(--status-reserved)',
+    (u.canVehicles || u.role === 'admin') ? { id:'vehicles', icon:'🚒', title:'Vehicles', desc:'Response vehicle status, deployment, and expected return.', accent:'var(--status-reserved)',
       stats:()=>{ const v=resources.filter(r=>r.category==='Vehicle'); return `<span class="module-stat"><strong>${v.length}</strong> vehicles</span>`; } } : null,
-    u.canViewResources ? { id:'equipment', icon:'📦', title:'Equipment & Cache', desc:'Cache units, portable radios, and support equipment.', accent:'#4caf50',
+    (u.canEquipment || u.role === 'admin') ? { id:'equipment', icon:'📦', title:'Equipment & Cache', desc:'Cache units, portable radios, and support equipment.', accent:'#4caf50',
       stats:()=>{ const e=resources.filter(r=>r.category!=='Vehicle'); return `<span class="module-stat"><strong>${e.length}</strong> items</span>`; } } : null,
     (u.canUas || u.role === 'admin') ? { id:'uas', icon:'🛸', title:'UAS Manager', desc:'Drone fleet, pilot roster, and mission call-out tracking.', accent:'#00bcd4',
       stats:()=>{ const dep=uasFleet.filter(a=>a.status==='deployed').length; return `<span class="module-stat"><strong>${uasFleet.length}</strong> aircraft</span><span class="module-stat"><strong>${dep}</strong> deployed</span>`; } } : null,
@@ -10234,18 +10350,44 @@ function showLandingPage() {
       stats:()=>{ const active=personnelRoster.filter(p=>p.status==='active').length; return `<span class="module-stat"><strong>${active}</strong> active</span><span class="module-stat"><strong>${personnelTeams.length}</strong> teams</span>`; } } : null,
     (u.role === 'admin' || u.canAdmin) ? { id:'admin', icon:'⚙', title:'Administration', desc:'User management, audit trail, imports, radio config.', accent:'var(--status-active)',
       stats:()=>`<span class="module-stat"><strong>${allProfiles.length}</strong> users</span>` } : null,
-  ].filter(Boolean).filter(m => enabledMods.has(m.id) || m.id === 'admin');
+  ].filter(Boolean).filter(m => {
+    // Vehicles and Equipment are two permission-gated entry points into the
+    // one agency-configurable "resources" module — map both ids back to
+    // that single key rather than looking for a 'vehicles'/'equipment' key
+    // that agency_modules never actually stores.
+    const modKey = (m.id === 'vehicles' || m.id === 'equipment') ? 'resources' : m.id;
+    return enabledMods.has(modKey) || m.id === 'admin';
+  });
 
   const grid = document.getElementById('landingModuleGrid');
   if (grid) {
-    grid.innerHTML = allMods.map(m => `
-      <div class="module-card" onclick="openModule('${m.id}')">
+    // Pull one glanceable "hero" number out of each module's existing
+    // stats() line rather than reworking all 12 stat functions — modules
+    // with no live count (RF Deconflicter, Reports) get a status word
+    // instead, same as Hydrants/Preplans showing "OPEN" in the reference
+    // dashboard rather than a number.
+    const heroOf = (statsHtml) => {
+      const m = statsHtml.match(/<strong>([^<]*)<\/strong>\s*([^<]*)/);
+      return m ? { value: m[1], label: m[2].trim() } : { value: 'OPEN', label: '' };
+    };
+    grid.innerHTML = allMods.map(m => {
+      const statsHtml = m.stats();
+      const hero = heroOf(statsHtml);
+      return `
+      <div class="module-card" onclick="openModule('${m.id}')" style="--card-accent:${m.accent};">
         <div class="module-card-accent" style="background:${m.accent};"></div>
+        <div class="module-card-top">
+          <div class="module-card-eyebrow">${m.title}</div>
+          <div class="module-card-icon-badge">${m.icon}</div>
+        </div>
         <div class="module-card-icon">${m.icon}</div>
         <div class="module-card-title">${m.title}</div>
+        <div class="module-card-hero">${hero.value}</div>
+        <div class="module-card-hero-label">${hero.label || m.desc}</div>
         <div class="module-card-desc">${m.desc}</div>
-        <div class="module-card-stats">${m.stats()}</div>
-      </div>`).join('');
+        <div class="module-card-stats">${statsHtml}</div>
+      </div>`;
+    }).join('');
   }
 
   const footer = document.getElementById('landingFooter');
@@ -25608,62 +25750,55 @@ if ('serviceWorker' in navigator) {
         <!-- Module Permissions -->
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
           <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Module Access</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
-              <div>
-                <div style="font-size:14px;color:var(--text-primary);font-weight:500;">📻 Frequency Mgmt</div>
-                <div style="font-size:12px;color:var(--text-dim);margin-top:1px;">Channels, talkgroups, schedule</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="uf-can-freq" checked onchange=""><span class="toggle-slider"></span></label>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
-              <div>
-                <div style="font-size:14px;color:var(--text-primary);font-weight:500;">🚒 Vehicles</div>
-                <div style="font-size:12px;color:var(--text-dim);margin-top:1px;">Response vehicle status tracking</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="uf-can-vehicles" onchange=""><span class="toggle-slider"></span></label>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
-              <div>
-                <div style="font-size:14px;color:var(--text-primary);font-weight:500;">📦 Equipment &amp; Cache</div>
-                <div style="font-size:12px;color:var(--text-dim);margin-top:1px;">Cache, radios, support gear</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="uf-can-equipment" onchange=""><span class="toggle-slider"></span></label>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
-              <div>
-                <div style="font-size:14px;color:var(--text-primary);font-weight:500;">⚙ Administration</div>
-                <div style="font-size:12px;color:var(--text-dim);margin-top:1px;">Users, audit, system settings</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="uf-can-admin" onchange=""><span class="toggle-slider"></span></label>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
-              <div>
-                <div style="font-size:14px;color:var(--text-primary);font-weight:500;">🛸 UAS Manager</div>
-                <div style="font-size:12px;color:var(--text-dim);margin-top:1px;">Drone fleet, pilots, missions</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="uf-can-uas" onchange=""><span class="toggle-slider"></span></label>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);grid-column:span 2;">
-              <div>
-                <div style="font-size:14px;color:var(--text-primary);font-weight:500;">👥 Personnel</div>
-                <div style="font-size:12px;color:var(--text-dim);margin-top:1px;">Team rosters, certifications, contact info</div>
-              </div>
-              <div style="display:flex;gap:14px;align-items:center;">
-                <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text-secondary);cursor:pointer;">
+          <div class="perm-box-grid">
+            <label class="perm-box">
+              <input type="checkbox" id="uf-can-freq" checked>
+              <div class="perm-box-icon">📻</div>
+              <div class="perm-box-title">Frequency Mgmt</div>
+              <div class="perm-box-desc">Channels, talkgroups, schedule</div>
+            </label>
+            <label class="perm-box">
+              <input type="checkbox" id="uf-can-vehicles">
+              <div class="perm-box-icon">🚒</div>
+              <div class="perm-box-title">Vehicles</div>
+              <div class="perm-box-desc">Response vehicle status tracking</div>
+            </label>
+            <label class="perm-box">
+              <input type="checkbox" id="uf-can-equipment">
+              <div class="perm-box-icon">📦</div>
+              <div class="perm-box-title">Equipment &amp; Cache</div>
+              <div class="perm-box-desc">Cache, radios, support gear</div>
+            </label>
+            <label class="perm-box">
+              <input type="checkbox" id="uf-can-uas">
+              <div class="perm-box-icon">🛸</div>
+              <div class="perm-box-title">UAS Manager</div>
+              <div class="perm-box-desc">Drone fleet, pilots, missions</div>
+            </label>
+            <label class="perm-box">
+              <input type="checkbox" id="uf-can-admin">
+              <div class="perm-box-icon">⚙</div>
+              <div class="perm-box-title">Administration</div>
+              <div class="perm-box-desc">Users, audit, system settings</div>
+            </label>
+            <label class="perm-box">
+              <input type="checkbox" id="uf-can-custody-delete">
+              <div class="perm-box-icon">🗑</div>
+              <div class="perm-box-title">Custody — Delete</div>
+              <div class="perm-box-desc">Remove chain-of-custody log entries. Admins always have this.</div>
+            </label>
+            <div class="perm-box perm-box-wide" style="cursor:default;padding-left:14px;">
+              <div class="perm-box-icon">👥</div>
+              <div class="perm-box-title">Personnel</div>
+              <div class="perm-box-desc">Team rosters, certifications, contact info</div>
+              <div class="perm-box-subrow">
+                <label class="perm-box-sub">
                   <input type="checkbox" id="uf-can-personnel" onchange="if(!this.checked)document.getElementById('uf-can-personnel-edit').checked=false;"> View
                 </label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text-secondary);cursor:pointer;">
+                <label class="perm-box-sub">
                   <input type="checkbox" id="uf-can-personnel-edit" onchange="if(this.checked)document.getElementById('uf-can-personnel').checked=true;"> Editor
                 </label>
               </div>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);grid-column:span 2;">
-              <div>
-                <div style="font-size:14px;color:var(--text-primary);font-weight:500;">🗑 Chain of Custody — Delete</div>
-                <div style="font-size:12px;color:var(--text-dim);margin-top:1px;">Remove custody log entries in Radio Inventory. Admins always have this; grant it individually here for a non-admin user.</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="uf-can-custody-delete" onchange=""><span class="toggle-slider"></span></label>
             </div>
           </div>
           <div style="font-size:12px;color:var(--text-dim);margin-top:8px;">Note: Dispatch Admin role automatically has access to all modules.</div>
