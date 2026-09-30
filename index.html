@@ -52,7 +52,7 @@
     --font-ui:   'IBM Plex Sans', sans-serif;
     --font-data: 'IBM Plex Mono', monospace;
 
-    --radius: 4px;
+    --radius: 8px;
     --transition: 180ms ease;
   }
 
@@ -708,7 +708,7 @@
     font-family: var(--font-ui);
     font-size:16px;
     font-weight: 600;
-    padding: 7px 16px;
+    padding: 8px 18px;
     border-radius: var(--radius);
     cursor: pointer;
     transition: var(--transition);
@@ -723,7 +723,7 @@
     color: var(--text-secondary);
     font-family: var(--font-ui);
     font-size:16px;
-    padding: 6px 14px;
+    padding: 7px 16px;
     border-radius: var(--radius);
     cursor: pointer;
     transition: var(--transition);
@@ -759,7 +759,7 @@
     grid-template-columns: 22px 6px 110px 105px 1fr 220px 130px 115px;
     align-items: center;
     gap: 12px;
-    padding: 9px 12px;
+    padding: 11px 12px;
     background: var(--bg-card);
     border: 1px solid transparent;
     border-radius: var(--radius);
@@ -876,10 +876,10 @@
     font-family: var(--font-data);
     font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 2px;
+    padding: 3px 10px;
+    border-radius: 8px;
     white-space: nowrap;
   }
 
@@ -1040,7 +1040,7 @@
   .modal {
     background: var(--bg-panel);
     border: 1px solid var(--border-lit);
-    border-radius: 6px;
+    border-radius: 8px;
     width: 100%;
     max-width: 580px;
     max-height: 90vh;
@@ -1162,7 +1162,7 @@
     color: var(--text-primary);
     font-family: var(--font-data);
     font-size:16px;
-    padding: 8px 10px;
+    padding: 9px 12px;
     border-radius: var(--radius);
     outline: none;
     transition: var(--transition);
@@ -2647,7 +2647,7 @@
     grid-template-columns: 22px 28px 80px 80px 1fr 120px 100px 100px 80px;
     align-items: center;
     gap: 8px;
-    padding: 9px 12px;
+    padding: 11px 12px;
     background: var(--bg-card);
     border: 1px solid transparent;
     border-radius: var(--radius);
@@ -2960,7 +2960,7 @@
     grid-template-columns: 4px 1fr 110px 120px 1fr 140px 110px 72px;
     align-items: center;
     gap: 8px;
-    padding: 10px 12px;
+    padding: 12px 12px;
     background: var(--bg-card);
     border: 1px solid transparent;
     border-radius: var(--radius);
@@ -3116,7 +3116,7 @@
   .part-row {
     display: grid;
     grid-template-columns: 4px 120px 1fr 120px 110px 90px 130px 100px;
-    align-items: center; gap: 8px; padding: 9px 12px;
+    align-items: center; gap: 8px; padding: 11px 12px;
     background: var(--bg-card); border: 1px solid transparent;
     border-radius: var(--radius); margin-bottom: 3px;
     cursor: pointer; transition: var(--transition);
@@ -3590,17 +3590,18 @@
   .module-card {
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 24px;
     cursor: pointer;
-    transition: border-color 200ms, background 200ms, transform 150ms;
+    transition: border-color 200ms, background 200ms, transform 150ms, box-shadow 200ms;
     display: flex;
     flex-direction: column;
     gap: 10px;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   }
-  .module-card:hover { border-color: var(--accent); background: var(--bg-card); transform: translateY(-2px); }
+  .module-card:hover { border-color: var(--accent); background: var(--bg-card); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
   .module-card:active { transform: translateY(0); }
   .module-card-icon  { font-size: 32px; line-height: 1; }
   .module-card-title { font-family: var(--font-data); font-size:16px; font-weight: 700; letter-spacing: 0.05em; color: var(--text-primary); text-transform: uppercase; }
@@ -14701,7 +14702,33 @@ function renderResources() {
   const catFilter= (document.getElementById('resCategoryFilter')?.value || 'all');
   const stFilter = (document.getElementById('resStatusFilter')?.value   || 'all');
 
-  const filtered = resources.filter(r => {
+  // Vehicles and Equipment are two separately-grantable permissions sharing
+  // this one tab — a user with only one of the two should only ever see
+  // that category's rows here, not the other's, even though both use the
+  // same tab and the same underlying resources table.
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.canAdmin;
+  const seeVehicles  = isAdmin || currentUser?.canVehicles;
+  const seeEquipment = isAdmin || currentUser?.canEquipment;
+  const permitted = resources.filter(r => {
+    const isVehicle = r.category === 'Vehicle';
+    return isVehicle ? seeVehicles : seeEquipment;
+  });
+
+  // Hide category options the user has no permission to see at all, rather
+  // than letting them pick one that will always render empty.
+  const catSel = document.getElementById('resCategoryFilter');
+  if (catSel) {
+    const vehicleOpt = catSel.querySelector('option[value="Vehicle"]');
+    if (vehicleOpt) vehicleOpt.style.display = seeVehicles ? '' : 'none';
+    ['Cache','Personnel','Aircraft','Watercraft','Other'].forEach(cat => {
+      const opt = catSel.querySelector(`option[value="${cat}"]`);
+      if (opt) opt.style.display = seeEquipment ? '' : 'none';
+    });
+    if (!seeVehicles && catFilter === 'Vehicle') catSel.value = 'all';
+    if (!seeEquipment && catFilter !== 'all' && catFilter !== 'Vehicle') catSel.value = 'all';
+  }
+
+  const filtered = permitted.filter(r => {
     if (catFilter !== 'all' && r.category !== catFilter) return false;
     if (stFilter  !== 'all' && r.status   !== stFilter)  return false;
     if (query) {
@@ -14713,8 +14740,8 @@ function renderResources() {
 
   // Summary strip
   const counts = {};
-  resources.forEach(r => { counts[r.status] = (counts[r.status]||0) + 1; });
-  counts.all = resources.length;
+  permitted.forEach(r => { counts[r.status] = (counts[r.status]||0) + 1; });
+  counts.all = permitted.length;
   const stripEl = document.getElementById('resSummaryStrip');
   if (stripEl) {
     const chips = [
