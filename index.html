@@ -3221,6 +3221,25 @@
   }
   #publicReqScreen.visible { display: block; }
 
+  #publicStatusScreen {
+    position: fixed; inset: 0; background: var(--bg-deep);
+    z-index: 2000; display: none; overflow-y: auto;
+    padding: 24px 14px 60px;
+    -webkit-text-size-adjust: 100%;
+  }
+  #publicStatusScreen.visible { display: block; }
+  .pub-status-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 12px 16px; border-radius: var(--radius);
+    background: var(--bg-card); border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .pub-status-group-label {
+    font-family: var(--font-data); font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-dim); margin: 18px 0 8px;
+  }
+  .pub-status-group-label:first-child { margin-top: 0; }
+
   /* Theme color variables — switched via data-pubtheme attribute on #publicReqScreen */
   #publicReqScreen { --pub-accent: #1e88e5; --pub-accent-bg: rgba(30,136,229,0.12); }
   #publicReqScreen[data-pubtheme="green"]  { --pub-accent: #00c853; --pub-accent-bg: rgba(0,200,83,0.12); }
@@ -3828,6 +3847,22 @@
 <body>
 
 <!-- ── PUBLIC COMM PLAN REQUEST FORM — no login required ── -->
+<div id="publicStatusScreen">
+  <div class="pub-form-card" id="pubStatusCard" style="max-width:900px;">
+    <div class="pub-form-header">
+      <div style="font-size:34px;margin-bottom:10px;">📻</div>
+      <div class="pub-form-title" id="pubStatusAgencyName">CHANNEL STATUS</div>
+      <div class="pub-form-subtitle">Live channel availability for mutual aid and visiting agencies — no login required.</div>
+    </div>
+    <div class="pub-form-body">
+      <div id="pubStatusLastUpdated" style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:18px;"></div>
+      <div id="pubStatusGrid">
+        <div style="text-align:center;padding:40px 20px;color:var(--text-dim);">Loading channel status…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="publicReqScreen">
   <div class="pub-theme-bar" id="pubThemeBar">
     <span class="pub-theme-bar-label">🎨 Color theme:</span>
@@ -4777,6 +4812,7 @@
       <button class="main-view-tab" id="mvtab-resources" onclick="switchMainTab('resources')" style="display:none;">🚒 Resources</button>
       <button class="main-view-tab" id="mvtab-reports" onclick="switchMainTab('reports')">📊 Reports</button>
       <button class="main-view-tab" id="mvtab-admin" onclick="switchMainTab('admin')" style="display:none;border-color:transparent;color:var(--status-active);">⚙ Admin</button>
+      <button class="main-view-tab" id="mvtab-analytics" onclick="switchMainTab('analytics')" style="display:none;">📈 Analytics</button>
     </div>
 
     <!-- ── OVERVIEW VIEW ── -->
@@ -5345,6 +5381,20 @@
         </div>
       </div>
       <div id="reportsCatalogGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;"></div>
+    </div>
+
+    <!-- ── ANALYTICS VIEW ── -->
+    <div id="view-analytics" style="display:none;">
+      <div class="tab-page-header">
+        <div>
+          <div class="tab-page-title">Analytics</div>
+          <div class="tab-page-subtitle">Channel activity, Comm Plan Request turnaround, and RID range exhaustion forecast</div>
+        </div>
+        <button class="btn-secondary" onclick="renderAnalytics()" style="font-size:14px;">↺ Refresh</button>
+      </div>
+      <div id="analyticsBody" style="display:flex;flex-direction:column;gap:24px;">
+        <div style="text-align:center;padding:40px;color:var(--text-dim);">Loading…</div>
+      </div>
     </div>
 
     <!-- ── RID MANAGER VIEW ── -->
@@ -10214,10 +10264,15 @@ async function onLoginSuccess() {
   const adminTab = document.getElementById('mvtab-admin');
   const uasTab   = document.getElementById('mvtab-uas');
   const personnelTab = document.getElementById('mvtab-personnel');
+  const analyticsTab = document.getElementById('mvtab-analytics');
   if (resTab)   resTab.style.display   = match.canViewResources ? '' : 'none';
   if (adminTab) adminTab.style.display = (match.canAdmin || match.role === 'admin') ? '' : 'none';
 
   const agencyMods = getAgencyModules();
+  if (analyticsTab) {
+    const allowed = match.canAdmin === true || match.role === 'admin';
+    analyticsTab.style.display = (agencyMods.has('analytics') && allowed) ? '' : 'none';
+  }
   if (uasTab) {
     const allowed = match.canUas === true || match.role === 'admin';
     uasTab.style.display = (agencyMods.has('uas') && allowed) ? '' : 'none';
@@ -10351,6 +10406,8 @@ function showLandingPage() {
       stats:()=>{ const active=personnelRoster.filter(p=>p.status==='active').length; return `<span class="module-stat"><strong>${active}</strong> active</span><span class="module-stat"><strong>${personnelTeams.length}</strong> teams</span>`; } } : null,
     (u.role === 'admin' || u.canAdmin) ? { id:'admin', icon:'⚙', title:'Administration', desc:'User management, audit trail, imports, radio config.', accent:'var(--status-active)',
       stats:()=>`<span class="module-stat"><strong>${allProfiles.length}</strong> users</span>` } : null,
+    (u.role === 'admin' || u.canAdmin) ? { id:'analytics', icon:'📈', title:'Analytics', desc:'Channel activity, request turnaround, RID exhaustion forecast.', accent:'#26c6da',
+      stats:()=>`<span class="module-stat">Trends &amp; forecasts</span>` } : null,
   ].filter(Boolean).filter(m => {
     // Vehicles and Equipment are two permission-gated entry points into the
     // one agency-configurable "resources" module — map both ids back to
@@ -10440,6 +10497,8 @@ function openModule(id) {
     switchMainTab('uas');
   } else if (id === 'personnel') {
     switchMainTab('personnel');
+  } else if (id === 'analytics') {
+    switchMainTab('analytics');
   }
 }
 
@@ -13277,6 +13336,163 @@ const NAV_GROUP_MAP = {
   inventory: 'lookups', parts: 'lookups', sites: 'lookups',
 };
 
+// ═══════════════════════════════════════════════
+// ANALYTICS — channel activity, CPR turnaround, RID exhaustion forecast
+// ═══════════════════════════════════════════════
+async function renderAnalytics() {
+  const body = document.getElementById('analyticsBody');
+  if (!body) return;
+  body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-dim);">Loading…</div>`;
+
+  const [activeChannelsHtml, cprHtml, ridHtml] = await Promise.all([
+    renderMostActiveChannels(),
+    renderCprTurnaround(),
+    renderRidExhaustionForecast(),
+  ]);
+
+  body.innerHTML = activeChannelsHtml + cprHtml + ridHtml;
+}
+
+function analyticsSection(title, subtitle, innerHtml) {
+  return `<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;">
+    <div style="font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:2px;">${title}</div>
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">${subtitle}</div>
+    ${innerHtml}
+  </div>`;
+}
+
+// Most Active Channels — a frequency count, not a precise occupancy
+// timeline. WARDEN logs every status change with a timestamp, but
+// reconstructing exact minutes-in-status from that log is fragile (missed
+// events, timezone edges, no known starting state) — a count of how often
+// a channel's status actually changed is a simpler, honest measure of
+// which channels see real traffic versus which sit untouched.
+async function renderMostActiveChannels() {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  let rows = [];
+  try {
+    const { data, error } = await sb.from('activity_log')
+      .select('extra, created_at')
+      .eq('category', 'channel').eq('action', 'Status Change')
+      .gte('created_at', since)
+      .eq('agency_id', agencyId())
+      .limit(5000);
+    if (error) throw error;
+    rows = data || [];
+  } catch (e) {
+    return analyticsSection('Most Active Channels', 'Last 30 days', `<div style="color:var(--status-active);font-size:14px;">Couldn't load activity log.</div>`);
+  }
+
+  const counts = {};
+  rows.forEach(r => {
+    let extra = {};
+    try { extra = JSON.parse(r.extra || '{}'); } catch(e) {}
+    const key = extra.designator || extra.channelId;
+    if (!key) return;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 10);
+
+  if (!sorted.length) {
+    return analyticsSection('Most Active Channels', 'By number of status changes in the last 30 days', `<div style="color:var(--text-dim);font-size:14px;">No channel status changes logged in the last 30 days.</div>`);
+  }
+  const max = sorted[0][1];
+  const rowsHtml = sorted.map(([designator, count]) => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="width:110px;flex-shrink:0;font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(designator)}</div>
+      <div style="flex:1;height:16px;background:var(--bg-deep);border-radius:4px;overflow:hidden;">
+        <div style="width:${Math.max(4, Math.round(count/max*100))}%;height:100%;background:var(--accent);"></div>
+      </div>
+      <div style="width:70px;flex-shrink:0;text-align:right;font-family:var(--font-data);font-size:13px;color:var(--text-dim);">${count} changes</div>
+    </div>`).join('');
+  return analyticsSection('Most Active Channels', 'By number of status changes in the last 30 days — a busy channel changes hands often, not necessarily a long single use', rowsHtml);
+}
+
+// Comm Plan Request turnaround — straightforward from data already on the
+// request record (created_at → reviewed_at), no estimation involved.
+async function renderCprTurnaround() {
+  const since = Date.now() - 90 * 86400000;
+  const reviewed = (commPlanReqs || []).filter(r => r.reviewed_at && r.created_at && new Date(r.created_at).getTime() >= since);
+  if (!reviewed.length) {
+    return analyticsSection('Comm Plan Request Turnaround', 'Last 90 days', `<div style="color:var(--text-dim);font-size:14px;">No reviewed requests in the last 90 days yet.</div>`);
+  }
+  const hoursList = reviewed.map(r => (new Date(r.reviewed_at) - new Date(r.created_at)) / 3600000).sort((a,b)=>a-b);
+  const avg = hoursList.reduce((a,b)=>a+b,0) / hoursList.length;
+  const median = hoursList[Math.floor(hoursList.length/2)];
+  const fmtHrs = h => h < 24 ? `${h.toFixed(1)} hrs` : `${(h/24).toFixed(1)} days`;
+  const slowest = reviewed.slice().sort((a,b) => (new Date(b.reviewed_at)-new Date(b.created_at)) - (new Date(a.reviewed_at)-new Date(a.created_at))).slice(0,3);
+
+  const statsHtml = `<div style="display:flex;gap:24px;margin-bottom:16px;flex-wrap:wrap;">
+      <div><div style="font-size:28px;font-weight:700;color:var(--text-primary);">${fmtHrs(avg)}</div><div style="font-size:12px;color:var(--text-dim);">average turnaround</div></div>
+      <div><div style="font-size:28px;font-weight:700;color:var(--text-primary);">${fmtHrs(median)}</div><div style="font-size:12px;color:var(--text-dim);">median turnaround</div></div>
+      <div><div style="font-size:28px;font-weight:700;color:var(--text-primary);">${reviewed.length}</div><div style="font-size:12px;color:var(--text-dim);">requests reviewed</div></div>
+    </div>`;
+  const slowestHtml = slowest.length ? `<div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Slowest to review</div>` +
+    slowest.map(r => `<div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-bottom:1px solid var(--border);">
+      <span style="color:var(--text-secondary);">${escHtml(r.event_name||'(untitled)')}</span>
+      <span style="font-family:var(--font-data);color:var(--text-dim);">${fmtHrs((new Date(r.reviewed_at)-new Date(r.created_at))/3600000)}</span>
+    </div>`).join('') : '';
+  return analyticsSection('Comm Plan Request Turnaround', 'Time from submission to review — last 90 days', statsHtml + slowestHtml);
+}
+
+// RID Range Exhaustion Forecast — an ESTIMATE. There's no dedicated
+// "ID committed at this timestamp" ledger, so recent consumption rate is
+// approximated from how many radios in each range got a system ID field
+// populated with a record update in the last 30 days (radio_inventory's
+// own updated_at). Flagged clearly as an estimate rather than a precise
+// count, since an unrelated edit to a radio also bumps updated_at.
+async function renderRidExhaustionForecast() {
+  if (!ridRanges || !ridRanges.length) {
+    return analyticsSection('RID Range Exhaustion Forecast', 'Estimated weeks until each range is fully committed', `<div style="color:var(--text-dim);font-size:14px;">No RID ranges configured yet.</div>`);
+  }
+  const index = buildCommittedIdIndex();
+  const since30 = Date.now() - 30 * 86400000;
+
+  const rowsData = ridRanges.map(range => {
+    const total = range.end_id - range.start_id + 1;
+    const isMdc = range.system === 'mdc_id';
+    let committed = 0;
+    for (let id = range.start_id; id <= range.end_id; id++) {
+      if (isMdc && ridContainsF(ridDecimalToHex(id))) continue;
+      if (classifyRid(id, index, ridReservations, range).state === 'committed') committed++;
+    }
+    const free = total - committed;
+
+    // Recent consumption proxy: radios whose this-system field is inside
+    // the range AND whose record was updated in the last 30 days.
+    const recentlyCommitted = inventory.filter(r => {
+      const val = r[range.system];
+      if (!val) return false;
+      const dec = isMdc ? ridHexToDecimal(String(val)) : parseInt(val, 10);
+      if (isNaN(dec) || dec < range.start_id || dec > range.end_id) return false;
+      return r.updated_at && new Date(r.updated_at).getTime() >= since30;
+    }).length;
+
+    const weeklyRate = recentlyCommitted / (30/7);
+    const weeksLeft = weeklyRate > 0 ? Math.round(free / weeklyRate) : null;
+    return { range, total, committed, free, weeklyRate, weeksLeft };
+  }).filter(r => r.total > 0);
+
+  const rowsHtml = rowsData.map(r => {
+    const pct = Math.round((r.committed / r.total) * 100);
+    const urgent = r.weeksLeft !== null && r.weeksLeft <= 8;
+    const forecastLabel = r.weeklyRate === 0
+      ? 'no recent activity — can\'t estimate'
+      : `~${r.weeksLeft} week${r.weeksLeft===1?'':'s'} left at current pace`;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+        <span style="font-size:14px;font-weight:600;color:var(--text-primary);">${escHtml(r.range.name)}</span>
+        <span style="font-family:var(--font-data);font-size:12px;color:${urgent?'var(--status-active)':'var(--text-dim)'};">${forecastLabel}</span>
+      </div>
+      <div style="height:6px;background:var(--bg-deep);border-radius:3px;overflow:hidden;margin-bottom:2px;">
+        <div style="width:${pct}%;height:100%;background:${urgent?'var(--status-active)':'var(--accent)'};"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);">${r.committed} / ${r.total} committed (${pct}%) · ${r.free} free</div>
+    </div>`;
+  }).join('');
+  return analyticsSection('RID Range Exhaustion Forecast', 'Estimated from recent inventory activity — treat as a rough guide, not an exact count', rowsHtml);
+}
+
 function switchMainTab(tab) {
   // Collapse the channel detail side panel when leaving the channels tab,
   // so it doesn't ghost into other modules.
@@ -13290,7 +13506,7 @@ function switchMainTab(tab) {
   }
 
   activeMainTab = tab;
-  ['overview','channels','talkgroups','schedule','rfanalyzer','inventory','incidents','commreq','resources','admin','uas','personnel','rid','parts','sites','reports'].forEach(t => {
+  ['overview','channels','talkgroups','schedule','rfanalyzer','inventory','incidents','commreq','resources','admin','uas','personnel','rid','parts','sites','reports','analytics'].forEach(t => {
     document.getElementById(`mvtab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`navitem-${t}`)?.classList.toggle('active', t === tab);
     const v = document.getElementById(`view-${t}`);
@@ -13318,6 +13534,7 @@ function switchMainTab(tab) {
   if (tab === 'parts')       renderPartsInventory();
   if (tab === 'sites')       renderSites();
   if (tab === 'reports')     renderReportsCatalog();
+  if (tab === 'analytics')   renderAnalytics();
 
   // Log page visits so admins can see usage patterns in the System Log
   const PAGE_LABELS = {
@@ -18622,7 +18839,8 @@ document.addEventListener('touchmove', e => {
 }, { passive: true });
 
 async function init() {
-  // Check for public comm plan request route FIRST — bypasses all auth/login
+  // Check for public routes FIRST — both bypass all auth/login
+  if (checkPublicStatusRoute()) return;
   if (checkPublicReqRoute()) return;
 
   setDbStatus('loading');
@@ -24428,6 +24646,7 @@ const ALL_MODULES = [
   { key: 'uas',        label: 'UAS Manager',           icon: '🛸', desc: 'Drone fleet, pilot roster, mission call-outs' },
   { key: 'personnel',  label: 'Personnel',             icon: '👥', desc: 'Team rosters, certifications, contact info' },
   { key: 'admin',      label: 'Administration',        icon: '⚙',  desc: 'Users, system log, import, radio config' },
+  { key: 'analytics',  label: 'Analytics',             icon: '📈', desc: 'Channel activity, request turnaround, RID exhaustion forecast' },
 ];
 
 let agencies        = [];       // loaded by super admin or on login
@@ -24920,7 +25139,79 @@ function getAgencyColor() {
 // COMM PLAN REQUEST — PUBLIC FORM + ADMIN MODULE
 // ═══════════════════════════════════════════════
 
-// ── Route detection: ?req=true[&agency=slug] bypasses all login/auth ──
+// ── Route detection: ?status=true[&agency=slug] — read-only channel
+// status for mutual aid / visiting agencies, no login, auto-refreshing.
+// Reads from the public_channel_status view (safe columns only — no
+// notes, no tone/PL data), which has its own narrow anon SELECT grant;
+// see the accompanying SQL migration.
+let _pubStatusAgencyId = null;
+let _pubStatusInterval = null;
+
+function checkPublicStatusRoute() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('status') !== 'true') return false;
+
+  document.getElementById('loginScreen')?.classList.add('hidden');
+  const topbar = document.querySelector('header.topbar');
+  if (topbar) topbar.style.display = 'none';
+  document.getElementById('publicStatusScreen').classList.add('visible');
+
+  const slug = params.get('agency') || null;
+  loadPublicStatus(slug);
+  _pubStatusInterval = setInterval(() => loadPublicStatus(slug), 30000);
+  return true;
+}
+
+async function loadPublicStatus(slug) {
+  try {
+    if (slug && !_pubStatusAgencyId) {
+      const { data: agencyRow } = await sb.from('agencies').select('id, name').eq('slug', slug).maybeSingle();
+      if (agencyRow) {
+        _pubStatusAgencyId = agencyRow.id;
+        document.getElementById('pubStatusAgencyName').textContent = `${agencyRow.name.toUpperCase()} — CHANNEL STATUS`;
+      }
+    }
+
+    let query = sb.from('public_channel_status').select('*').order('designator');
+    if (_pubStatusAgencyId) query = query.eq('agency_id', _pubStatusAgencyId);
+    const { data, error } = await query;
+    if (error) throw error;
+
+    renderPublicStatus(data || []);
+    document.getElementById('pubStatusLastUpdated').textContent =
+      `Updated ${new Date().toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit' })} PT — refreshes automatically`;
+  } catch (e) {
+    document.getElementById('pubStatusGrid').innerHTML =
+      `<div style="text-align:center;padding:40px 20px;color:var(--status-active);">Unable to load channel status right now. This page will keep retrying.</div>`;
+  }
+}
+
+function renderPublicStatus(rows) {
+  const grid = document.getElementById('pubStatusGrid');
+  if (!rows.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text-dim);">No channels published for public status yet.</div>`;
+    return;
+  }
+  const groups = [
+    { key: 'available', label: 'Available', cls: 'available' },
+    { key: 'active',    label: 'In Use',     cls: 'active' },
+    { key: 'reserved',  label: 'Reserved',   cls: 'reserved' },
+  ];
+  grid.innerHTML = groups.map(g => {
+    const items = rows.filter(r => r.status === g.key);
+    if (!items.length) return '';
+    return `<div class="pub-status-group-label">${g.label} (${items.length})</div>` +
+      items.map(r => `
+        <div class="pub-status-row">
+          <div>
+            <div style="font-family:var(--font-data);font-weight:700;font-size:16px;color:var(--text-primary);">${escHtml(r.designator||'')}</div>
+            <div style="font-size:13px;color:var(--text-dim);">${escHtml(r.function||'')}${r.agency ? ' · ' + escHtml(r.agency) : ''}</div>
+          </div>
+          <span class="status-pill ${g.cls}">${g.label}</span>
+        </div>`).join('');
+  }).join('');
+}
+
 function checkPublicReqRoute() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('req') !== 'true') return false;
