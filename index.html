@@ -2165,12 +2165,20 @@
     max-height: 78vh;
     overflow-y: auto;
     box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
-    transform: translateY(110%);
-    transition: transform 280ms cubic-bezier(0.32,0.72,0,1);
-    /* Always in DOM on mobile, hidden via transform only */
+    /* Closed: pushed fully off-screen AND made non-interactive. It used to
+       be translateY(110%) of its own height only — when the sheet was short
+       (e.g. empty on first load) that parked it invisibly on top of the
+       bottom nav bar (higher z-index), silently swallowing taps on it. */
+    transform: translateY(calc(100% + 58px + env(safe-area-inset-bottom) + 20px));
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 280ms cubic-bezier(0.32,0.72,0,1), visibility 0s linear 280ms;
   }
   #mobileDetailSheet.open {
     transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform 280ms cubic-bezier(0.32,0.72,0,1), visibility 0s;
   }
   .sheet-handle {
     width: 36px; height: 4px;
@@ -3842,6 +3850,139 @@
 
   /* Public Comm Plan Request form already has its own larger
      16px mobile-safe sizing scoped under #publicReqScreen — untouched here. */
+
+  /* ═══════════════════════════════════════════════════════════
+     LEFT SIDEBAR NAVIGATION (app shell)
+     Replaces the horizontal module tab strip. Built entirely on the
+     existing theme/mode CSS variables, so every color theme (Night,
+     Day, Night Vision…) and every console mode (Standard, Refined,
+     Modern Ops, Field, Calm) applies to it with no extra rules.
+     body.app-shell is only set while inside a module — landing page,
+     login, and the public status/request pages never show it.
+     ═══════════════════════════════════════════════════════════ */
+  :root { --sb-w: 236px; --sb-w-collapsed: 64px; }
+  #appSidebar, #sbBackdrop { display: none; }
+  body.app-shell #appSidebar { display: flex; }
+  #appSidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sb-w);
+    flex-direction: column;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    z-index: 150;
+    padding: 14px 10px 10px;
+    box-sizing: border-box;
+    transition: width 180ms ease, transform 220ms ease;
+  }
+  body.app-shell { padding-left: var(--sb-w); transition: padding-left 180ms ease; }
+  body.app-shell.sidebar-collapsed { padding-left: var(--sb-w-collapsed); }
+  #appSidebar.collapsed { width: var(--sb-w-collapsed); }
+  body.app-shell #mainNavBar { display: none !important; }
+
+  .sb-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; cursor: pointer; background: none; border: none; text-align: left; width: 100%; color: inherit; font: inherit; }
+  .sb-brand-mark { font-size: 18px; line-height: 1; flex-shrink: 0; width: 24px; text-align: center; }
+  .sb-brand-name { font-family: var(--font-data); font-weight: 700; letter-spacing: 0.06em; font-size: 15px; color: var(--text-primary); }
+  .sb-brand-sub { font-size: 11px; color: var(--text-dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-search {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 8px 10px; color: var(--text-dim); font-family: var(--font-ui); font-size: 13px;
+    cursor: pointer; margin-bottom: 6px; min-height: 36px;
+  }
+  .sb-search:hover { border-color: var(--border-lit); color: var(--text-secondary); }
+  .sb-kbd { margin-left: auto; font-family: var(--font-data); font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
+  .sb-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 -4px; padding: 0 4px; }
+  .sb-group-label {
+    font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-dim); padding: 14px 10px 6px; white-space: nowrap;
+  }
+  .sb-item {
+    position: relative; display: flex; align-items: center; gap: 11px; width: 100%;
+    min-height: 38px; padding: 8px 10px; margin-bottom: 1px;
+    border: none; background: none; border-radius: var(--radius);
+    color: var(--text-secondary); font-family: var(--font-ui); font-size: 14px;
+    text-align: left; cursor: pointer; white-space: nowrap;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .sb-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .sb-item:focus-visible, .sb-search:focus-visible, .sb-brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .sb-item.active { background: var(--accent-glow); color: var(--text-primary); font-weight: 600; }
+  .sb-item.danger { color: var(--status-active); }
+  .sb-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .sb-icon svg { width: 19px; height: 19px; }
+  .sb-label { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .sb-badge {
+    margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box;
+    border-radius: 9px; background: var(--status-active); color: #fff;
+    font-family: var(--font-data); font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .sb-badge.warn { background: var(--status-reserved); color: #1a1200; }
+  .sb-footer { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 6px; }
+  .sb-user { display: flex; align-items: center; gap: 10px; padding: 8px 10px 2px; }
+  .sb-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent); color: var(--accent-contrast);
+    font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .sb-user-name { font-size: 13px; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-user-role { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+  /* Collapsed (icon rail) — labels hidden, native title tooltips on hover */
+  #appSidebar.collapsed .sb-label,
+  #appSidebar.collapsed .sb-brand-text,
+  #appSidebar.collapsed .sb-search-text,
+  #appSidebar.collapsed .sb-kbd,
+  #appSidebar.collapsed .sb-user-text { display: none; }
+  #appSidebar.collapsed .sb-item,
+  #appSidebar.collapsed .sb-search,
+  #appSidebar.collapsed .sb-brand,
+  #appSidebar.collapsed .sb-user { justify-content: center; padding-left: 0; padding-right: 0; }
+  #appSidebar.collapsed .sb-group-label { font-size: 0; padding: 0; margin: 8px 10px; border-top: 1px solid var(--border); }
+  #appSidebar.collapsed .sb-badge { position: absolute; top: 2px; right: 6px; min-width: 16px; height: 16px; font-size: 10px; padding: 0 4px; }
+
+  .sb-mobile-only { display: none; }
+  .sb-signout {
+    margin-left: auto; flex-shrink: 0; width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: 1px solid transparent; border-radius: var(--radius);
+    color: var(--text-dim); cursor: pointer;
+  }
+  .sb-signout:hover { color: var(--status-active); border-color: var(--border); }
+  .sb-signout:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  #appSidebar.collapsed .sb-signout { display: none; }
+
+  /* Mobile bottom-bar badges */
+  .mobile-nav-btn { position: relative; }
+  .mnav-badge {
+    position: absolute; top: 5px; left: calc(50% + 6px);
+    min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px;
+    background: var(--status-active); color: #fff; font-family: var(--font-data); font-size: 10px; font-weight: 700;
+    display: none; align-items: center; justify-content: center;
+  }
+
+  /* Phones: sidebar becomes a slide-in drawer; bottom bar handles the
+     everyday destinations, "More" opens the full drawer. */
+  @media (max-width: 768px) {
+    body.app-shell, body.app-shell.sidebar-collapsed { padding-left: 0 !important; }
+    #appSidebar { width: 284px !important; transform: translateX(-100%); z-index: 1500; padding-top: calc(14px + env(safe-area-inset-top)); padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+    body.sidebar-open #appSidebar { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+    #sbBackdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1400; }
+    body.app-shell.sidebar-open #sbBackdrop { display: block; }
+    .sb-item { min-height: 44px; }
+    .sb-collapse-btn { display: none !important; }
+    .sb-mobile-only { display: block; }
+    .sb-signout { width: 44px; height: 44px; }
+    body.app-shell .mobile-topbar-right { order: -1; margin-left: 0 !important; }
+  }
+  /* Desktop: the brand lives in the sidebar, so drop the duplicate in the topbar */
+  @media (min-width: 769px) {
+    body.app-shell .topbar-logo { display: none !important; }
+  }
+  @media print {
+    #appSidebar, #sbBackdrop { display: none !important; }
+    body.app-shell { padding-left: 0 !important; }
+  }
 </style>
 </head>
 <body>
@@ -4551,23 +4692,29 @@
 </div>
 
 <!-- MOBILE BOTTOM NAV BAR -->
-<nav id="mobileNavBar">
+<nav id="mobileNavBar" aria-label="Quick navigation">
   <button class="mobile-nav-btn active" id="mnavChannels" onclick="mobileNav('channels')">
     <span class="nav-icon">📻</span>Channels
   </button>
   <button class="mobile-nav-btn" id="mnavIncidents" onclick="mobileNav('incidents')">
     <span class="nav-icon">🚨</span>Incidents
+    <span class="mnav-badge" id="mnavbadge-incidents"></span>
+  </button>
+  <button class="mobile-nav-btn" id="mnavSchedule" onclick="mobileNav('schedule')">
+    <span class="nav-icon">📅</span>Schedule
   </button>
   <button class="mobile-nav-btn" id="mnavInventory" onclick="mobileNav('inventory')">
     <span class="nav-icon">📦</span>Inventory
   </button>
-  <button class="mobile-nav-btn" id="mnavLog" onclick="mobileNav('log')">
-    <span class="nav-icon">📋</span>Log
-  </button>
-  <button class="mobile-nav-btn" id="mnavFilter" onclick="mobileNav('filter')">
+  <button class="mobile-nav-btn" id="mnavFilter" onclick="mobileNav('filter')" aria-label="More destinations">
     <span class="nav-icon">⋯</span>More
+    <span class="mnav-badge" id="mnavbadge-more"></span>
   </button>
 </nav>
+
+<!-- LEFT SIDEBAR NAV — contents rendered by renderSidebar() -->
+<aside id="appSidebar" aria-label="Main navigation"></aside>
+<div id="sbBackdrop" onclick="closeSidebarDrawer()"></div>
 
 <!-- TOPBAR -->
 <header class="topbar" style="display:none;">
@@ -10118,6 +10265,8 @@ function setMode(name, el) {
 
   currentMode = name;
   closeModeDropdown();
+  applySidebarCollapsed();
+  renderSidebar();
 
   try { localStorage.setItem('warden_mode', name); } catch(e) {}
 }
@@ -10228,6 +10377,7 @@ async function doLogout() {
   }
   await sb.auth.signOut();
   currentUser = null;
+  exitAppShell();
   // Clear remembered nav state — a different user (or a fresh session for
   // the same one) shouldn't be dropped back into wherever the last person left off.
   try { localStorage.removeItem('warden_last_agency_id'); localStorage.removeItem('warden_last_module_id'); } catch(e) {}
@@ -10312,6 +10462,7 @@ async function onLoginSuccess() {
 // ─────────────────────────────────────────────
 function showLandingPage() {
   onLoginSuccess(); // update topbar with agency name
+  exitAppShell();
   document.getElementById('landingScreen').style.display = 'block';
   document.querySelector('.layout')?.style && (document.querySelector('.layout').style.display = 'none');
   document.querySelector('.topbar') && (document.querySelector('header.topbar').style.display = 'none');
@@ -10457,10 +10608,8 @@ function openModule(id) {
   // instead of the module grid — see maybeAutoOpenLastModule().
   try { localStorage.setItem('warden_last_module_id', id); } catch(e) {}
 
-  // Hide landing, show app
-  document.getElementById('landingScreen').style.display = 'none';
-  document.querySelector('.layout').style.display = '';
-  document.querySelector('header.topbar').style.display = '';
+  // Hide landing, show app shell (sidebar + topbar + layout)
+  enterAppShell();
 
   if (id === 'freq') {
     switchMainTab('channels');
@@ -10507,6 +10656,7 @@ function goHome() {
   // Clear the remembered module — a deliberate trip back to the grid
   // should stick across a refresh too, not bounce right back in.
   try { localStorage.removeItem('warden_last_module_id'); } catch(e) {}
+  exitAppShell();
   document.querySelector('.layout').style.display = 'none';
   document.querySelector('header.topbar').style.display = 'none';
   showLandingPage();
@@ -12208,10 +12358,47 @@ function openGlobalSearch() {
   if (!overlay || !input) return;
   overlay.style.display = 'block';
   input.value = '';
-  document.getElementById('globalSearchResults').innerHTML = '';
-  globalSearchResults = [];
-  globalSearchSelected = -1;
+  input.placeholder = 'Jump to a module, run a command, or search records…';
+  runGlobalSearch(''); // show destinations + actions before anything is typed
   setTimeout(() => input.focus(), 30);
+}
+
+// Command-palette entries: navigation destinations (only ones this user
+// can actually see — same visibility as the sidebar) and quick actions.
+function paletteCommands(q) {
+  const out = [];
+  const inApp = !!currentUser;
+  if (!inApp) return out;
+  sbVisibleItems().forEach(it => {
+    const hay = (it.label + ' ' + it.tab + ' ' + (it.group || '')).toLowerCase();
+    if (!q || hay.includes(q)) {
+      out.push({ module: 'Go to', icon: sbSvg(it.icon || it.tab, 18), label: it.label, sub: it.group || '', action: () => sbGo(it.tab) });
+    }
+  });
+  const readonly = document.body.classList.contains('readonly');
+  const collapsed = document.body.classList.contains('sidebar-collapsed');
+  const actions = [
+    { label: 'New Incident', keys: 'create add incident', icon: '🚨',
+      when: () => sbTabVisible('incidents') && !readonly,
+      run: () => { sbGo('incidents'); setTimeout(() => openIncidentForm(null), 60); } },
+    { label: 'Add Channel', keys: 'create new channel', icon: '📻',
+      when: () => sbTabVisible('channels') && !readonly,
+      run: () => { sbGo('channels'); setTimeout(() => openAddModal(), 60); } },
+    { label: 'Open Big Board', keys: 'wall display fullscreen', icon: sbSvg('bigboard', 18),
+      run: () => openBigBoard() },
+    { label: collapsed ? 'Expand sidebar' : 'Collapse sidebar', keys: 'sidebar menu nav toggle', icon: sbSvg(collapsed ? 'expand' : 'collapse', 18),
+      when: () => !isMobileSidebar(), run: () => toggleSidebarCollapsed() },
+    { label: 'Module home', keys: 'home landing modules', icon: sbSvg('home', 18),
+      run: () => sbGo('home') },
+  ];
+  actions.forEach(a => {
+    if (a.when && !a.when()) return;
+    if (!q || (a.label + ' ' + a.keys).toLowerCase().includes(q)) {
+      out.push({ module: 'Action', icon: a.icon, label: a.label, sub: '', action: a.run });
+    }
+  });
+  // With a query, keep commands to the top few so record matches stay visible
+  return q ? out.slice(0, 6) : out;
 }
 
 function closeGlobalSearch() {
@@ -12221,8 +12408,8 @@ function closeGlobalSearch() {
 
 function collectGlobalSearchResults(query) {
   const q = query.trim().toLowerCase();
-  if (!q) return [];
-  const out = [];
+  if (!q) return paletteCommands('');
+  const out = paletteCommands(q);
   const push = (module, icon, label, sub, action) => out.push({ module, icon, label, sub, action });
 
   channels.forEach(c => {
@@ -12297,7 +12484,7 @@ function runGlobalSearch(query) {
 function renderGlobalSearchResults() {
   const el = document.getElementById('globalSearchResults');
   if (!el) return;
-  if (!document.getElementById('globalSearchInput').value.trim()) {
+  if (!document.getElementById('globalSearchInput').value.trim() && !globalSearchResults.length) {
     el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-dim);font-size:14px;">Start typing to search across every module…</div>';
     return;
   }
@@ -12308,7 +12495,7 @@ function renderGlobalSearchResults() {
   el.innerHTML = globalSearchResults.map((r, i) => `
     <div class="global-search-row" data-idx="${i}" onclick="activateGlobalSearchResult(${i})"
       style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-left:3px solid ${i===globalSearchSelected?'var(--accent)':'transparent'};background:${i===globalSearchSelected?'var(--bg-hover)':'transparent'};">
-      <span style="font-size:18px;flex-shrink:0;">${r.icon}</span>
+      <span style="font-size:18px;flex-shrink:0;width:22px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);">${r.icon}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-size:14px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(String(r.label))}</div>
         ${r.sub ? `<div style="font-size:12px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(String(r.sub))}</div>` : ''}
@@ -12609,7 +12796,308 @@ function diffChannels(newChannels) {
 // ─────────────────────────────────────────────
 function isMobile() { return window.innerWidth <= 768; }
 
+// ═══════════════════════════════════════════════
+// LEFT SIDEBAR NAVIGATION
+// The sidebar MIRRORS the legacy (now hidden) #mainNavBar tab strip
+// rather than duplicating its rules: every existing permission check,
+// agency-module toggle, and badge updater keeps writing to the old
+// mvtab-*/navitem-*/navbadge-* elements exactly as before, and a
+// MutationObserver re-renders the sidebar whenever any of them change.
+// That way no visibility rule has two sources of truth.
+// ═══════════════════════════════════════════════
+const SB_ICONS = {
+  home:      '<path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
+  overview:  '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+  channels:  '<path d="M12 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/><path d="M7.5 7.5a6.5 6.5 0 0 0 0 9"/><path d="M16.5 7.5a6.5 6.5 0 0 1 0 9"/><path d="M4.5 4.5a11 11 0 0 0 0 15"/><path d="M19.5 4.5a11 11 0 0 1 0 15"/>',
+  talkgroups:'<circle cx="9" cy="9" r="4.5"/><circle cx="15.5" cy="14.5" r="4.5"/>',
+  rfanalyzer:'<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><circle cx="12" cy="9" r="2.2"/>',
+  rid:       '<path d="M20 12.5 12.5 20a2 2 0 0 1-2.8 0l-6.7-6.7a2 2 0 0 1 0-2.8L10.5 3H20v9.5Z"/><circle cx="15.5" cy="7.5" r="1.4"/>',
+  incidents: '<path d="M12 3 2 20h20L12 3Z"/><line x1="12" y1="10" x2="12" y2="14.5"/><circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none"/>',
+  schedule:  '<rect x="4" y="5.5" width="16" height="14" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8" y1="3.5" x2="8" y2="7.5"/><line x1="16" y1="3.5" x2="16" y2="7.5"/>',
+  commreq:   '<rect x="5" y="3.5" width="14" height="17" rx="2"/><line x1="8.5" y1="8" x2="15.5" y2="8"/><line x1="8.5" y1="12" x2="15.5" y2="12"/><line x1="8.5" y1="16" x2="13" y2="16"/>',
+  resources: '<rect x="3.5" y="10" width="17" height="8" rx="1.5"/><path d="M7 10V7.5A2.5 2.5 0 0 1 9.5 5h5A2.5 2.5 0 0 1 17 7.5V10"/>',
+  uas:       '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.8 2.8M15.2 15.2 18 18M18 6l-2.8 2.8M8.8 15.2 6 18"/><circle cx="12" cy="12" r="2.3"/>',
+  personnel: '<circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/>',
+  inventory: '<path d="M4 8 12 4l8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/><line x1="12" y1="12" x2="12" y2="20"/>',
+  parts:     '<path d="M14.5 3.5 20.5 9.5 9.5 20.5 3.5 14.5 14.5 3.5Z"/><line x1="7" y1="17" x2="4" y2="20"/>',
+  sites:     '<path d="M12 3 4 9l8 4 8-4-8-6Z"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/>',
+  reports:   '<line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="7"/><line x1="18" y1="20" x2="18" y2="15"/>',
+  analytics: '<path d="M4 17 9 10l4 4 7-9"/>',
+  admin:     '<circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a7.4 7.4 0 0 0 0-3l2-1.5-2-3.5-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2h-4l-.4 2.5a7.6 7.6 0 0 0-2.6 1.5l-2.4-1-2 3.5 2 1.5a7.4 7.4 0 0 0 0 3l-2 1.5 2 3.5 2.4-1a7.6 7.6 0 0 0 2.6 1.5L10 22h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.5-2-1.5Z"/>',
+  search:    '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/>',
+  collapse:  '<path d="M15 6l-6 6 6 6"/>',
+  expand:    '<path d="M9 6l6 6-6 6"/>',
+  bigboard:  '<rect x="3" y="4.5" width="18" height="12" rx="1.5"/><line x1="9" y1="20" x2="15" y2="20"/>',
+  handoff:   '<path d="M8 4.5h8"/><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 12l2 2 4-4"/>',
+  morning:   '<circle cx="12" cy="13" r="4"/><path d="M12 3v3M4.2 6.2l2 2M19.8 6.2l-2 2M2 17h20"/>',
+  notes:     '<path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8l-5-5Z"/><path d="M14 3v5h5"/>',
+  logout:    '<path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M10 17l-5-5 5-5"/><line x1="5" y1="12" x2="15" y2="12"/>',
+};
+function sbSvg(name, size) {
+  const dims = size ? ` width="${size}" height="${size}"` : '';
+  return `<svg viewBox="0 0 24 24"${dims} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SB_ICONS[name] || SB_ICONS.overview}</svg>`;
+}
+
+// Grouping for the sidebar. `legacy` is the old strip element whose
+// visibility this item mirrors.
+const SIDEBAR_NAV = [
+  { group: null, items: [
+    { tab: 'overview',   label: 'Overview',          legacy: 'mvtab-overview' },
+  ]},
+  { group: 'Channel Plan', items: [
+    { tab: 'channels',   label: 'Channels',          legacy: 'navitem-channels' },
+    { tab: 'talkgroups', label: 'Talkgroups',        legacy: 'navitem-talkgroups' },
+    { tab: 'rfanalyzer', label: 'RF Deconflicter',   legacy: 'navitem-rfanalyzer' },
+    { tab: 'rid',        label: 'RID Manager',       legacy: 'navitem-rid' },
+  ]},
+  { group: 'Operations', items: [
+    { tab: 'incidents',  label: 'Incidents',         legacy: 'navitem-incidents' },
+    { tab: 'schedule',   label: 'Schedule',          legacy: 'navitem-schedule' },
+    { tab: 'commreq',    label: 'Comm Plan Req',     legacy: 'navitem-commreq' },
+    { tab: 'resources',  label: 'Resources',         legacy: 'mvtab-resources' },
+    { tab: 'uas',        label: 'UAS Manager',       legacy: 'mvtab-uas' },
+    { tab: 'personnel',  label: 'Personnel',         legacy: 'mvtab-personnel' },
+  ]},
+  { group: 'Assets', items: [
+    { tab: 'inventory',  label: 'Radio Inventory',   legacy: 'navitem-inventory' },
+    { tab: 'parts',      label: 'Parts & Supplies',  legacy: 'navitem-parts' },
+    { tab: 'sites',      label: 'Sites',             legacy: 'navitem-sites' },
+  ]},
+  { group: 'Insights', items: [
+    { tab: 'reports',    label: 'Reports',           legacy: 'mvtab-reports' },
+    { tab: 'analytics',  label: 'Analytics',         legacy: 'mvtab-analytics' },
+  ]},
+];
+
+// Visible = neither the legacy element nor any ancestor up to the strip
+// has been hidden with an inline display:none. (The strip itself is
+// hidden by CSS in app-shell mode, which is deliberately not counted.)
+function sbLegacyVisible(id) {
+  let n = document.getElementById(id);
+  if (!n) return false;
+  while (n && n.id !== 'mainNavBar') {
+    if (n.style && n.style.display === 'none') return false;
+    n = n.parentElement;
+  }
+  return true;
+}
+function sbIsAdmin() {
+  return !!(currentUser && (currentUser.role === 'admin' || currentUser.canAdmin)) && sbLegacyVisible('mvtab-admin');
+}
+function sbVisibleItems() {
+  const out = [];
+  SIDEBAR_NAV.forEach(g => g.items.forEach(it => { if (sbLegacyVisible(it.legacy)) out.push({ ...it, group: g.group }); }));
+  if (sbIsAdmin()) out.push({ tab: 'admin', label: 'Administration', group: null });
+  return out;
+}
+function sbTabVisible(tab) { return sbVisibleItems().some(it => it.tab === tab); }
+
+// Badge text for one legacy badge element, or '' if it's hidden/empty.
+function sbMirrorBadge(id) {
+  const b = document.getElementById(id);
+  if (!b || b.style.display === 'none') return '';
+  return (b.textContent || '').trim();
+}
+function sbBadgeFor(tab) {
+  try {
+    if (tab === 'incidents') {
+      const n = (typeof incidents !== 'undefined' ? incidents : []).filter(i => i.status === 'active').length;
+      return n ? { text: n > 99 ? '99+' : String(n), cls: '' } : null;
+    }
+    if (tab === 'commreq') { const t = sbMirrorBadge('navbadge-commreq'); return t ? { text: t, cls: '' } : null; }
+    if (tab === 'parts')   { const t = sbMirrorBadge('navbadge-parts');   return t ? { text: t, cls: 'warn' } : null; }
+    if (tab === 'analytics') {
+      const n = window._ridUrgentCount || 0;
+      return n ? { text: String(n), cls: 'warn', title: `${n} RID range${n===1?'':'s'} forecast to run out within ~8 weeks` } : null;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function isMobileSidebar() { return window.matchMedia('(max-width: 768px)').matches; }
+
+function sbPrefCollapsed() {
+  try {
+    const v = localStorage.getItem('warden_sidebar_collapsed');
+    if (v === '1') return true;
+    if (v === '0') return false;
+  } catch (e) {}
+  // No saved choice yet: Field/Glance mode and narrower screens start as the icon rail
+  return document.documentElement.getAttribute('data-mode') === 'field' || window.innerWidth < 1100;
+}
+function applySidebarCollapsed() {
+  const collapsed = !isMobileSidebar() && sbPrefCollapsed();
+  document.body.classList.toggle('sidebar-collapsed', collapsed);
+  document.getElementById('appSidebar')?.classList.toggle('collapsed', collapsed);
+}
+function toggleSidebarCollapsed() {
+  const next = !document.body.classList.contains('sidebar-collapsed');
+  try { localStorage.setItem('warden_sidebar_collapsed', next ? '1' : '0'); } catch (e) {}
+  applySidebarCollapsed();
+  renderSidebar();
+}
+
+function openSidebarDrawer()  { renderSidebar(); document.body.classList.add('sidebar-open'); }
+function closeSidebarDrawer() { document.body.classList.remove('sidebar-open'); }
+function toggleSidebarDrawer() {
+  if (document.body.classList.contains('sidebar-open')) closeSidebarDrawer(); else openSidebarDrawer();
+}
+
+// Shows the module shell (hides landing), used by openModule and by the
+// sidebar / command palette / bottom bar when jumping to a tab directly.
+function enterAppShell() {
+  const landing = document.getElementById('landingScreen');
+  if (landing) landing.style.display = 'none';
+  const layout = document.querySelector('.layout');
+  if (layout) layout.style.display = '';
+  const topbar = document.querySelector('header.topbar');
+  if (topbar) topbar.style.display = '';
+  document.body.classList.add('app-shell');
+  applySidebarCollapsed();
+  renderSidebar();
+}
+function exitAppShell() {
+  document.body.classList.remove('app-shell', 'sidebar-open');
+}
+
+function sbGo(tab) {
+  closeSidebarDrawer();
+  if (tab === 'home') { goHome(); return; }
+  if (!document.body.classList.contains('app-shell')) enterAppShell();
+  switchMainTab(tab);
+}
+
+function sbItemHtml(it, activeTab) {
+  const badge = sbBadgeFor(it.tab);
+  const isActive = it.tab === activeTab;
+  const badgeTitle = badge?.title ? ` — ${badge.title}` : (badge ? ` (${badge.text})` : '');
+  return `<button type="button" class="sb-item${isActive ? ' active' : ''}${it.danger ? ' danger' : ''}"
+      onclick="sbGo('${it.tab}')" title="${escHtml(it.label + badgeTitle)}"${isActive ? ' aria-current="page"' : ''}>
+      <span class="sb-icon">${sbSvg(it.icon || it.tab)}</span>
+      <span class="sb-label">${escHtml(it.label)}</span>
+      ${badge ? `<span class="sb-badge ${badge.cls}">${escHtml(badge.text)}</span>` : ''}
+    </button>`;
+}
+
+let _sbRenderTimer = null;
+function scheduleSidebarRender() {
+  clearTimeout(_sbRenderTimer);
+  _sbRenderTimer = setTimeout(renderSidebar, 40);
+}
+
+function renderSidebar() {
+  const el = document.getElementById('appSidebar');
+  if (!el) return;
+  try {
+    const activeTab = typeof activeMainTab !== 'undefined' ? activeMainTab : '';
+    const collapsed = el.classList.contains('collapsed');
+    const agencyName = (typeof currentAgency !== 'undefined' && currentAgency?.name) || 'Public Safety Operations';
+    const agencyIcon = (typeof currentAgency !== 'undefined' && currentAgency?.icon) || '📡';
+
+    let navHtml = '';
+    SIDEBAR_NAV.forEach(g => {
+      const items = g.items.filter(it => sbLegacyVisible(it.legacy));
+      if (!items.length) return;
+      if (g.group) navHtml += `<div class="sb-group-label">${escHtml(g.group)}</div>`;
+      navHtml += items.map(it => sbItemHtml(it, activeTab)).join('');
+    });
+
+    const u = (typeof currentUser !== 'undefined' && currentUser) || null;
+    const initials = u?.name ? u.name.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('') : '?';
+
+    el.innerHTML = `
+      <button type="button" class="sb-brand" onclick="sbGo('home')" title="Return to module home">
+        <span class="sb-brand-mark">${escHtml(agencyIcon)}</span>
+        <span class="sb-brand-text">
+          <div class="sb-brand-name">WARDEN</div>
+          <div class="sb-brand-sub">${escHtml(agencyName)}</div>
+        </span>
+      </button>
+      <button type="button" class="sb-search" onclick="closeSidebarDrawer();openGlobalSearch()" title="Search &amp; commands (Ctrl/⌘K)">
+        <span class="sb-icon">${sbSvg('search', 16)}</span>
+        <span class="sb-search-text">Search or jump to…</span>
+        <span class="sb-kbd">⌘K</span>
+      </button>
+      <nav class="sb-scroll">${navHtml}
+        <div class="sb-mobile-only">
+          <div class="sb-group-label">Tools</div>
+          <button type="button" class="sb-item" onclick="closeSidebarDrawer();openShiftHandoff()"><span class="sb-icon">${sbSvg('handoff')}</span><span class="sb-label">Shift Handoff</span></button>
+          <button type="button" class="sb-item" onclick="closeSidebarDrawer();openMorningReport()"><span class="sb-icon">${sbSvg('morning')}</span><span class="sb-label">Morning Report</span></button>
+          <button type="button" class="sb-item" onclick="closeSidebarDrawer();openBigBoard()"><span class="sb-icon">${sbSvg('bigboard')}</span><span class="sb-label">Big Board</span></button>
+          <button type="button" class="sb-item" onclick="closeSidebarDrawer();openWhatsNew()"><span class="sb-icon">${sbSvg('notes')}</span><span class="sb-label">Release Notes</span></button>
+        </div>
+      </nav>
+      <div class="sb-footer">
+        ${sbIsAdmin() ? sbItemHtml({ tab: 'admin', label: 'Administration', danger: true }, activeTab) : ''}
+        <button type="button" class="sb-item sb-collapse-btn" onclick="toggleSidebarCollapsed()"
+          title="${collapsed ? 'Expand sidebar' : 'Collapse sidebar'}" aria-label="${collapsed ? 'Expand sidebar' : 'Collapse sidebar'}">
+          <span class="sb-icon">${sbSvg(collapsed ? 'expand' : 'collapse')}</span>
+          <span class="sb-label">Collapse</span>
+        </button>
+        ${u ? `<div class="sb-user" title="${escHtml((u.name || '') + (u.roleLabel ? ' — ' + u.roleLabel : ''))}">
+          <div class="sb-avatar">${escHtml(initials)}</div>
+          <div class="sb-user-text" style="min-width:0;">
+            <div class="sb-user-name">${escHtml(u.name || '')}</div>
+            <div class="sb-user-role">${escHtml(u.roleLabel || u.role || '')}</div>
+          </div>
+          <button type="button" class="sb-signout" onclick="doLogout()" title="Sign out" aria-label="Sign out">${sbSvg('logout', 17)}</button>
+        </div>` : ''}
+      </div>`;
+
+    // Mobile bottom bar: active state + badges
+    const bottomTabs = ['channels', 'incidents', 'schedule', 'inventory'];
+    bottomTabs.forEach(t => {
+      document.getElementById('mnav' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.toggle('active', t === activeTab);
+    });
+    document.getElementById('mnavFilter')?.classList.toggle('active', !!activeTab && !bottomTabs.includes(activeTab));
+    const incBadge = sbBadgeFor('incidents');
+    const mInc = document.getElementById('mnavbadge-incidents');
+    if (mInc) { mInc.textContent = incBadge ? incBadge.text : ''; mInc.style.display = incBadge ? 'inline-flex' : 'none'; }
+    // "More" shows a dot-count of anything flagged that isn't on the bottom bar
+    const moreCount = ['commreq', 'parts', 'analytics'].filter(t => sbTabVisible(t) && sbBadgeFor(t)).length;
+    const mMore = document.getElementById('mnavbadge-more');
+    if (mMore) { mMore.textContent = moreCount ? String(moreCount) : ''; mMore.style.display = moreCount ? 'inline-flex' : 'none'; }
+  } catch (e) {
+    console.warn('renderSidebar failed:', e);
+  }
+}
+
+// RID urgency for the Analytics badge — recomputed periodically rather
+// than on every render, since walking every ID in every range isn't free.
+function refreshRidUrgency() {
+  try {
+    const rows = computeRidForecastRows();
+    window._ridUrgentCount = rows.filter(r => r.weeksLeft !== null && r.weeksLeft <= 8).length;
+  } catch (e) { window._ridUrgentCount = 0; }
+  scheduleSidebarRender();
+}
+
+function initSidebar() {
+  const bar = document.getElementById('mainNavBar');
+  if (bar && 'MutationObserver' in window) {
+    new MutationObserver(scheduleSidebarRender).observe(bar, {
+      subtree: true, childList: true, characterData: true,
+      attributes: true, attributeFilter: ['style', 'class'],
+    });
+  }
+  window.addEventListener('resize', () => {
+    if (!isMobileSidebar()) closeSidebarDrawer();
+    applySidebarCollapsed();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.body.classList.contains('sidebar-open')) closeSidebarDrawer();
+  });
+  // Incident counts change via realtime without touching the legacy strip
+  setInterval(() => { if (document.body.classList.contains('app-shell')) renderSidebar(); }, 15000);
+  setTimeout(refreshRidUrgency, 8000);
+  setInterval(refreshRidUrgency, 5 * 60 * 1000);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSidebar);
+else setTimeout(initSidebar, 0);
+
 function toggleMobileMenu() {
+  // Inside a module, the hamburger opens the sidebar drawer
+  if (document.body.classList.contains('app-shell')) { toggleSidebarDrawer(); return; }
   const menu = document.getElementById('mobileMenu');
   menu.classList.toggle('open');
 }
@@ -12624,6 +13112,19 @@ document.addEventListener('click', function(e) {
 });
 
 function mobileNav(tab) {
+  // Bottom-bar destinations jump straight in, even from the landing screen;
+  // "More" opens the full sidebar drawer with every destination.
+  if (tab === 'filter') { enterAppShell(); openSidebarDrawer(); return; }
+  if (['channels','incidents','schedule','inventory'].includes(tab)) {
+    enterAppShell();
+    const mp = document.querySelector('.main-panel');
+    if (mp) mp.style.display = 'flex';
+    closeMobileSheet();
+    closeSidebarDrawer();
+    switchMainTab(tab);
+    return;
+  }
+
   ['channels','incidents','inventory','log','filter'].forEach(t => {
     document.getElementById('mnav' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.remove('active');
   });
@@ -13441,19 +13942,21 @@ async function renderCprTurnaround() {
 // populated with a record update in the last 30 days (radio_inventory's
 // own updated_at). Flagged clearly as an estimate rather than a precise
 // count, since an unrelated edit to a radio also bumps updated_at.
-async function renderRidExhaustionForecast() {
-  if (!ridRanges || !ridRanges.length) {
-    return analyticsSection('RID Range Exhaustion Forecast', 'Estimated weeks until each range is fully committed', `<div style="color:var(--text-dim);font-size:14px;">No RID ranges configured yet.</div>`);
-  }
+// Shared by the Analytics page and the sidebar's Analytics badge so both
+// always agree on which ranges are running out.
+function computeRidForecastRows() {
+  if (typeof ridRanges === 'undefined' || !ridRanges || !ridRanges.length) return [];
   const index = buildCommittedIdIndex();
   const since30 = Date.now() - 30 * 86400000;
 
-  const rowsData = ridRanges.map(range => {
-    const total = range.end_id - range.start_id + 1;
+  return ridRanges.map(range => {
     const isMdc = range.system === 'mdc_id';
-    let committed = 0;
+    // total = USABLE IDs only — MDC1200 IDs containing an F digit are
+    // invalid and can never be assigned, so they must not count as "free".
+    let total = 0, committed = 0;
     for (let id = range.start_id; id <= range.end_id; id++) {
       if (isMdc && ridContainsF(ridDecimalToHex(id))) continue;
+      total++;
       if (classifyRid(id, index, ridReservations, range).state === 'committed') committed++;
     }
     const free = total - committed;
@@ -13472,6 +13975,15 @@ async function renderRidExhaustionForecast() {
     const weeksLeft = weeklyRate > 0 ? Math.round(free / weeklyRate) : null;
     return { range, total, committed, free, weeklyRate, weeksLeft };
   }).filter(r => r.total > 0);
+}
+
+async function renderRidExhaustionForecast() {
+  if (!ridRanges || !ridRanges.length) {
+    return analyticsSection('RID Range Exhaustion Forecast', 'Estimated weeks until each range is fully committed', `<div style="color:var(--text-dim);font-size:14px;">No RID ranges configured yet.</div>`);
+  }
+  const rowsData = computeRidForecastRows();
+  window._ridUrgentCount = rowsData.filter(r => r.weeksLeft !== null && r.weeksLeft <= 8).length;
+  scheduleSidebarRender();
 
   const rowsHtml = rowsData.map(r => {
     const pct = Math.round((r.committed / r.total) * 100);
@@ -13535,6 +14047,10 @@ function switchMainTab(tab) {
   if (tab === 'sites')       renderSites();
   if (tab === 'reports')     renderReportsCatalog();
   if (tab === 'analytics')   renderAnalytics();
+
+  // Sidebar active state + close the mobile drawer after navigating
+  renderSidebar();
+  closeSidebarDrawer();
 
   // Log page visits so admins can see usage patterns in the System Log
   const PAGE_LABELS = {
