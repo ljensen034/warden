@@ -4027,6 +4027,7 @@
   .fm-check-dir { font-size:12px; color:var(--text-dim); }
   .fm-check-val { font-family:var(--font-data); font-size:16px; font-weight:700; color:var(--text-primary); margin:2px 0; }
   .fm-check-text { font-size:14px; color:var(--text-secondary); }
+  .fm-dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(0.88) contrast(0.88) saturate(0.55); }
   .fm-site-icon { font-size:16px; line-height:24px; text-align:center; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
   #fmMap .leaflet-popup-content-wrapper, #fmMap .leaflet-popup-tip { background:var(--bg-panel); color:var(--text-primary); border:1px solid var(--border-lit); box-shadow:0 8px 24px rgba(0,0,0,0.4); }
   #fmMap .leaflet-popup-content { margin:12px 14px; font-family:var(--font-ui); font-size:14px; }
@@ -5249,7 +5250,7 @@
               <label>Range (mi)<input class="form-input" id="fmSiteRange" type="number" min="5" max="40" step="1" value="30"></label>
               <label>Receiver height (ft)<input class="form-input" id="fmRxAnt" type="number" min="1" step="1" value="6"></label>
             </div>
-            <div class="fm-note">Terrain from AWS Terrain Tiles (~30–60 m resolution). Line of sight with earth curvature, single knife-edge diffraction, free-space / two-ray path loss. A planning estimate, not a propagation study — verify in the field. Changes apply to the next coverage you show.</div>
+            <div class="fm-note">Terrain and shading from AWS Terrain Tiles (~30–60 m resolution, no API key). Line of sight with earth curvature, single knife-edge diffraction, free-space / two-ray path loss. A planning estimate, not a propagation study — verify in the field. Changes apply to the next coverage you show.</div>
           </div>
           <div class="fm-card">
             <div class="fm-card-title">Not on the map</div>
@@ -26785,25 +26786,64 @@ function fmSetBase(key) {
   if (!fm.map) return;
   if (fm.base) fm.map.removeLayer(fm.base);
   var defs = {
-    dark: ['https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', '© OpenStreetMap contributors © CARTO', 19],
+    // CARTO now watermarks keyless raster tiles with "API KEY REQUIRED" —
+    // the dark map is OpenStreetMap with a CSS night filter instead.
+    dark: ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', '© OpenStreetMap contributors', 19],
     streets: ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', '© OpenStreetMap contributors', 19],
     topo: ['https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', '© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)', 17]
   };
   var d = defs[key] || defs.dark;
-  fm.base = L.tileLayer(d[0], { attribution: d[1], maxZoom: d[2] }).addTo(fm.map);
+  fm.base = L.tileLayer(d[0], { attribution: d[1], maxZoom: d[2], className: key === 'dark' ? 'fm-dark-tiles' : '' }).addTo(fm.map);
   fm.baseKey = key;
-  var shadePane = fm.map.getPane('fmShade');
-  if (shadePane) shadePane.style.mixBlendMode = (key === 'dark') ? 'normal' : 'multiply';
-  if (fm.shade) fm.shade.setOpacity(key === 'dark' ? 0.22 : 0.45);
+  if (fm.shade) fm.shade.setOpacity(key === 'dark' ? 0.75 : 0.6);
+}
+
+// Terrain shading drawn locally from the same keyless AWS elevation tiles the
+// coverage engine uses — no third-party hillshade service, no API key.
+function fmMakeHillshade() {
+  var Shade = L.GridLayer.extend({
+    createTile: function (coords, done) {
+      var tile = document.createElement('canvas');
+      tile.width = 256; tile.height = 256;
+      fmLoadTile(coords.z, coords.x, coords.y, true).then(function (px) {
+        var E = new Float32Array(65536);
+        for (var i = 0; i < 65536; i++) E[i] = px[i * 4] * 256 + px[i * 4 + 1] + px[i * 4 + 2] / 256 - 32768;
+        var n = Math.PI - 2 * Math.PI * (coords.y + 0.5) / Math.pow(2, coords.z);
+        var lat = Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+        var cell = 40075016.686 * Math.cos(lat) / (256 * Math.pow(2, coords.z));
+        var zf = 1.6, zen = 45 * Math.PI / 180, az = (360 - 315 + 90) * Math.PI / 180;
+        var cz = Math.cos(zen), sz = Math.sin(zen), flat = cz;
+        var ctx = tile.getContext('2d'), img = ctx.createImageData(256, 256), d = img.data;
+        for (var y = 0; y < 256; y++) {
+          var yu = y > 0 ? y - 1 : 0, yd = y < 255 ? y + 1 : 255;
+          for (var x = 0; x < 256; x++) {
+            var xl = x > 0 ? x - 1 : 0, xr = x < 255 ? x + 1 : 255;
+            var dzdx = (E[y * 256 + xr] - E[y * 256 + xl]) / ((xr - xl) * cell);
+            var dzdy = (E[yd * 256 + x] - E[yu * 256 + x]) / ((yd - yu) * cell);
+            var slope = Math.atan(zf * Math.sqrt(dzdx * dzdx + dzdy * dzdy));
+            var aspect = Math.atan2(dzdy, -dzdx);
+            var shade = cz * Math.cos(slope) + sz * Math.sin(slope) * Math.cos(az - aspect);
+            var o = (y * 256 + x) * 4, diff = shade - flat;
+            if (diff < 0) { d[o] = 0; d[o + 1] = 0; d[o + 2] = 0; d[o + 3] = Math.min(230, -diff * 420); }
+            else { d[o] = 255; d[o + 1] = 255; d[o + 2] = 255; d[o + 3] = Math.min(110, diff * 260); }
+          }
+        }
+        ctx.putImageData(img, 0, 0);
+        done(null, tile);
+      }, function () { done(null, tile); });
+      return tile;
+    }
+  });
+  return new Shade({
+    pane: 'fmShade', maxNativeZoom: 14, maxZoom: 19,
+    opacity: fm.baseKey === 'dark' ? 0.75 : 0.6,
+    attribution: 'Terrain: AWS Terrain Tiles (Mapzen, USGS 3DEP, SRTM)'
+  });
 }
 
 function fmToggleHillshade(on) {
   if (!fm.map) return;
-  if (!fm.shade) {
-    fm.shade = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Hillshade © Esri', maxZoom: 16, pane: 'fmShade', opacity: fm.baseKey === 'dark' ? 0.22 : 0.45
-    });
-  }
+  if (!fm.shade) fm.shade = fmMakeHillshade();
   if (on) fm.shade.addTo(fm.map); else fm.map.removeLayer(fm.shade);
 }
 
@@ -27127,7 +27167,7 @@ function fmLat2Tile(lat, z) {
   return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * Math.pow(2, z));
 }
 
-function fmLoadTile(z, x, y) {
+function fmLoadTile(z, x, y, noCache) {
   var k = z + '/' + x + '/' + y;
   if (fm.tileCache[k]) return Promise.resolve(fm.tileCache[k]);
   return new Promise(function (resolve, reject) {
@@ -27138,7 +27178,8 @@ function fmLoadTile(z, x, y) {
         var c = document.createElement('canvas'); c.width = 256; c.height = 256;
         var ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
         var data = ctx.getImageData(0, 0, 256, 256).data;
-        fm.tileCache[k] = data; resolve(data);
+        if (!noCache) fm.tileCache[k] = data;
+        resolve(data);
       } catch (e) { reject(new Error('The browser blocked reading terrain data (CORS).')); }
     };
     img.onerror = function () { reject(new Error('Could not load terrain tile ' + k + ' — check the network connection.')); };
