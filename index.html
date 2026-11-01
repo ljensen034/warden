@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- WARDEN build 20260705-031606 -->
+<!-- WARDEN build 20261030-153923 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
   :root {
     /* NIGHT MODE — blue/gray dispatcher console look (default) */
@@ -132,8 +132,6 @@
     filter: grayscale(1) sepia(1) hue-rotate(60deg) saturate(4) brightness(1.1);
   }
 
-  /* ── MODE FONT IMPORTS ── */
-  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
   /* ═══════════════════════════════════════════════════════════
      MODE SYSTEM — independent of Theme (color). Themes control
@@ -397,7 +395,7 @@
     border: 1px solid var(--border);
     color: var(--text-secondary);
     font-family: var(--font-data);
-    font-size:16px;
+    font-size:14px;
     padding: 5px 10px;
     border-radius: var(--radius);
     cursor: pointer;
@@ -520,7 +518,7 @@
   }
 
   .topbar-incident {
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-secondary);
     font-family: var(--font-data);
   }
@@ -552,8 +550,8 @@
   .stat-dot.active    { background: var(--status-active);    box-shadow: 0 0 6px var(--status-active); }
   .stat-dot.reserved  { background: var(--status-reserved);  box-shadow: 0 0 6px var(--status-reserved); }
 
-  .stat-label { font-size:16px; color: var(--text-secondary); font-family: var(--font-data); text-transform: uppercase; letter-spacing: 0.06em; }
-  .stat-count { font-size: 22px; font-weight: 700; font-family: var(--font-data); }
+  .stat-label { font-size:12px; color: var(--text-secondary); font-family: var(--font-data); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-count { font-size: 28px; font-weight: 700; font-family: var(--font-data); }
   .stat-count.available { color: var(--status-available); }
   .stat-count.active    { color: var(--status-active); }
   .stat-count.reserved  { color: var(--status-reserved); }
@@ -669,7 +667,7 @@
     border: 1px solid var(--border);
     color: var(--text-secondary);
     font-family: var(--font-ui);
-    font-size: 16px;
+    font-size: 14px;
     padding: 6px 12px;
     border-radius: var(--radius);
     cursor: pointer;
@@ -706,7 +704,7 @@
     border: none;
     color: var(--accent-contrast);
     font-family: var(--font-ui);
-    font-size:16px;
+    font-size:14px;
     font-weight: 600;
     padding: 8px 18px;
     border-radius: var(--radius);
@@ -722,7 +720,7 @@
     border: 1px solid var(--border-lit);
     color: var(--text-secondary);
     font-family: var(--font-ui);
-    font-size:16px;
+    font-size:14px;
     padding: 7px 16px;
     border-radius: var(--radius);
     cursor: pointer;
@@ -735,7 +733,7 @@
   /* ── CHANNEL GRID ── */
   .section-header {
     font-family: var(--font-data);
-    font-size:16px;
+    font-size:12px;
     font-weight: 500;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -804,7 +802,7 @@
     gap: 10px;
     padding: 4px 12px 8px;
     font-family: var(--font-data);
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -848,13 +846,13 @@
 
   .ch-freq {
     font-family: var(--font-data);
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-secondary);
     white-space: nowrap;
   }
 
   .ch-function {
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -862,7 +860,7 @@
   }
 
   .ch-assignment {
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -874,7 +872,7 @@
     align-items: center;
     gap: 5px;
     font-family: var(--font-data);
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -889,13 +887,13 @@
 
   .ch-tone {
     font-family: var(--font-data);
-    font-size:16px;
+    font-size:14px;
     color: var(--text-dim);
   }
 
   .ch-mode {
     font-family: var(--font-data);
-    font-size:16px;
+    font-size:14px;
     color: var(--text-dim);
   }
 
@@ -906,7 +904,7 @@
     gap: 12px;
     padding: 4px 12px 8px;
     font-family: var(--font-data);
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -931,7 +929,7 @@
     padding: 40px 20px;
     text-align: center;
     color: var(--text-dim);
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.8;
   }
 
@@ -948,7 +946,7 @@
 
   .detail-label {
     font-family: var(--font-data);
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -957,13 +955,13 @@
 
   .detail-value {
     font-family: var(--font-data);
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-primary);
     font-weight: 500;
   }
 
   .detail-value.freq {
-    font-size: 18px;
+    font-size: 16px;
     color: var(--accent);
     letter-spacing: 0.04em;
   }
@@ -986,7 +984,7 @@
     border: 1px solid rgba(255,82,82,0.4);
     color: var(--status-active);
     font-family: var(--font-ui);
-    font-size:16px;
+    font-size:14px;
     padding: 6px 14px;
     border-radius: var(--radius);
     cursor: pointer;
@@ -1000,7 +998,7 @@
     border: 1px solid rgba(255,196,0,0.4);
     color: var(--status-reserved);
     font-family: var(--font-ui);
-    font-size:16px;
+    font-size:14px;
     padding: 6px 14px;
     border-radius: var(--radius);
     cursor: pointer;
@@ -1014,7 +1012,7 @@
     border: 1px solid rgba(0,230,118,0.4);
     color: var(--status-available);
     font-family: var(--font-ui);
-    font-size:16px;
+    font-size:14px;
     padding: 6px 14px;
     border-radius: var(--radius);
     cursor: pointer;
@@ -1120,12 +1118,12 @@
     text-transform: none;
     letter-spacing: 0;
     margin-left: 6px;
-    font-size:16px;
+    font-size:12px;
   }
 
   /* Live-resolved value shown under tone/frequency fields (e.g. "✓ Tone 9 — 100.0 Hz") */
   .form-resolved-hint {
-    font-size:16px;
+    font-size:12px;
     color: var(--accent);
     font-family: var(--font-data);
     min-height: 15px;
@@ -1143,7 +1141,7 @@
     gap: 16px;
   }
   .form-toggle-title { font-size: 16px; color: var(--text-primary); font-weight: 500; }
-  .form-toggle-desc   { font-size: 16px; color: var(--text-dim); margin-top: 3px; }
+  .form-toggle-desc   { font-size: 14px; color: var(--text-dim); margin-top: 3px; }
 
 
   .form-field { display: flex; flex-direction: column; gap: 6px; }
@@ -1231,7 +1229,7 @@
   .checklist-item.checked .checklist-check::after { transform: rotate(-45deg) scale(1); }
   .checklist-label {
     font-family: var(--font-data);
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-primary);
     line-height: 1.3;
     min-width: 0;
@@ -1240,7 +1238,7 @@
     white-space: nowrap;
   }
   .checklist-item.checked .checklist-label { color: var(--accent); font-weight: 600; }
-  .checklist-empty { padding: 10px 8px; font-size: 16px; color: var(--text-dim); }
+  .checklist-empty { padding: 10px 8px; font-size: 14px; color: var(--text-dim); }
 
   .modal-footer {
     padding: 14px 20px;
@@ -1354,12 +1352,12 @@
   .log-entry {
     padding: 10px 16px;
     border-bottom: 1px solid var(--border);
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .log-entry .log-time {
     font-family: var(--font-data);
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-dim);
   }
 
@@ -1377,7 +1375,7 @@
     text-align: center;
     padding: 40px;
     color: var(--text-dim);
-    font-size: 16px;
+    font-size: 14px;
     font-family: var(--font-data);
   }
 
@@ -1459,7 +1457,7 @@
   }
 
   .login-subtitle {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-dim);
     font-family: var(--font-data);
     text-transform: uppercase;
@@ -1508,7 +1506,7 @@
     border: none;
     color: var(--accent-contrast);
     font-family: var(--font-ui);
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     padding: 12px;
     border-radius: var(--radius);
@@ -1694,7 +1692,7 @@
   @media (max-width: 768px) {
     .live-ticker { height: 26px; }
     .ticker-label { display: none; }
-    .ticker-item { font-size: 10.5px; padding: 2px 6px; }
+    .ticker-item { font-size: 12px; padding: 2px 6px; }
   }
 
   /* ── USER ADMIN TABLE ── */
@@ -1920,7 +1918,7 @@
   }
   .notif-toggle-row:last-child { border-bottom: none; }
   .notif-toggle-info { flex: 1; }
-  .notif-toggle-name { font-size:16px; color: var(--text-primary); }
+  .notif-toggle-name { font-size:14px; color: var(--text-primary); }
   .notif-toggle-desc { font-size:14px; color: var(--text-dim); margin-top: 2px; }
 
   /* Toggle switch */
@@ -2107,7 +2105,7 @@
   #mobileMenu .btn-primary,
   #mobileMenu .btn-secondary {
     width: 100%; text-align: center;
-    padding: 12px; font-size: 16px;
+    padding: 12px; font-size: 14px;
     justify-content: center;
   }
   #mobileMenu .menu-divider {
@@ -2116,7 +2114,7 @@
   #mobileMenu .menu-user-row {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 4px;
-    font-size:16px; color: var(--text-secondary);
+    font-size:14px; color: var(--text-secondary);
   }
 
   /* ── MOBILE BOTTOM NAV ── */
@@ -2219,7 +2217,7 @@
     /* ── STATS BAR ── */
     .stats-bar { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
     .stat-cell { flex-shrink: 0; min-width: 90px; padding: 8px 10px; }
-    .stat-count { font-size: 18px; }
+    .stat-count { font-size: 28px; }
     .stat-label { font-size:12px; }
     .stat-dot { width: 8px; height: 8px; }
 
@@ -2488,7 +2486,7 @@
     cursor: pointer;
     transition: background 0.12s;
     font-family: var(--font-ui);
-    font-size:16px;
+    font-size:14px;
     color: var(--text-secondary);
     white-space: nowrap;
   }
@@ -2792,13 +2790,13 @@
     padding: 8px 4px;
     text-align: center;
     font-family: var(--font-data);
-    font-size:14px;
+    font-size:12px;
     color: var(--text-dim);
   }
   .sched-day-header.today { color: var(--accent); border-bottom-color: var(--accent); }
   .sched-day-header .day-num {
     display: block;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--text-secondary);
     line-height: 1.2;
@@ -2851,7 +2849,7 @@
   .sched-list-group { margin-bottom: 18px; }
   .sched-list-date {
     font-family: var(--font-data);
-    font-size:14px;
+    font-size:12px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -2883,7 +2881,7 @@
     text-align: center;
     padding: 48px 20px;
     color: var(--text-dim);
-    font-size:16px;
+    font-size:14px;
     line-height: 1.8;
   }
   .sched-status-chip {
@@ -3149,7 +3147,7 @@
     padding: 8px 20px;
     align-items: center;
     gap: 12px;
-    font-size:16px;
+    font-size:14px;
     color: var(--text-primary);
     flex-shrink: 0;
     position: relative;
@@ -3633,7 +3631,7 @@
   .module-card-icon  { font-size: 32px; line-height: 1; }
   .module-card-title { font-family: var(--font-data); font-size:16px; font-weight: 700; letter-spacing: 0.05em; color: var(--text-primary); text-transform: uppercase; }
   .module-card-desc  { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
-  .module-card-badge { position: absolute; top: 14px; right: 16px; font-family: var(--font-data); font-size: 20px; font-weight: 700; color: var(--accent); }
+  .module-card-badge { position: absolute; top: 14px; right: 16px; font-family: var(--font-data); font-size: 16px; font-weight: 700; color: var(--accent); }
   .module-card-stats { display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
   .module-stat       { font-family: var(--font-data); font-size:14px; color: var(--text-dim); }
   .module-stat strong { color: var(--text-secondary); }
@@ -3675,7 +3673,7 @@
     }
     .module-card-eyebrow {
       display: block;
-      font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+      font-family: var(--font-ui); font-size: 12px; font-weight: 600;
       letter-spacing: 0.04em; text-transform: uppercase;
       color: var(--text-dim); line-height: 1.3;
       padding-right: 6px;
@@ -3690,7 +3688,7 @@
     }
     .module-card-hero {
       display: block;
-      font-family: var(--font-ui); font-size: 30px; font-weight: 700;
+      font-family: var(--font-ui); font-size: 28px; font-weight: 700;
       line-height: 1; color: var(--text-primary);
     }
     .module-card-hero-label {
@@ -3798,7 +3796,7 @@
   .ch-function     { font-size: 14px; }
   .ch-assignment   { font-size: 14px; }
   .ch-tone, .ch-mode { font-size: 14px; }
-  .ov-agency       { font-size: 16px; }
+  .ov-agency       { font-size: 14px; }
   .ov-sub          { font-size: 12px; }
 
   /* Dashboard header KPI counts (Channels/Overview stat strip) */
@@ -3881,19 +3879,19 @@
 
   .sb-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; cursor: pointer; background: none; border: none; text-align: left; width: 100%; color: inherit; font: inherit; }
   .sb-brand-mark { font-size: 18px; line-height: 1; flex-shrink: 0; width: 24px; text-align: center; }
-  .sb-brand-name { font-family: var(--font-data); font-weight: 700; letter-spacing: 0.06em; font-size: 15px; color: var(--text-primary); }
-  .sb-brand-sub { font-size: 11px; color: var(--text-dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-brand-name { font-family: var(--font-data); font-weight: 700; letter-spacing: 0.06em; font-size: 16px; color: var(--text-primary); }
+  .sb-brand-sub { font-size: 12px; color: var(--text-dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sb-search {
     display: flex; align-items: center; gap: 8px; width: 100%;
     background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 8px 10px; color: var(--text-dim); font-family: var(--font-ui); font-size: 13px;
+    padding: 8px 10px; color: var(--text-dim); font-family: var(--font-ui); font-size: 14px;
     cursor: pointer; margin-bottom: 6px; min-height: 36px;
   }
   .sb-search:hover { border-color: var(--border-lit); color: var(--text-secondary); }
-  .sb-kbd { margin-left: auto; font-family: var(--font-data); font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
+  .sb-kbd { margin-left: auto; font-family: var(--font-data); font-size: 12px; border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
   .sb-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 -4px; padding: 0 4px; }
   .sb-group-label {
-    font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-family: var(--font-data); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
     color: var(--text-dim); padding: 14px 10px 6px; white-space: nowrap;
   }
   .sb-item {
@@ -3914,7 +3912,7 @@
   .sb-badge {
     margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box;
     border-radius: 9px; background: var(--status-active); color: #fff;
-    font-family: var(--font-data); font-size: 11px; font-weight: 700;
+    font-family: var(--font-data); font-size: 12px; font-weight: 700;
     display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .sb-badge.warn { background: var(--status-reserved); color: #1a1200; }
@@ -3925,8 +3923,8 @@
     background: var(--accent); color: var(--accent-contrast);
     font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
   }
-  .sb-user-name { font-size: 13px; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-user-role { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  .sb-user-name { font-size: 14px; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-user-role { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
 
   /* Collapsed (icon rail) — labels hidden, native title tooltips on hover */
   #appSidebar.collapsed .sb-label,
@@ -3939,7 +3937,7 @@
   #appSidebar.collapsed .sb-brand,
   #appSidebar.collapsed .sb-user { justify-content: center; padding-left: 0; padding-right: 0; }
   #appSidebar.collapsed .sb-group-label { font-size: 0; padding: 0; margin: 8px 10px; border-top: 1px solid var(--border); }
-  #appSidebar.collapsed .sb-badge { position: absolute; top: 2px; right: 6px; min-width: 16px; height: 16px; font-size: 10px; padding: 0 4px; }
+  #appSidebar.collapsed .sb-badge { position: absolute; top: 2px; right: 6px; min-width: 16px; height: 16px; font-size: 12px; padding: 0 4px; }
 
   .sb-mobile-only { display: none; }
   .sb-signout {
@@ -3957,7 +3955,7 @@
   .mnav-badge {
     position: absolute; top: 5px; left: calc(50% + 6px);
     min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px;
-    background: var(--status-active); color: #fff; font-family: var(--font-data); font-size: 10px; font-weight: 700;
+    background: var(--status-active); color: #fff; font-family: var(--font-data); font-size: 12px; font-weight: 700;
     display: none; align-items: center; justify-content: center;
   }
 
@@ -3982,6 +3980,72 @@
   @media print {
     #appSidebar, #sbBackdrop { display: none !important; }
     body.app-shell { padding-left: 0 !important; }
+  }
+  /* ═══════════════════════════════════════════════════════════
+     FREQUENCY MAP
+     ═══════════════════════════════════════════════════════════ */
+  .fm-timebar { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:10px; }
+  .fm-timebar input[type="range"] { flex:1; accent-color:var(--accent); min-width:120px; }
+  .fm-time-label { font-family:var(--font-data); font-size:14px; color:var(--text-primary); white-space:nowrap; min-width:230px; text-align:right; }
+  .fm-filters { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:10px; }
+  .fm-check { display:inline-flex; align-items:center; gap:6px; font-size:14px; color:var(--text-secondary); cursor:pointer; white-space:nowrap; }
+  .fm-check input { accent-color:var(--accent); width:15px; height:15px; }
+  .fm-counts { font-family:var(--font-data); font-size:12px; color:var(--text-dim); margin-left:auto; }
+  .fm-layout { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:12px; }
+  #fmMap { height:calc(100vh - 300px); min-height:440px; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--bg-deep); }
+  .fm-side { display:flex; flex-direction:column; gap:10px; max-height:calc(100vh - 300px); min-height:440px; overflow-y:auto; }
+  .fm-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; }
+  .fm-card-title { font-family:var(--font-data); font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px; }
+  .fm-empty { font-size:14px; color:var(--text-dim); }
+  .fm-status { font-size:14px; color:var(--text-secondary); min-height:0; }
+  .fm-status:empty { display:none; }
+  .fm-conf { padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); margin-bottom:6px; cursor:pointer; }
+  .fm-conf:hover { border-color:var(--border-lit); background:var(--bg-hover); }
+  .fm-conf.live { border-left:3px solid var(--status-active); }
+  .fm-conf-top { display:flex; align-items:center; gap:8px; }
+  .fm-conf-ch { font-family:var(--font-data); font-size:14px; font-weight:600; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fm-conf-names { font-size:14px; color:var(--text-secondary); margin-top:3px; }
+  .fm-conf-meta { font-family:var(--font-data); font-size:12px; color:var(--text-dim); margin-top:2px; }
+  .fm-chip { font-family:var(--font-data); font-size:12px; font-weight:700; padding:1px 6px; border-radius:2px; flex-shrink:0; }
+  .fm-chip.overlap { background:rgba(255,82,82,0.14); color:var(--status-active); border:1px solid rgba(255,82,82,0.35); }
+  .fm-chip.near    { background:rgba(255,179,0,0.14); color:var(--status-reserved); border:1px solid rgba(255,179,0,0.35); }
+  .fm-unloc { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); }
+  .fm-unloc:last-child { border-bottom:none; }
+  .fm-unloc b { display:block; font-size:14px; color:var(--text-primary); font-weight:600; }
+  .fm-unloc span { font-size:12px; color:var(--text-dim); }
+  .fm-settings { display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; }
+  .fm-settings label { font-family:var(--font-data); font-size:12px; color:var(--text-dim); display:flex; flex-direction:column; gap:3px; }
+  .fm-settings .form-input, .fm-settings .form-select { padding:6px 8px; }
+  .fm-sub { grid-column:1 / -1; font-family:var(--font-data); font-size:12px; color:var(--text-secondary); margin-top:4px; }
+  .fm-note { font-size:12px; color:var(--text-dim); line-height:1.5; margin-top:8px; }
+  .fm-legend-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-secondary); padding:2px 0; }
+  .fm-sw { width:14px; height:14px; border-radius:3px; flex-shrink:0; }
+  .fm-check-row { padding:8px 10px; border-radius:var(--radius); margin-bottom:6px; border:1px solid var(--border); }
+  .fm-check-row.bad  { border-color:rgba(255,82,82,0.45); background:rgba(255,82,82,0.08); }
+  .fm-check-row.warn { border-color:rgba(255,179,0,0.45); background:rgba(255,179,0,0.08); }
+  .fm-check-row.ok   { border-color:rgba(0,200,150,0.4); background:rgba(0,200,150,0.07); }
+  .fm-check-dir { font-size:12px; color:var(--text-dim); }
+  .fm-check-val { font-family:var(--font-data); font-size:16px; font-weight:700; color:var(--text-primary); margin:2px 0; }
+  .fm-check-text { font-size:14px; color:var(--text-secondary); }
+  .fm-site-icon { font-size:16px; line-height:24px; text-align:center; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+  #fmMap .leaflet-popup-content-wrapper, #fmMap .leaflet-popup-tip { background:var(--bg-panel); color:var(--text-primary); border:1px solid var(--border-lit); box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+  #fmMap .leaflet-popup-content { margin:12px 14px; font-family:var(--font-ui); font-size:14px; }
+  #fmMap .leaflet-popup-close-button { color:var(--text-dim); }
+  #fmMap .leaflet-tooltip { background:var(--bg-panel); color:var(--text-primary); border:1px solid var(--border-lit); font-family:var(--font-ui); font-size:12px; }
+  #fmMap .leaflet-control-attribution { background:rgba(0,0,0,0.45); color:#ccc; font-size:12px; }
+  #fmMap .leaflet-control-attribution a { color:#9cc7ff; }
+  .fm-pop-title { font-size:16px; font-weight:700; color:var(--text-primary); }
+  .fm-pop-sub { font-family:var(--font-data); font-size:12px; color:var(--text-dim); margin-bottom:6px; }
+  .fm-pop-row { display:flex; justify-content:space-between; gap:12px; font-size:12px; padding:2px 0; color:var(--text-dim); }
+  .fm-pop-row b { color:var(--text-primary); font-weight:600; text-align:right; }
+  .fm-lvl.strong { color:#00c878; } .fm-lvl.usable { color:#b6d400; } .fm-lvl.marginal { color:#ffa000; } .fm-lvl.interf { color:#ff6b6b; } .fm-lvl.none { color:var(--text-dim); }
+  .fm-pop-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .fm-btn { font-size:14px !important; padding:6px 12px !important; }
+  @media (max-width: 1000px) {
+    .fm-layout { grid-template-columns:1fr; }
+    #fmMap { height:60vh; min-height:360px; }
+    .fm-side { max-height:none; min-height:0; }
+    .fm-time-label { min-width:0; font-size:12px; }
   }
 </style>
 </head>
@@ -4476,7 +4540,7 @@
       </div>
       <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;text-align:center;">
         <div style="font-size:14px;color:var(--text-dim);margin-bottom:10px;">No account? Access read-only view.</div>
-        <button onclick="doViewerLogin()" id="viewerLoginBtn" style="width:100%;padding:11px;background:transparent;border:1px solid var(--border-lit);border-radius:var(--radius);color:var(--text-secondary);font-size:16px;font-family:var(--font-ui);cursor:pointer;transition:var(--transition);"
+        <button onclick="doViewerLogin()" id="viewerLoginBtn" style="width:100%;padding:11px;background:transparent;border:1px solid var(--border-lit);border-radius:var(--radius);color:var(--text-secondary);font-size:14px;font-family:var(--font-ui);cursor:pointer;transition:var(--transition);"
           onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';"
           onmouseout="this.style.borderColor='var(--border-lit)';this.style.color='var(--text-secondary)';">
           👁 Continue as Viewer
@@ -4495,7 +4559,7 @@
     <div class="login-bg-grid" style="position:fixed;"></div>
     <div style="text-align:center;margin-bottom:32px;">
       <div style="font-family:var(--font-data);font-size:22px;font-weight:700;letter-spacing:0.08em;color:var(--text-primary);margin-bottom:4px;">📡 WARDEN</div>
-      <div style="font-size:16px;color:var(--text-dim);font-family:var(--font-data);">Super Admin — Select Agency to Manage</div>
+      <div style="font-size:14px;color:var(--text-dim);font-family:var(--font-data);">Super Admin — Select Agency to Manage</div>
     </div>
     <div id="agencyCardGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:24px;"></div>
     <div style="text-align:center;">
@@ -4906,6 +4970,9 @@
           <div class="nav-group-item" id="navitem-talkgroups" onclick="closeAllNavGroups();switchMainTab('talkgroups')">
             <span class="nav-item-icon">🔢</span>Talkgroups
           </div>
+          <div class="nav-group-item" id="navitem-freqmap" onclick="closeAllNavGroups();switchMainTab('freqmap')">
+            <span class="nav-item-icon">🗺</span>Frequency Map
+          </div>
         </div>
       </div>
 
@@ -5114,6 +5181,84 @@
       <div id="schedView"></div>
     </div>
 
+    <!-- ── FREQUENCY MAP VIEW ── -->
+    <div id="view-freqmap" style="display:none;">
+      <div class="tab-page-header">
+        <div>
+          <div class="tab-page-title">Frequency Map</div>
+          <div class="tab-page-subtitle">Reservations and incidents on the map by time — co-channel overlaps flagged, terrain coverage on demand</div>
+        </div>
+        <div class="tab-page-actions">
+          <select class="form-select" id="fmBase" style="width:auto;" onchange="fmSetBase(this.value)">
+            <option value="dark">Dark map</option>
+            <option value="streets">Streets</option>
+            <option value="topo">Topographic</option>
+          </select>
+          <label class="fm-check"><input type="checkbox" id="fmHillshade" checked onchange="fmToggleHillshade(this.checked)"> Terrain shading</label>
+          <button class="btn-secondary" data-fm-action="clear-coverage">Clear coverage</button>
+        </div>
+      </div>
+      <div class="fm-timebar">
+        <button class="btn-secondary" id="fmPlay" data-fm-action="play" title="Play through the next 72 hours">▶</button>
+        <button class="btn-secondary" data-fm-action="now">Now</button>
+        <input type="range" id="fmSlider" min="0" max="144" value="0" oninput="fmOnSlider(this.value)" aria-label="Time">
+        <div id="fmTimeLabel" class="fm-time-label">—</div>
+      </div>
+      <div class="fm-filters">
+        <label class="fm-check"><input type="checkbox" checked onchange="fmToggle('reservations', this.checked)"> Reservations</label>
+        <label class="fm-check"><input type="checkbox" checked onchange="fmToggle('incidents', this.checked)"> Incidents</label>
+        <label class="fm-check"><input type="checkbox" checked onchange="fmToggle('sites', this.checked)"> Sites</label>
+        <label class="fm-check"><input type="checkbox" onchange="fmToggle('conflictsOnly', this.checked)"> Conflicts only</label>
+        <select class="form-select" id="fmBand" style="width:auto;" onchange="fmSetBand(this.value)">
+          <option value="all">All bands</option>
+          <option value="VHF">VHF</option>
+          <option value="UHF">UHF</option>
+          <option value="700">700 MHz</option>
+          <option value="800">800 MHz</option>
+        </select>
+        <span class="fm-counts" id="fmCounts"></span>
+      </div>
+      <div class="fm-layout">
+        <div id="fmMap"></div>
+        <div class="fm-side">
+          <div class="fm-status" id="fmStatus"></div>
+          <div id="fmCheckResult"></div>
+          <div class="fm-card">
+            <div class="fm-card-title">Conflicts — next 72 hours</div>
+            <div id="fmConflictList"></div>
+          </div>
+          <div class="fm-card" id="fmLegend" style="display:none;">
+            <div class="fm-card-title">Coverage estimate</div>
+            <div class="fm-legend-row"><span class="fm-sw" style="background:rgba(0,200,120,0.75);"></span>Strong — −85 dBm and up</div>
+            <div class="fm-legend-row"><span class="fm-sw" style="background:rgba(190,220,0,0.7);"></span>Usable — −85 to −100</div>
+            <div class="fm-legend-row"><span class="fm-sw" style="background:rgba(255,160,0,0.7);"></span>Marginal — −100 to −110</div>
+            <div class="fm-legend-row"><span class="fm-sw" style="background:rgba(255,70,70,0.5);"></span>Interference only — −110 to −120</div>
+            <div class="fm-note">Click anywhere on the map for the estimated signal at that spot.</div>
+          </div>
+          <div class="fm-card">
+            <div class="fm-card-title">Coverage assumptions</div>
+            <div class="fm-settings">
+              <div class="fm-sub">Reservations &amp; incidents (portable simplex)</div>
+              <label>Power (W)<input class="form-input" id="fmTxW" type="number" min="0.5" step="0.5" value="5"></label>
+              <label>Antenna (ft)<input class="form-input" id="fmTxAnt" type="number" min="1" step="1" value="6"></label>
+              <label>Range (mi)<input class="form-input" id="fmRange" type="number" min="2" max="40" step="1" value="15"></label>
+              <label>Body/clutter loss (dB)<input class="form-input" id="fmMargin" type="number" min="0" max="30" step="1" value="6"></label>
+              <div class="fm-sub">Sites (repeaters / base stations)</div>
+              <label>Power (W)<input class="form-input" id="fmSiteW" type="number" min="1" step="1" value="50"></label>
+              <label>Band<select class="form-select" id="fmSiteBand"><option value="VHF">VHF</option><option value="UHF" selected>UHF</option><option value="700">700</option><option value="800">800</option></select></label>
+              <label>Range (mi)<input class="form-input" id="fmSiteRange" type="number" min="5" max="40" step="1" value="30"></label>
+              <label>Receiver height (ft)<input class="form-input" id="fmRxAnt" type="number" min="1" step="1" value="6"></label>
+            </div>
+            <div class="fm-note">Terrain from AWS Terrain Tiles (~30–60 m resolution). Line of sight with earth curvature, single knife-edge diffraction, free-space / two-ray path loss. A planning estimate, not a propagation study — verify in the field. Changes apply to the next coverage you show.</div>
+          </div>
+          <div class="fm-card">
+            <div class="fm-card-title">Not on the map</div>
+            <div id="fmUnlocated"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── RF DECONFLICTER TOOL VIEW ── -->
     <div id="view-rfanalyzer" style="display:none;">
 
@@ -5260,7 +5405,7 @@
 
         <!-- Combined path map -->
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
-          <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Path Map</div>
+          <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Path Map</div>
           <div id="rfa-path-map" style="height:300px;width:100%;"></div>
         </div>
 
@@ -5270,7 +5415,7 @@
 
         <!-- Terrain profile chart -->
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
-          <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Terrain Profile</div>
+          <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Terrain Profile</div>
           <div style="padding:16px;">
             <canvas id="rfa-profile-chart" height="180"></canvas>
           </div>
@@ -5282,7 +5427,7 @@
 
         <!-- Sample point table -->
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Elevation Samples — USGS 3DEP</div>
+          <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Elevation Samples — USGS 3DEP</div>
           <div id="rfa-sample-table" style="overflow-x:auto;max-height:260px;overflow-y:auto;"></div>
         </div>
       </div>
@@ -5290,7 +5435,7 @@
       <!-- Empty state -->
       <div id="rfa-empty" style="text-align:center;padding:48px 24px;color:var(--text-dim);">
         <div style="font-size:32px;margin-bottom:12px;">📡</div>
-        <div style="font-size:16px;color:var(--text-secondary);margin-bottom:6px;">Enter two locations to analyze the RF path</div>
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:6px;">Enter two locations to analyze the RF path</div>
         <div style="font-size:14px;">Address geocoding · USGS 3DEP terrain · First Fresnel zone · LOS analysis</div>
       </div>
 
@@ -5367,7 +5512,7 @@
         <div id="inventoryGrid"></div>
         <div id="inventoryEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
           <div style="font-size:32px;margin-bottom:10px;">📦</div>
-          <div style="font-size:16px;color:var(--text-secondary);">No radios in inventory yet</div>
+          <div style="font-size:14px;color:var(--text-secondary);">No radios in inventory yet</div>
           <div style="font-size:14px;margin-top:4px;">Click + Add Radio to get started</div>
         </div>
       </div>
@@ -5457,7 +5602,7 @@
         <div id="partsGrid"></div>
         <div id="partsEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
           <div style="font-size:32px;margin-bottom:10px;">🧰</div>
-          <div style="font-size:16px;color:var(--text-secondary);">No parts in inventory yet</div>
+          <div style="font-size:14px;color:var(--text-secondary);">No parts in inventory yet</div>
           <div style="font-size:14px;margin-top:4px;">Click + Add Part to get started</div>
         </div>
       </div>
@@ -5637,13 +5782,13 @@
         <!-- Summary strip -->
         <div id="uasFleetSummaryStrip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
 
-        <div style="display:grid;grid-template-columns:4px 110px 1fr 110px 130px 100px 110px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">
+        <div style="display:grid;grid-template-columns:4px 110px 1fr 110px 130px 100px 110px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">
           <span></span><span>Tail #</span><span>Make / Model</span><span>Status</span><span>Flight Hours</span><span>Battery</span><span>Next Maint.</span>
         </div>
         <div id="uasFleetGrid"></div>
         <div id="uasFleetEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
           <div style="font-size:32px;margin-bottom:10px;">🛸</div>
-          <div style="font-size:16px;color:var(--text-secondary);">No aircraft in the fleet yet</div>
+          <div style="font-size:14px;color:var(--text-secondary);">No aircraft in the fleet yet</div>
           <div style="font-size:14px;margin-top:4px;">Click + Add Aircraft to get started</div>
         </div>
       </div>
@@ -5666,13 +5811,13 @@
 
         <div id="uasCurrencyBanner" style="display:none;margin-bottom:12px;"></div>
 
-        <div style="display:grid;grid-template-columns:4px 1fr 130px 120px 130px 110px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">
+        <div style="display:grid;grid-template-columns:4px 1fr 130px 120px 130px 110px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">
           <span></span><span>Name</span><span>Role</span><span>Cert / Part 107</span><span>Cert Expires</span><span>Status</span>
         </div>
         <div id="uasPersonnelGrid"></div>
         <div id="uasPersonnelEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
           <div style="font-size:32px;margin-bottom:10px;">👤</div>
-          <div style="font-size:16px;color:var(--text-secondary);">No personnel on the roster yet</div>
+          <div style="font-size:14px;color:var(--text-secondary);">No personnel on the roster yet</div>
           <div style="font-size:14px;margin-top:4px;">Click + Add Person to get started</div>
         </div>
       </div>
@@ -5696,7 +5841,7 @@
         <div id="uasMissionGrid"></div>
         <div id="uasMissionEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
           <div style="font-size:32px;margin-bottom:10px;">📋</div>
-          <div style="font-size:16px;color:var(--text-secondary);">No missions logged yet</div>
+          <div style="font-size:14px;color:var(--text-secondary);">No missions logged yet</div>
           <div style="font-size:14px;margin-top:4px;">Click + New Mission to log a call-out or planned flight</div>
         </div>
       </div>
@@ -5746,13 +5891,13 @@
 
         <div id="perCurrencyBanner" style="display:none;margin-bottom:12px;"></div>
 
-        <div style="display:grid;grid-template-columns:4px 1fr 130px 140px 130px 110px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">
+        <div style="display:grid;grid-template-columns:4px 1fr 130px 140px 130px 110px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">
           <span></span><span>Name</span><span>Team</span><span>Certification</span><span>Cert Expires</span><span>Status</span>
         </div>
         <div id="personnelGrid"></div>
         <div id="personnelEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
           <div style="font-size:32px;margin-bottom:10px;">👥</div>
-          <div style="font-size:16px;color:var(--text-secondary);">No personnel on the roster yet</div>
+          <div style="font-size:14px;color:var(--text-secondary);">No personnel on the roster yet</div>
           <div style="font-size:14px;margin-top:4px;">Click + Add Person to get started</div>
         </div>
       </div>
@@ -5765,7 +5910,7 @@
         <div id="teamsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;"></div>
         <div id="teamsEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
           <div style="font-size:32px;margin-bottom:10px;">🏷</div>
-          <div style="font-size:16px;color:var(--text-secondary);">No teams set up yet</div>
+          <div style="font-size:14px;color:var(--text-secondary);">No teams set up yet</div>
           <div style="font-size:14px;margin-top:4px;">Click + Add Team to create your first team (e.g. Field Comm, UAS)</div>
         </div>
       </div>
@@ -5794,7 +5939,7 @@
       <div id="incidentGrid"></div>
       <div id="incidentEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
         <div style="font-size:32px;margin-bottom:10px;">🚨</div>
-        <div style="font-size:16px;color:var(--text-secondary);">No incidents yet</div>
+        <div style="font-size:14px;color:var(--text-secondary);">No incidents yet</div>
         <div style="font-size:14px;margin-top:4px;">Click + New Incident to create one</div>
       </div>
     </div>
@@ -5826,7 +5971,7 @@
       <div id="cprGrid"></div>
       <div id="cprEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--text-dim);">
         <div style="font-size:28px;margin-bottom:10px;">📝</div>
-        <div style="font-size:16px;color:var(--text-secondary);">No requests yet</div>
+        <div style="font-size:14px;color:var(--text-secondary);">No requests yet</div>
         <div style="font-size:14px;margin-top:4px;">Share the public link to start receiving submissions</div>
       </div>
     </div>
@@ -5941,7 +6086,7 @@
       <!-- Users panel -->
       <div id="admin-users-panel" style="display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <div style="font-family:var(--font-data);font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">User Accounts</div>
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">User Accounts</div>
           <button class="btn-primary" style="font-size:14px;padding:5px 14px;" onclick="openAdminUserForm(null)">+ Add User</button>
         </div>
         <div id="adminUserList" style="max-height:calc(100vh - 280px);overflow-y:auto;margin-bottom:16px;"></div>
@@ -5949,7 +6094,7 @@
         <!-- Inline user form inside admin panel -->
         <div id="adminUserFormSection" style="display:none;background:var(--bg-deep);border:1px solid var(--border);border-radius:8px;padding:18px 20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-            <div id="adminUserFormTitle" style="font-family:var(--font-data);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-primary);">Add User</div>
+            <div id="adminUserFormTitle" style="font-family:var(--font-data);font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-primary);">Add User</div>
             <button onclick="closeAdminUserForm()" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;line-height:1;">✕</button>
           </div>
           <div style="background:rgba(30,136,229,0.08);border:1px solid rgba(30,136,229,0.2);border-radius:4px;padding:10px 14px;margin-bottom:14px;font-size:14px;color:var(--text-secondary);line-height:1.6;" id="adminUfInstructions">
@@ -6027,7 +6172,7 @@
           <!-- Radio Statuses -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Radio Statuses</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Radio Statuses</div>
             </div>
             <div id="radioStatusList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
             <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
@@ -6039,7 +6184,7 @@
           <!-- Systems -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Systems</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Systems</div>
               <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Reference list of known system codes — available as autocomplete when entering a RID range's System ID Code(s)</div>
             </div>
             <div id="radioSystemList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
@@ -6052,7 +6197,7 @@
           <!-- Sign-Out Accessories -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Sign-Out Accessories</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Sign-Out Accessories</div>
               <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Checklist options offered when generating a Radio Inventory sign-out slip</div>
             </div>
             <div id="signoutAccessoryList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
@@ -6064,7 +6209,7 @@
           <!-- Specialty Systems -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Specialty Systems</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Specialty Systems</div>
               <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Beyond MDC/LARICS/ICI/CWIRS/CRIS — get full RID Manager range tracking, same as the core 5</div>
             </div>
             <div id="ridCustomSystemList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
@@ -6076,7 +6221,7 @@
           <!-- Radio Models -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Radio Models</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Radio Models</div>
             </div>
             <div id="radioModelList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
             <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
@@ -6087,7 +6232,7 @@
           <!-- Radio Bands -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Radio Bands</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Radio Bands</div>
             </div>
             <div id="radioBandList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
             <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
@@ -6098,7 +6243,7 @@
           <!-- Channel Functions / Purpose -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Channel Functions</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">Channel Functions</div>
             </div>
             <div id="channelFunctionList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
             <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
@@ -6109,7 +6254,7 @@
           <!-- TRO Zones -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">TRO Zones</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">TRO Zones</div>
             </div>
             <div id="troZoneList" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
             <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
@@ -6123,7 +6268,7 @@
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
           <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <div>
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📻 CA Standard Tone Table</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📻 CA Standard Tone Table</div>
               <div style="font-size:14px;color:var(--text-dim);margin-top:3px;">Reference — enter the Tone # in RX/TX Tone fields to auto-resolve to CTCSS Hz / NAC</div>
             </div>
             <input class="search-input" id="toneTableSearch" type="text" placeholder="Search tone, Hz, or NAC…" oninput="renderToneTable()" style="width:200px;font-size:14px;">
@@ -6135,7 +6280,7 @@
       <!-- Radio ID Ranges admin panel -->
       <div id="admin-radioIds-panel" style="display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <div style="font-size:16px;color:var(--text-secondary);">Define the numeric ranges of Radio IDs managed by this agency. The RID Manager module uses these ranges to show which IDs are free or committed.</div>
+          <div style="font-size:14px;color:var(--text-secondary);">Define the numeric ranges of Radio IDs managed by this agency. The RID Manager module uses these ranges to show which IDs are free or committed.</div>
           <button class="btn-primary" style="font-size:14px;flex-shrink:0;margin-left:16px;" onclick="openRidRangeForm(null)">+ Add Range</button>
         </div>
         <div class="rid-range-header" style="display:grid;grid-template-columns:1fr 90px 90px 110px 100px 80px;gap:10px;padding:4px 12px 8px;font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--border);">
@@ -6151,7 +6296,7 @@
           <!-- Channel import -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📻 Import Channels</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📻 Import Channels</div>
               <div style="font-size:14px;color:var(--text-dim);margin-top:3px;">CSV with headers matching the channel template</div>
             </div>
             <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
@@ -6167,7 +6312,7 @@
           <!-- Talkgroup import -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">🔢 Import Talkgroups</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">🔢 Import Talkgroups</div>
               <div style="font-size:14px;color:var(--text-dim);margin-top:3px;">CSV with headers matching the talkgroup template</div>
             </div>
             <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
@@ -6183,7 +6328,7 @@
           <!-- Inventory import -->
           <div id="admin-import-inventory-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:box-shadow 0.3s, border-color 0.3s;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📦 Import Radio Inventory</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📦 Import Radio Inventory</div>
               <div style="font-size:14px;color:var(--text-dim);margin-top:3px;">CSV with headers matching the inventory template</div>
             </div>
             <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
@@ -6199,7 +6344,7 @@
           <!-- Parts & Supplies import -->
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">🧰 Import Parts &amp; Supplies</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">🧰 Import Parts &amp; Supplies</div>
               <div style="font-size:14px;color:var(--text-dim);margin-top:3px;">CSV with headers matching the parts template</div>
             </div>
             <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
@@ -6225,7 +6370,7 @@
         <!-- Online Users (admin-only, moved off the main topbar) -->
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
           <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">🟢 Online Users</div>
+            <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">🟢 Online Users</div>
             <div id="presenceIndicatorAdmin" style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);cursor:default;" title="Users currently online">
               <span style="width:7px;height:7px;border-radius:50%;background:var(--status-available);box-shadow:0 0 6px var(--status-available);flex-shrink:0;animation:pulse 2s infinite;"></span>
               <span id="presenceCountAdmin" style="font-family:var(--font-data);font-size:14px;color:var(--text-secondary);">1 online</span>
@@ -6237,7 +6382,7 @@
         <!-- Full Data Backup -->
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
           <div style="padding:12px 18px;border-bottom:1px solid var(--border);">
-            <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">💾 Full Data Backup</div>
+            <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">💾 Full Data Backup</div>
             <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">Downloads every table this agency can read as a single JSON file — channels, inventory, personnel, logs, everything. Per-module CSV exports above only cover one table at a time; this is the full picture for disaster recovery.</div>
           </div>
           <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -6249,7 +6394,7 @@
         <!-- Viewer Account configuration -->
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
           <div style="padding:12px 18px;border-bottom:1px solid var(--border);">
-            <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">👁 View-Only Access</div>
+            <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">👁 View-Only Access</div>
             <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">When configured, anyone can click "Continue as Viewer" on the login screen and get read-only access to all modules except Admin — no personal account needed.</div>
           </div>
           <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;">
@@ -6278,7 +6423,7 @@
         <!-- System Notices management -->
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
           <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📢 System Notices</div>
+            <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📢 System Notices</div>
             <button class="btn-primary" style="font-size:14px;padding:4px 10px;" onclick="openNoticeEditor(null)">+ New Notice</button>
           </div>
           <div id="adminNoticeList" style="padding:12px 18px;max-height:220px;overflow-y:auto;">
@@ -6287,7 +6432,7 @@
         </div>
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
           <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-            <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📋 System Log</div>
+            <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📋 System Log</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <input class="search-input" id="syslogSearch" type="text" placeholder="Search log…" oninput="renderSysLog()" style="width:180px;font-size:14px;">
               <select class="form-select" id="syslogCategory" onchange="renderSysLog()" style="width:150px;font-size:14px;padding:5px 8px;">
@@ -6336,14 +6481,14 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">🔔 Notifications</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">🔔 Notifications</div>
               <button class="btn-secondary" style="font-size:14px;padding:4px 10px;" onclick="openNotifSettings()">Configure</button>
             </div>
             <div style="padding:14px 18px;"><div id="adminNotifSummary" style="font-size:14px;color:var(--text-secondary);line-height:1.7;"></div></div>
           </div>
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
             <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-              <div style="font-family:var(--font-data);font-size:14px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📝 Release Notes</div>
+              <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">📝 Release Notes</div>
               <button class="btn-secondary" style="font-size:14px;padding:4px 10px;" onclick="openReleaseNoteEditor(null)">+ Add Entry</button>
             </div>
             <div id="adminReleasePreview" style="padding:12px 18px;max-height:280px;overflow-y:auto;"></div>
@@ -6386,7 +6531,7 @@
     <!-- Channel History tab -->
     <div class="side-tab-content" id="tabcontent-history" style="flex-direction:column;">
       <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px;">
-        <div id="historyChannelLabel" style="font-family:var(--font-data);font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Select a channel</div>
+        <div id="historyChannelLabel" style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">Select a channel</div>
         <button class="btn-secondary" style="font-size:12px;padding:3px 8px;white-space:nowrap;" onclick="openAuditModal()">Full Audit Trail</button>
       </div>
       <div id="channelHistoryList" style="flex:1;overflow-y:auto;"></div>
@@ -6935,7 +7080,7 @@ if (typeof supabase === 'undefined') {
 })();
 // ─────────────────────────────────────────────
 const SUPABASE_URL  = 'https://zjnhwmkkjgogtyidzrjm.supabase.co';
-const BUILD_VERSION = '20260705-031606'; // injected at deploy time
+const BUILD_VERSION = '20261030-153923'; // injected at deploy time
 
 // ── New build detection ──
 // Every 5 minutes, fetch the live page and compare BUILD_VERSION.
@@ -7231,6 +7376,7 @@ function subscribeRealtime() {
         _bbSyncPausedUntil = 0;
         _syncBigBoardToWindow();
       }
+      fmScheduleRender();
     })
     .subscribe(status => onRealtimeStatus('channels', status));
 
@@ -7261,6 +7407,7 @@ function subscribeRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, async () => {
       await loadReservations();
       if (activeMainTab === 'schedule') renderSchedule();
+      fmScheduleRender();
       applyScheduledReservations();
     })
     .subscribe(status => onRealtimeStatus('reservations', status));
@@ -7768,7 +7915,7 @@ async function runRFAnalyzer() {
   const statCard = (label, value, sub='', color='var(--text-primary)') => `
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:12px 14px;">
       <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">${label}</div>
-      <div style="font-size:18px;font-weight:700;font-family:var(--font-data);color:${color};">${value}</div>
+      <div style="font-size:16px;font-weight:700;font-family:var(--font-data);color:${color};">${value}</div>
       ${sub ? `<div style="font-size:12px;color:var(--text-dim);margin-top:2px;">${sub}</div>` : ''}
     </div>`;
 
@@ -8056,15 +8203,15 @@ async function openImpactDashboard() {
   body.innerHTML = `
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
       <div style="flex:1;min-width:140px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;" onclick="closeImpactDashboard();switchMainTab('admin');setTimeout(()=>{switchAdminTab('system');document.getElementById('syslogCategory').value='conflict';renderSysLog();},100);">
-        <div style="font-family:var(--font-data);font-size:22px;font-weight:700;color:${conflictStats.total ? 'var(--status-active)' : 'var(--status-available)'};line-height:1;">${conflictStats.total}</div>
+        <div style="font-family:var(--font-data);font-size:28px;font-weight:700;color:${conflictStats.total ? 'var(--status-active)' : 'var(--status-available)'};line-height:1;">${conflictStats.total}</div>
         <div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">Conflicts Caught — Last 30 Days</div>
       </div>
       <div style="flex:1;min-width:140px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
-        <div style="font-family:var(--font-data);font-size:22px;font-weight:700;color:var(--status-active);line-height:1;">${conflictStats.blocked}</div>
+        <div style="font-family:var(--font-data);font-size:28px;font-weight:700;color:var(--status-active);line-height:1;">${conflictStats.blocked}</div>
         <div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">Blocked Outright</div>
       </div>
       <div style="flex:1;min-width:140px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
-        <div style="font-family:var(--font-data);font-size:22px;font-weight:700;color:var(--status-reserved);line-height:1;">${conflictStats.overridden}</div>
+        <div style="font-family:var(--font-data);font-size:28px;font-weight:700;color:var(--status-reserved);line-height:1;">${conflictStats.overridden}</div>
         <div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">Overridden by a User</div>
       </div>
     </div>
@@ -8535,7 +8682,7 @@ async function renderChannelHistory(channelId, designator) {
 async function openAuditModal() {
   document.getElementById('auditModal').classList.add('open');
   document.getElementById('auditModalBody').innerHTML =
-    `<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:16px;">Loading audit trail…</div>`;
+    `<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:14px;">Loading audit trail…</div>`;
 
   auditCache  = await loadAllAudit(1000);
   auditLoaded = true;
@@ -8586,7 +8733,7 @@ function renderAuditModal() {
 
   const body = document.getElementById('auditModalBody');
   if (!filtered.length) {
-    body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:16px;">No records match the current filters.</div>`;
+    body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-dim);font-size:14px;">No records match the current filters.</div>`;
     return;
   }
 
@@ -10523,7 +10670,7 @@ function showLandingPage() {
       overdueRes ? { label:'Overdue Resources',    val: overdueRes, color:'var(--status-active)' } : null,
     ].filter(Boolean).map(s => `
       <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;">
-        <span style="font-size:18px;font-weight:700;color:${s.color};font-family:var(--font-data);line-height:1;">${s.val}</span>
+        <span style="font-size:16px;font-weight:700;color:${s.color};font-family:var(--font-data);line-height:1;">${s.val}</span>
         <span style="font-size:14px;color:var(--text-secondary);">${s.label}</span>
       </div>`).join('');
   }
@@ -12810,6 +12957,7 @@ const SB_ICONS = {
   overview:  '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
   channels:  '<path d="M12 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/><path d="M7.5 7.5a6.5 6.5 0 0 0 0 9"/><path d="M16.5 7.5a6.5 6.5 0 0 1 0 9"/><path d="M4.5 4.5a11 11 0 0 0 0 15"/><path d="M19.5 4.5a11 11 0 0 1 0 15"/>',
   talkgroups:'<circle cx="9" cy="9" r="4.5"/><circle cx="15.5" cy="14.5" r="4.5"/>',
+  freqmap:   '<path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/>',
   rfanalyzer:'<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><circle cx="12" cy="9" r="2.2"/>',
   rid:       '<path d="M20 12.5 12.5 20a2 2 0 0 1-2.8 0l-6.7-6.7a2 2 0 0 1 0-2.8L10.5 3H20v9.5Z"/><circle cx="15.5" cy="7.5" r="1.4"/>',
   incidents: '<path d="M12 3 2 20h20L12 3Z"/><line x1="12" y1="10" x2="12" y2="14.5"/><circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none"/>',
@@ -12847,6 +12995,7 @@ const SIDEBAR_NAV = [
   { group: 'Channel Plan', items: [
     { tab: 'channels',   label: 'Channels',          legacy: 'navitem-channels' },
     { tab: 'talkgroups', label: 'Talkgroups',        legacy: 'navitem-talkgroups' },
+    { tab: 'freqmap',    label: 'Frequency Map',     legacy: 'navitem-freqmap' },
     { tab: 'rfanalyzer', label: 'RF Deconflicter',   legacy: 'navitem-rfanalyzer' },
     { tab: 'rid',        label: 'RID Manager',       legacy: 'navitem-rid' },
   ]},
@@ -13159,6 +13308,7 @@ function mobileNav(tab) {
     const moreModules = [
       { id:'overview',   icon:'📊', label:'Overview'        },
       { id:'schedule',   icon:'📅', label:'Schedule'        },
+      { id:'freqmap',    icon:'🗺', label:'Frequency Map'   },
       { id:'rid',        icon:'🆔', label:'RID Manager'     },
       { id:'uas',        icon:'🛸', label:'UAS Manager'     },
       { id:'personnel',  icon:'👥', label:'Personnel'       },
@@ -13181,7 +13331,7 @@ function mobileNav(tab) {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:24px;">
           ${moreModules.map(m => `
             <button onclick="closeMobileSheet();switchMainTab('${m.id}');"
-              style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-secondary);font-size:16px;cursor:pointer;touch-action:manipulation;">
+              style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-secondary);font-size:14px;cursor:pointer;touch-action:manipulation;">
               <span style="font-size:20px;">${m.icon}</span>${m.label}
             </button>`).join('')}
         </div>
@@ -13832,7 +13982,7 @@ let activeMainTab = 'channels';
 
 // Maps each tab id to the nav-group it belongs to (if any)
 const NAV_GROUP_MAP = {
-  channels: 'channelplan', talkgroups: 'channelplan',
+  channels: 'channelplan', talkgroups: 'channelplan', freqmap: 'channelplan',
   schedule: 'operations', incidents: 'operations', commreq: 'operations', rfanalyzer: 'operations',
   inventory: 'lookups', parts: 'lookups', sites: 'lookups',
 };
@@ -13857,7 +14007,7 @@ async function renderAnalytics() {
 function analyticsSection(title, subtitle, innerHtml) {
   return `<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;">
     <div style="font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:2px;">${title}</div>
-    <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">${subtitle}</div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;">${subtitle}</div>
     ${innerHtml}
   </div>`;
 }
@@ -13904,7 +14054,7 @@ async function renderMostActiveChannels() {
       <div style="flex:1;height:16px;background:var(--bg-deep);border-radius:4px;overflow:hidden;">
         <div style="width:${Math.max(4, Math.round(count/max*100))}%;height:100%;background:var(--accent);"></div>
       </div>
-      <div style="width:70px;flex-shrink:0;text-align:right;font-family:var(--font-data);font-size:13px;color:var(--text-dim);">${count} changes</div>
+      <div style="width:70px;flex-shrink:0;text-align:right;font-family:var(--font-data);font-size:12px;color:var(--text-dim);">${count} changes</div>
     </div>`).join('');
   return analyticsSection('Most Active Channels', 'By number of status changes in the last 30 days — a busy channel changes hands often, not necessarily a long single use', rowsHtml);
 }
@@ -14018,7 +14168,7 @@ function switchMainTab(tab) {
   }
 
   activeMainTab = tab;
-  ['overview','channels','talkgroups','schedule','rfanalyzer','inventory','incidents','commreq','resources','admin','uas','personnel','rid','parts','sites','reports','analytics'].forEach(t => {
+  ['overview','channels','talkgroups','freqmap','schedule','rfanalyzer','inventory','incidents','commreq','resources','admin','uas','personnel','rid','parts','sites','reports','analytics'].forEach(t => {
     document.getElementById(`mvtab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`navitem-${t}`)?.classList.toggle('active', t === tab);
     const v = document.getElementById(`view-${t}`);
@@ -14047,6 +14197,7 @@ function switchMainTab(tab) {
   if (tab === 'sites')       renderSites();
   if (tab === 'reports')     renderReportsCatalog();
   if (tab === 'analytics')   renderAnalytics();
+  if (tab === 'freqmap')     renderFreqMap();
 
   // Sidebar active state + close the mobile drawer after navigating
   renderSidebar();
@@ -14054,7 +14205,7 @@ function switchMainTab(tab) {
 
   // Log page visits so admins can see usage patterns in the System Log
   const PAGE_LABELS = {
-    overview: 'Overview', channels: 'Channel Plan', talkgroups: 'Talkgroups',
+    overview: 'Overview', channels: 'Channel Plan', talkgroups: 'Talkgroups', freqmap: 'Frequency Map',
     schedule: 'Schedule', rfanalyzer: 'RF Deconflicter',
     inventory: 'Radio Inventory', incidents: 'Incidents', commreq: 'Comm Plan Requests',
     resources: 'Resources', admin: 'Admin', uas: 'UAS Manager',
@@ -14215,7 +14366,7 @@ function renderOverviewStatsStrip() {
     <div onclick="switchMainTab('admin');setTimeout(()=>switchAdminTab('datahealth'),80);" style="cursor:pointer;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;min-width:150px;" onmouseover="this.style.borderColor='var(--border-lit)'" onmouseout="this.style.borderColor='var(--border)'">
       <span style="font-size:20px;">${c.icon}</span>
       <div>
-        <div style="font-family:var(--font-data);font-size:20px;font-weight:700;color:var(--status-reserved);line-height:1;">${c.items.length}</div>
+        <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--status-reserved);line-height:1;">${c.items.length}</div>
         <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">${escHtml(c.title)}</div>
       </div>
     </div>`).join('');
@@ -15274,7 +15425,7 @@ function renderSchedMonth() {
   // Day name headers
   const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const headerRow = dayNames.map(d => `
-    <div style="text-align:center;font-family:var(--font-data);font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;padding:8px 0;background:var(--bg-panel);border-bottom:1px solid var(--border);">${d}</div>
+    <div style="text-align:center;font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;padding:8px 0;background:var(--bg-panel);border-bottom:1px solid var(--border);">${d}</div>
   `).join('');
 
   const cells = [];
@@ -15496,7 +15647,7 @@ function renderResources() {
   if (!grid) return;
 
   if (!filtered.length) {
-    grid.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text-dim);font-size:16px;">No resources match the current filters.<br><span style="font-size:14px;">Click + Add Resource to get started.</span></div>`;
+    grid.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text-dim);font-size:14px;">No resources match the current filters.<br><span style="font-size:14px;">Click + Add Resource to get started.</span></div>`;
     return;
   }
 
@@ -15827,15 +15978,15 @@ async function openPartModal(id) {
   const status = partStockStatus(p);
   document.getElementById('partModalTitle').textContent = p.name || 'Part Detail';
 
-  const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:16px;color:var(--text-secondary);">${escHtml(String(val))}</div></div>` : '';
+  const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:14px;color:var(--text-secondary);">${escHtml(String(val))}</div></div>` : '';
 
   document.getElementById('partDetailSection').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-      <div style="font-family:var(--font-data);font-size:20px;font-weight:700;color:var(--text-primary);">${escHtml(p.name||'—')}</div>
+      <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);">${escHtml(p.name||'—')}</div>
       <span class="part-status-chip ${status}">${PART_STATUS_LABELS[status]}</span>
     </div>
     <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px;">
-      <span style="font-family:var(--font-data);font-size:32px;font-weight:700;color:var(--text-primary);">${p.quantity_on_hand ?? 0}</span>
+      <span style="font-family:var(--font-data);font-size:28px;font-weight:700;color:var(--text-primary);">${p.quantity_on_hand ?? 0}</span>
       <span style="font-size:14px;color:var(--text-dim);">on hand · reorder at ${p.reorder_threshold ?? 0}${p.reorder_quantity ? ` · reorder qty ${p.reorder_quantity}` : ''}</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:10px;">
@@ -16204,7 +16355,7 @@ function renderSitesList() {
   if (!filtered.length) {
     grid.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--text-dim);">
       <div style="font-size:32px;margin-bottom:10px;">🗼</div>
-      <div style="font-size:16px;color:var(--text-secondary);">No sites yet</div>
+      <div style="font-size:14px;color:var(--text-secondary);">No sites yet</div>
       <div style="font-size:14px;margin-top:4px;">Click + Add Site to get started</div>
     </div>`;
     return;
@@ -16227,12 +16378,12 @@ async function openSiteModal(id) {
   const s = sites.find(x => x.id === id);
   if (!s) return;
   document.getElementById('siteModalTitle').textContent = s.name;
-  const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:16px;color:var(--text-secondary);">${escHtml(String(val))}</div></div>` : '';
+  const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:14px;color:var(--text-secondary);">${escHtml(String(val))}</div></div>` : '';
   document.getElementById('siteDetailSection').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
       <span style="font-size:28px;">${SITE_TYPE_ICONS[s.site_type]||'📍'}</span>
       <div>
-        <div style="font-family:var(--font-data);font-size:20px;font-weight:700;color:var(--text-primary);">${escHtml(s.name)}</div>
+        <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);">${escHtml(s.name)}</div>
         <div style="font-size:14px;color:var(--text-dim);">${SITE_TYPE_LABELS[s.site_type]||s.site_type}</div>
       </div>
       <span style="font-family:var(--font-data);font-size:12px;font-weight:700;padding:2px 7px;border-radius:2px;background:${s.status==='active'?'rgba(0,230,118,0.12)':'rgba(120,120,120,0.12)'};color:${s.status==='active'?'var(--status-available)':'var(--text-dim)'};">${SITE_STATUS_LABELS[s.status]||s.status}</span>
@@ -16244,7 +16395,7 @@ async function openSiteModal(id) {
       ${field('Antenna Height', s.antenna_height_ft ? s.antenna_height_ft+' ft AGL' : '')}
       ${field('Address', s.address)}
     </div>
-    ${s.frequency_notes ? `<div style="font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Frequency Notes</div><div style="font-size:14px;color:var(--text-secondary);padding:8px 12px;background:var(--bg-deep);border-radius:var(--radius);margin-bottom:8px;">${escHtml(s.frequency_notes)}</div>` : ''}
+    ${s.frequency_notes ? `<div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Frequency Notes</div><div style="font-size:14px;color:var(--text-secondary);padding:8px 12px;background:var(--bg-deep);border-radius:var(--radius);margin-bottom:8px;">${escHtml(s.frequency_notes)}</div>` : ''}
     ${s.notes ? `<div style="font-size:14px;color:var(--text-secondary);padding:10px 12px;background:var(--bg-deep);border-radius:var(--radius);line-height:1.6;">${escHtml(s.notes)}</div>` : ''}
     <div style="margin-top:10px;">
       <button class="btn-secondary" style="font-size:14px;" onclick="usePointForRfDeconflicter('${s.id}')">📡 Use in RF Deconflicter</button>
@@ -18910,7 +19061,7 @@ async function runRecommendation() {
     (category || roleType ? ` · filtered for ${[category, roleType].filter(Boolean).join(' / ')}` : '');
 
   if (!results.length) {
-    resultsEl.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-dim);font-size:16px;">No available channels found.</div>`;
+    resultsEl.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-dim);font-size:14px;">No available channels found.</div>`;
     return;
   }
 
@@ -18931,7 +19082,7 @@ async function runRecommendation() {
           <div style="font-size:14px;color:var(--text-secondary);margin-top:2px;">${subLine}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-family:var(--font-data);font-size:18px;font-weight:700;color:${barColor};">${r.disqualified ? '✕' : r.score}</div>
+          <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:${barColor};">${r.disqualified ? '✕' : r.score}</div>
           <div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">${r.disqualified ? 'Conflict' : 'Score /100'}</div>
         </div>
       </div>
@@ -21366,7 +21517,7 @@ function renderRidSystemsView(rangeStats) {
   if (!ridRanges.length) {
     el.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--text-dim);">
       <div style="font-size:28px;margin-bottom:10px;">🗂</div>
-      <div style="font-size:16px;color:var(--text-secondary);">No ranges configured yet</div>
+      <div style="font-size:14px;color:var(--text-secondary);">No ranges configured yet</div>
     </div>`;
     return;
   }
@@ -21435,7 +21586,7 @@ function renderRidReservationsView() {
   if (!ridReservations.length) {
     el.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--text-dim);">
       <div style="font-size:28px;margin-bottom:10px;">🔒</div>
-      <div style="font-size:16px;color:var(--text-secondary);">No active reservations</div>
+      <div style="font-size:14px;color:var(--text-secondary);">No active reservations</div>
       <div style="font-size:14px;margin-top:4px;">Click <strong>Reserve Block</strong> to earmark a range of IDs</div>
     </div>`;
     return;
@@ -21729,7 +21880,7 @@ function renderRidManager() {
   if (!ridRanges.length) {
     grid.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--text-dim);">
       <div style="font-size:28px;margin-bottom:10px;">🆔</div>
-      <div style="font-size:16px;color:var(--text-secondary);">No RID ranges configured yet</div>
+      <div style="font-size:14px;color:var(--text-secondary);">No RID ranges configured yet</div>
       <div style="font-size:14px;margin-top:4px;">Go to <strong>Admin → Radio IDs</strong> to add a range</div>
     </div>`;
     return;
@@ -22385,13 +22536,13 @@ async function openInventoryModal(id) {
     </div>` : '';
 
   const fmtDate = d => d ? new Date(d).toLocaleDateString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric'}) : '—';
-  const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:16px;color:var(--text-secondary);">${escHtml(String(val))}</div></div>` : '';
+  const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:14px;color:var(--text-secondary);">${escHtml(String(val))}</div></div>` : '';
 
   document.getElementById('invDetailSection').innerHTML = `
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;">
       ${r.photo_url ? `<img src="${escHtml(r.photo_url)}" style="width:56px;height:56px;border-radius:var(--radius);object-fit:cover;border:1px solid var(--border);flex-shrink:0;" alt="Radio photo">` : ''}
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <div style="font-family:var(--font-data);font-size:24px;font-weight:700;color:var(--text-primary);">${escHtml(r.serial_number||'—')}</div>
+        <div style="font-family:var(--font-data);font-size:16px;font-weight:700;color:var(--text-primary);">${escHtml(r.serial_number||'—')}</div>
         <span class="inv-status-chip ${r.status}">${INV_STATUS_LABELS[r.status]||r.status}</span>
         ${r.control_top_replaced ? `<span style="font-family:var(--font-data);font-size:12px;padding:2px 8px;border-radius:2px;background:rgba(30,136,229,0.12);color:var(--accent);border:1px solid rgba(30,136,229,0.3);">⟲ CONTROL TOP REPLACED</span>` : ''}
       </div>
@@ -25255,7 +25406,7 @@ function checkPendingRequestsPopup() {
   const body = document.getElementById('pendingReqPopupBody');
   if (body) {
     body.innerHTML = `
-      <div style="font-size:16px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">
+      <div style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">
         There ${pending.length === 1 ? 'is' : 'are'} <strong style="color:var(--status-active);">${pending.length}</strong>
         channel request${pending.length === 1 ? '' : 's'} awaiting your review.
       </div>
@@ -25337,7 +25488,7 @@ function renderAgencyCards() {
   if (!grid) return;
 
   if (!agencies.length) {
-    grid.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text-dim);font-size:16px;grid-column:1/-1;">
+    grid.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text-dim);font-size:14px;grid-column:1/-1;">
       No agencies yet. <button class="btn-primary" style="margin-left:8px;" onclick="openSuperAdminPortal()">Create your first agency</button>
     </div>`;
     return;
@@ -25721,7 +25872,7 @@ function renderPublicStatus(rows) {
         <div class="pub-status-row">
           <div>
             <div style="font-family:var(--font-data);font-weight:700;font-size:16px;color:var(--text-primary);">${escHtml(r.designator||'')}</div>
-            <div style="font-size:13px;color:var(--text-dim);">${escHtml(r.function||'')}${r.agency ? ' · ' + escHtml(r.agency) : ''}</div>
+            <div style="font-size:12px;color:var(--text-dim);">${escHtml(r.function||'')}${r.agency ? ' · ' + escHtml(r.agency) : ''}</div>
           </div>
           <span class="status-pill ${g.cls}">${g.label}</span>
         </div>`).join('');
@@ -26136,7 +26287,7 @@ function openCprModal(id) {
     return `${dateStr}${timeStr ? ' at ' + timeStr : ''}`;
   };
 
-  const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:16px;color:var(--text-secondary);">${escHtml(val)}</div></div>` : '';
+  const field = (label, val) => val ? `<div><div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${label}</div><div style="font-size:14px;color:var(--text-secondary);">${escHtml(val)}</div></div>` : '';
 
   const categoryLabel = r.drill_category === 'wildland' ? 'Wildland' : r.drill_category === 'all-hazards' ? 'All Hazards' : '';
   const channelsList = (r.requested_channels || []);
@@ -26472,6 +26623,780 @@ function agencyId() {
   return currentUser?.agencyId || currentAgency?.id || null;
 }
 
+// ═══════════════════════════════════════════════
+// FREQUENCY MAP — spatial + temporal deconfliction with terrain coverage
+// Footprints: reservations (lat/lon/radius) and open incidents (lat/lon,
+// radius assumed). Conflicts: same channel or same frequency, overlapping
+// time windows, and footprints that overlap (red) or sit close (amber).
+// Coverage: terrain-aware signal estimate computed in a background worker
+// from AWS Terrain Tiles (Terrarium) — line of sight + single knife-edge
+// diffraction over a two-ray/free-space baseline. Planning estimate only.
+// HTML in this module is built with string concatenation on purpose.
+// ═══════════════════════════════════════════════
+var FM_PALETTE = ['#3b8fdc', '#00c896', '#ffb300', '#e0569b', '#a29bfe', '#ff7a45', '#26c6da', '#9ccc65', '#f06292', '#ffd54f'];
+var FM_BAND_MHZ = { VHF: 155, UHF: 460, '700': 770, '800': 855 };
+var FM_TERRAIN_URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/';
+var FM_STEP_MS = 30 * 60000;
+
+var fm = {
+  map: null, layers: {}, base: null, baseKey: null, shade: null,
+  winStart: 0, windowHours: 72, timeMs: null, fitted: false,
+  show: { reservations: true, incidents: true, sites: true, conflictsOnly: false },
+  band: 'all', fps: [], fpByKey: {}, conflicts: [], siteById: {},
+  coverage: {}, covCache: {}, tileCache: {},
+  worker: null, jobSeq: 0, jobs: {}, playTimer: null, renderTimer: null, lastCheck: null
+};
+
+function fmEsc(s) { return (typeof escHtml === 'function') ? escHtml(String(s == null ? '' : s)) : String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function fmNum(id, def) { var el = document.getElementById(id); var v = el ? parseFloat(el.value) : NaN; return isFinite(v) ? v : def; }
+function fmFt2m(ft) { return ft * 0.3048; }
+
+function fmMiles(lat1, lon1, lat2, lon2) {
+  var R = 3958.7613, dLat = (lat2 - lat1) * Math.PI / 180, dLon = (lon2 - lon1) * Math.PI / 180;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+function fmDest(lat, lon, brgDeg, distM) {
+  var R = 6371000, la1 = lat * Math.PI / 180, lo1 = lon * Math.PI / 180, b = brgDeg * Math.PI / 180, ad = distM / R;
+  var la2 = Math.asin(Math.sin(la1) * Math.cos(ad) + Math.cos(la1) * Math.sin(ad) * Math.cos(b));
+  var lo2 = lo1 + Math.atan2(Math.sin(b) * Math.sin(ad) * Math.cos(la1), Math.cos(ad) - Math.sin(la1) * Math.sin(la2));
+  return [la2 * 180 / Math.PI, lo2 * 180 / Math.PI];
+}
+function fmBandFreq(band) {
+  if (typeof bandFreqMHz === 'function') { try { var v = bandFreqMHz(band); if (isFinite(v) && v > 0) return v; } catch (e) {} }
+  return FM_BAND_MHZ[band] || 460;
+}
+function fmColorFor(chId) {
+  if (chId == null) return '#7e94b3';
+  for (var i = 0; i < channels.length; i++) if (String(channels[i].id) === String(chId)) return FM_PALETTE[i % FM_PALETTE.length];
+  return '#7e94b3';
+}
+function fmFmtTime(ms) {
+  if (!isFinite(ms)) return 'open-ended';
+  return new Date(ms).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+}
+function fmActiveAt(f, t) { return f.startMs <= t && f.endMs > t; }
+function fmBandOk(f) { return fm.band === 'all' || f.band === fm.band; }
+
+// ── Data → footprints ──
+function fmCollect() {
+  var chById = {};
+  channels.forEach(function (c) { chById[String(c.id)] = c; });
+  function chInfo(ids) {
+    var des = [], freqs = [], band = null;
+    ids.forEach(function (id) {
+      var c = chById[String(id)]; if (!c) return;
+      des.push(c.designator);
+      var f1 = parseFloat(c.freq), f2 = parseFloat(c.rxFreq);
+      if (isFinite(f1)) freqs.push(f1);
+      if (isFinite(f2) && f2 !== f1) freqs.push(f2);
+      if (!band) band = c.band || detectBand(c.freq || '');
+    });
+    return { des: des, freqs: freqs, band: band };
+  }
+  var out = [];
+  (reservations || []).forEach(function (r) {
+    var ids = (r.channelIds || []).map(String), info = chInfo(ids);
+    var lat = parseFloat(r.lat), lon = parseFloat(r.lon);
+    out.push({
+      key: 'res:' + r.id, kind: 'res', id: r.id, title: r.title || 'Reservation',
+      lat: lat, lon: lon, located: isFinite(lat) && isFinite(lon),
+      radiusMi: parseFloat(r.radius) || 5, radiusAssumed: false,
+      channelIds: ids, des: info.des, freqs: info.freqs,
+      band: (r.band && r.band !== 'auto') ? r.band : (info.band || 'UHF'),
+      startMs: new Date(r.start).getTime(), endMs: new Date(r.end).getTime(),
+      who: r.requestor || '', agency: r.agency || ''
+    });
+  });
+  (incidents || []).forEach(function (inc) {
+    if (inc.status === 'closed') return;
+    var ids = (inc.channel_ids || []).map(String), info = chInfo(ids);
+    var lat = parseFloat(inc.lat), lon = parseFloat(inc.lon), st = new Date(inc.created_at).getTime();
+    out.push({
+      key: 'inc:' + inc.id, kind: 'inc', id: inc.id, title: inc.name || 'Incident',
+      lat: lat, lon: lon, located: isFinite(lat) && isFinite(lon),
+      radiusMi: 5, radiusAssumed: true,
+      channelIds: ids, des: info.des, freqs: info.freqs, band: info.band || 'UHF',
+      startMs: isFinite(st) ? st : 0, endMs: Infinity,
+      who: inc.coml || '', agency: inc.status === 'standby' ? 'Standby' : 'Active'
+    });
+  });
+  out.forEach(function (f) {
+    f.color = fmColorFor(f.channelIds[0]);
+    f.freq = f.freqs[0] || fmBandFreq(f.band);
+  });
+  return out;
+}
+
+function fmSharedLabel(a, b) {
+  var shared = [];
+  a.channelIds.forEach(function (id, i) { if (b.channelIds.indexOf(id) >= 0) shared.push(a.des[i] || ('#' + id)); });
+  if (shared.length) return shared.join(', ');
+  for (var i = 0; i < a.freqs.length; i++) for (var j = 0; j < b.freqs.length; j++) {
+    if (Math.abs(a.freqs[i] - b.freqs[j]) < 0.005) return 'Same freq ' + a.freqs[i].toFixed(4) + ' MHz';
+  }
+  return null;
+}
+
+function fmFindConflicts(fps, ws, we) {
+  var loc = fps.filter(function (f) { return f.located && f.channelIds.length && f.endMs > ws && f.startMs < we && fmBandOk(f); });
+  var res = [];
+  for (var i = 0; i < loc.length; i++) for (var j = i + 1; j < loc.length; j++) {
+    var a = loc[i], b = loc[j];
+    var shared = fmSharedLabel(a, b); if (!shared) continue;
+    var s = Math.max(a.startMs, b.startMs, ws), e = Math.min(a.endMs, b.endMs, we);
+    if (s >= e) continue;
+    var d = fmMiles(a.lat, a.lon, b.lat, b.lon), reach = a.radiusMi + b.radiusMi;
+    var type = d < reach ? 'overlap' : (d < reach * 2 ? 'near' : null);
+    if (!type) continue;
+    res.push({ a: a, b: b, shared: shared, type: type, startMs: s, endMs: e, distMi: d });
+  }
+  res.sort(function (x, y) { return (x.type === y.type ? 0 : (x.type === 'overlap' ? -1 : 1)) || (x.startMs - y.startMs); });
+  return res;
+}
+
+// ── Map setup ──
+function fmInit() {
+  if (fm.map) return;
+  var el = document.getElementById('fmMap');
+  if (!el || typeof L === 'undefined') return;
+  fm.map = L.map(el, { zoomControl: true, scrollWheelZoom: true }).setView([34.25, -118.25], 9);
+  fm.map.createPane('fmShade'); fm.map.getPane('fmShade').style.zIndex = 250;
+  fm.map.createPane('fmCov'); fm.map.getPane('fmCov').style.zIndex = 350;
+  fm.map.getPane('fmCov').style.pointerEvents = 'none';
+  fm.layers.fp = L.layerGroup().addTo(fm.map);
+  fm.layers.links = L.layerGroup().addTo(fm.map);
+  fm.layers.sites = L.layerGroup().addTo(fm.map);
+  var theme = document.documentElement.getAttribute('data-theme');
+  var startBase = (theme === 'day') ? 'streets' : 'dark';
+  var sel = document.getElementById('fmBase'); if (sel) sel.value = startBase;
+  fmSetBase(startBase);
+  fmToggleHillshade(document.getElementById('fmHillshade') ? document.getElementById('fmHillshade').checked : true);
+  fm.map.on('click', function (e) {
+    if (!Object.keys(fm.coverage).length) return;
+    L.popup().setLatLng(e.latlng).setContent(fmPopupEl(fmProbeHtml(e.latlng))).openOn(fm.map);
+  });
+  var view = document.getElementById('view-freqmap');
+  if (view) view.addEventListener('click', fmActionHandler);
+  fmNow();
+}
+
+function fmSetBase(key) {
+  if (!fm.map) return;
+  if (fm.base) fm.map.removeLayer(fm.base);
+  var defs = {
+    dark: ['https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', '© OpenStreetMap contributors © CARTO', 19],
+    streets: ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', '© OpenStreetMap contributors', 19],
+    topo: ['https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', '© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)', 17]
+  };
+  var d = defs[key] || defs.dark;
+  fm.base = L.tileLayer(d[0], { attribution: d[1], maxZoom: d[2] }).addTo(fm.map);
+  fm.baseKey = key;
+  var shadePane = fm.map.getPane('fmShade');
+  if (shadePane) shadePane.style.mixBlendMode = (key === 'dark') ? 'normal' : 'multiply';
+  if (fm.shade) fm.shade.setOpacity(key === 'dark' ? 0.22 : 0.45);
+}
+
+function fmToggleHillshade(on) {
+  if (!fm.map) return;
+  if (!fm.shade) {
+    fm.shade = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Hillshade © Esri', maxZoom: 16, pane: 'fmShade', opacity: fm.baseKey === 'dark' ? 0.22 : 0.45
+    });
+  }
+  if (on) fm.shade.addTo(fm.map); else fm.map.removeLayer(fm.shade);
+}
+
+// ── Time controls ──
+function fmNow() {
+  fm.winStart = Math.floor(Date.now() / FM_STEP_MS) * FM_STEP_MS;
+  fm.timeMs = Date.now();
+  var sl = document.getElementById('fmSlider');
+  if (sl) { sl.max = String(fm.windowHours * 60 / 30); sl.value = '0'; }
+  fmStopPlay();
+  fmRefresh();
+}
+function fmOnSlider(v) {
+  var idx = parseInt(v, 10) || 0;
+  fm.timeMs = idx === 0 ? Math.max(Date.now(), fm.winStart) : fm.winStart + idx * FM_STEP_MS;
+  fmRefresh();
+}
+function fmSetSliderTo(ms) {
+  var idx = Math.max(0, Math.ceil((ms - fm.winStart) / FM_STEP_MS));
+  var sl = document.getElementById('fmSlider');
+  if (sl) { idx = Math.min(idx, parseInt(sl.max, 10)); sl.value = String(idx); }
+  fm.timeMs = idx === 0 ? Math.max(Date.now(), fm.winStart) : fm.winStart + idx * FM_STEP_MS;
+}
+function fmPlay() {
+  if (fm.playTimer) { fmStopPlay(); return; }
+  var btn = document.getElementById('fmPlay'); if (btn) btn.textContent = '❚❚';
+  fm.playTimer = setInterval(function () {
+    var sl = document.getElementById('fmSlider'); if (!sl) return fmStopPlay();
+    var v = parseInt(sl.value, 10) + 1;
+    if (v > parseInt(sl.max, 10)) return fmStopPlay();
+    sl.value = String(v); fmOnSlider(v);
+  }, 600);
+}
+function fmStopPlay() {
+  if (fm.playTimer) clearInterval(fm.playTimer);
+  fm.playTimer = null;
+  var btn = document.getElementById('fmPlay'); if (btn) btn.textContent = '▶';
+}
+function fmToggle(key, on) { fm.show[key] = on; fmRefresh(); }
+function fmSetBand(b) { fm.band = b; fmRefresh(); }
+
+// ── Render ──
+function renderFreqMap() {
+  fmInit();
+  if (!fm.map) return;
+  setTimeout(function () { if (fm.map) fm.map.invalidateSize(); }, 60);
+  if (fm.timeMs == null) fmNow(); else fmRefresh();
+}
+function fmScheduleRender() {
+  if (typeof activeMainTab === 'undefined' || activeMainTab !== 'freqmap' || !fm.map) return;
+  clearTimeout(fm.renderTimer);
+  fm.renderTimer = setTimeout(fmRefresh, 300);
+}
+
+function fmRefresh() {
+  if (!fm.map) return;
+  var T = fm.timeMs;
+  fm.fps = fmCollect();
+  fm.fpByKey = {};
+  fm.fps.forEach(function (f) { fm.fpByKey[f.key] = f; });
+  fm.conflicts = fmFindConflicts(fm.fps, fm.winStart, fm.winStart + fm.windowHours * 3600000);
+  var active = fm.conflicts.filter(function (c) { return c.startMs <= T && c.endMs > T; });
+  var inConf = {};
+  active.forEach(function (c) { inConf[c.a.key] = true; inConf[c.b.key] = true; });
+
+  fm.layers.fp.clearLayers(); fm.layers.links.clearLayers(); fm.layers.sites.clearLayers();
+  var shown = [];
+  fm.fps.forEach(function (f) {
+    if (!f.located || !fmActiveAt(f, T) || !fmBandOk(f)) return;
+    if (f.kind === 'res' && !fm.show.reservations) return;
+    if (f.kind === 'inc' && !fm.show.incidents) return;
+    if (fm.show.conflictsOnly && !inConf[f.key]) return;
+    var circle = L.circle([f.lat, f.lon], {
+      radius: f.radiusMi * 1609.344, color: f.color, weight: inConf[f.key] ? 3 : 2,
+      fillColor: f.color, fillOpacity: 0.12, dashArray: f.kind === 'inc' ? '6 5' : null
+    });
+    circle.bindTooltip(fmEsc(f.title) + (f.des.length ? ' — ' + fmEsc(f.des.join(', ')) : ''), { sticky: true });
+    circle.on('click', function (e) { L.DomEvent.stopPropagation(e); fmOpenFpPopup(f, e.latlng); });
+    fm.layers.fp.addLayer(circle);
+    fm.layers.fp.addLayer(L.circleMarker([f.lat, f.lon], { radius: 4, color: '#ffffff', weight: 1, fillColor: f.color, fillOpacity: 1, interactive: false }));
+    shown.push(f);
+  });
+
+  active.forEach(function (c) {
+    if (!fmVisible(c.a) || !fmVisible(c.b)) return;
+    var line = L.polyline([[c.a.lat, c.a.lon], [c.b.lat, c.b.lon]], {
+      color: c.type === 'overlap' ? '#ff5252' : '#ffb300', weight: 3, dashArray: c.type === 'overlap' ? null : '8 6'
+    });
+    line.bindTooltip((c.type === 'overlap' ? 'Overlap — ' : 'Nearby — ') + fmEsc(c.shared), { sticky: true });
+    line.on('click', function (e) { L.DomEvent.stopPropagation(e); fmOpenConflictPopup(c, e.latlng); });
+    fm.layers.links.addLayer(line);
+  });
+
+  fm.siteById = {};
+  if (typeof sites !== 'undefined') (sites || []).forEach(function (s) { fm.siteById[String(s.id)] = s; });
+  if (fm.show.sites && typeof sites !== 'undefined') {
+    (sites || []).forEach(function (s) {
+      var lat = parseFloat(s.lat), lon = parseFloat(s.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return;
+      var icon = L.divIcon({ html: '<div class="fm-site-icon">' + ((typeof SITE_TYPE_ICONS !== 'undefined' && SITE_TYPE_ICONS[s.site_type]) || '📍') + '</div>', className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
+      var m = L.marker([lat, lon], { icon: icon });
+      m.bindTooltip(fmEsc(s.name), { direction: 'top' });
+      m.on('click', function (e) { fmOpenSitePopup(s, e.latlng); });
+      fm.layers.sites.addLayer(m);
+    });
+  }
+
+  if (!fm.fitted && shown.length) {
+    var b = L.latLngBounds(shown.map(function (f) { return [f.lat, f.lon]; }));
+    fm.map.fitBounds(b.pad(0.4), { maxZoom: 11 });
+    fm.fitted = true;
+  }
+
+  var lbl = document.getElementById('fmTimeLabel');
+  if (lbl) {
+    var hrs = Math.round((T - Date.now()) / 360000) / 10;
+    lbl.textContent = fmFmtTime(T) + ' PT' + (hrs > 0.05 ? '  (+' + hrs + ' h)' : '  (now)');
+  }
+  var cnt = document.getElementById('fmCounts');
+  if (cnt) cnt.textContent = shown.length + ' on the air at this time · ' + active.length + ' conflict' + (active.length === 1 ? '' : 's');
+  fmRenderConflictList();
+  fmRenderUnlocated();
+}
+function fmVisible(f) {
+  if (f.kind === 'res' && !fm.show.reservations) return false;
+  if (f.kind === 'inc' && !fm.show.incidents) return false;
+  return true;
+}
+
+// ── Popups ──
+function fmPopupEl(html) {
+  var div = document.createElement('div');
+  div.className = 'fm-popup';
+  div.innerHTML = html;
+  div.addEventListener('click', fmActionHandler);
+  return div;
+}
+function fmBtn(label, action, attrs, primary) {
+  var a = '';
+  for (var k in attrs) if (attrs.hasOwnProperty(k)) a += ' data-' + k + '="' + fmEsc(attrs[k]).replace(/"/g, '&quot;') + '"';
+  return '<button class="' + (primary ? 'btn-primary' : 'btn-secondary') + ' fm-btn" data-fm-action="' + action + '"' + a + '>' + label + '</button>';
+}
+function fmOpenFpPopup(f, latlng) {
+  var parts = [];
+  parts.push('<div class="fm-pop-title">' + fmEsc(f.title) + '</div>');
+  parts.push('<div class="fm-pop-sub">' + (f.kind === 'res' ? 'Reservation' : 'Incident · ' + fmEsc(f.agency)) + '</div>');
+  parts.push('<div class="fm-pop-row"><span>Channels</span><b>' + (f.des.length ? fmEsc(f.des.join(', ')) : '—') + '</b></div>');
+  parts.push('<div class="fm-pop-row"><span>Window</span><b>' + fmFmtTime(f.startMs) + ' → ' + fmFmtTime(f.endMs) + '</b></div>');
+  parts.push('<div class="fm-pop-row"><span>Radius</span><b>' + f.radiusMi + ' mi' + (f.radiusAssumed ? ' (assumed)' : '') + '</b></div>');
+  if (f.who) parts.push('<div class="fm-pop-row"><span>' + (f.kind === 'res' ? 'Requestor' : 'COML') + '</span><b>' + fmEsc(f.who) + '</b></div>');
+  if (Object.keys(fm.coverage).length) parts.push(fmProbeHtml(latlng, true));
+  parts.push('<div class="fm-pop-actions">' +
+    fmBtn(fm.coverage[f.key] ? 'Hide coverage' : 'Show coverage', 'cov', { key: f.key }, true) +
+    fmBtn('Open', 'open', { key: f.key }) + '</div>');
+  L.popup({ maxWidth: 320 }).setLatLng(latlng).setContent(fmPopupEl(parts.join(''))).openOn(fm.map);
+}
+function fmOpenSitePopup(s, latlng) {
+  var key = 'site:' + s.id;
+  var html = '<div class="fm-pop-title">' + fmEsc(s.name) + '</div>' +
+    '<div class="fm-pop-sub">' + fmEsc((typeof SITE_TYPE_LABELS !== 'undefined' && SITE_TYPE_LABELS[s.site_type]) || s.site_type || 'Site') + '</div>' +
+    '<div class="fm-pop-row"><span>Antenna</span><b>' + (s.antenna_height_ft ? s.antenna_height_ft + ' ft AGL' : '50 ft (assumed)') + '</b></div>' +
+    (s.frequency_notes ? '<div class="fm-pop-row"><span>Freq notes</span><b>' + fmEsc(s.frequency_notes) + '</b></div>' : '') +
+    '<div class="fm-pop-actions">' + fmBtn(fm.coverage[key] ? 'Hide coverage' : 'Show coverage', 'cov', { key: key }, true) +
+    fmBtn('Open', 'open', { key: key }) + '</div>';
+  L.popup({ maxWidth: 320 }).setLatLng(latlng).setContent(fmPopupEl(html)).openOn(fm.map);
+}
+function fmOpenConflictPopup(c, latlng) {
+  var html = '<div class="fm-pop-title">' + (c.type === 'overlap' ? '⚠ Footprints overlap' : '⚠ Close co-channel use') + '</div>' +
+    '<div class="fm-pop-sub">' + fmEsc(c.shared) + '</div>' +
+    '<div class="fm-pop-row"><span>A</span><b>' + fmEsc(c.a.title) + '</b></div>' +
+    '<div class="fm-pop-row"><span>B</span><b>' + fmEsc(c.b.title) + '</b></div>' +
+    '<div class="fm-pop-row"><span>Distance</span><b>' + c.distMi.toFixed(1) + ' mi</b></div>' +
+    '<div class="fm-pop-row"><span>Overlap</span><b>' + fmFmtTime(c.startMs) + ' → ' + fmFmtTime(c.endMs) + '</b></div>' +
+    '<div class="fm-pop-actions">' + fmBtn('Check with terrain', 'check', { a: c.a.key, b: c.b.key }, true) + '</div>';
+  L.popup({ maxWidth: 320 }).setLatLng(latlng).setContent(fmPopupEl(html)).openOn(fm.map);
+}
+
+function fmActionHandler(e) {
+  var el = e.target && e.target.closest ? e.target.closest('[data-fm-action]') : null;
+  if (!el) return;
+  e.preventDefault();
+  var act = el.getAttribute('data-fm-action'), key = el.getAttribute('data-key');
+  if (act === 'cov') fmToggleCoverage(key);
+  else if (act === 'open') fmOpenItem(key);
+  else if (act === 'check') fmCheckPair(el.getAttribute('data-a'), el.getAttribute('data-b'));
+  else if (act === 'goto') fmGotoConflict(parseInt(el.getAttribute('data-idx'), 10));
+  else if (act === 'now') fmNow();
+  else if (act === 'play') fmPlay();
+  else if (act === 'clear-coverage') fmClearCoverage();
+}
+
+function fmOpenItem(key) {
+  if (!key) return;
+  var i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
+  if (kind === 'res') { switchMainTab('schedule'); setTimeout(function () { openSchedModal(id); }, 80); }
+  else if (kind === 'inc') { switchMainTab('incidents'); setTimeout(function () { openIncidentForm(id); }, 80); }
+  else if (kind === 'site') {
+    var s = fm.siteById[id]; if (!s) return;
+    switchMainTab('sites'); setTimeout(function () { openSiteModal(s.id); }, 80);
+  }
+}
+
+// ── Sidebar ──
+function fmRenderConflictList() {
+  var el = document.getElementById('fmConflictList'); if (!el) return;
+  if (!fm.conflicts.length) {
+    el.innerHTML = '<div class="fm-empty">No co-channel conflicts in the next ' + fm.windowHours + ' hours.</div>';
+    return;
+  }
+  var html = [];
+  fm.conflicts.forEach(function (c, i) {
+    var live = c.startMs <= fm.timeMs && c.endMs > fm.timeMs;
+    html.push('<div class="fm-conf' + (live ? ' live' : '') + '" data-fm-action="goto" data-idx="' + i + '">' +
+      '<div class="fm-conf-top"><span class="fm-chip ' + c.type + '">' + (c.type === 'overlap' ? 'Overlap' : 'Nearby') + '</span>' +
+      '<span class="fm-conf-ch">' + fmEsc(c.shared) + '</span></div>' +
+      '<div class="fm-conf-names">' + fmEsc(c.a.title) + ' ↔ ' + fmEsc(c.b.title) + '</div>' +
+      '<div class="fm-conf-meta">' + fmFmtTime(c.startMs) + ' · ' + c.distMi.toFixed(1) + ' mi apart</div></div>');
+  });
+  el.innerHTML = html.join('');
+}
+
+function fmRenderUnlocated() {
+  var el = document.getElementById('fmUnlocated'); if (!el) return;
+  var we = fm.winStart + fm.windowHours * 3600000, now = Date.now();
+  var items = [];
+  fm.fps.forEach(function (f) {
+    if (f.located || f.endMs <= fm.winStart || f.startMs >= we) return;
+    items.push('<div class="fm-unloc"><div><b>' + fmEsc(f.title) + '</b><span>' + (f.kind === 'res' ? 'Reservation · ' + fmFmtTime(f.startMs) : 'Incident') +
+      (f.des.length ? ' · ' + fmEsc(f.des.join(', ')) : '') + '</span></div>' + fmBtn('Add location', 'open', { key: f.key }) + '</div>');
+  });
+  var covered = {};
+  fm.fps.forEach(function (f) { if (f.located && fmActiveAt(f, now)) f.channelIds.forEach(function (id) { covered[id] = true; }); });
+  channels.forEach(function (c) {
+    if ((c.status === 'active' || c.status === 'reserved') && !covered[String(c.id)]) {
+      items.push('<div class="fm-unloc"><div><b>' + fmEsc(c.designator) + '</b><span>' + (c.status === 'active' ? 'In Use' : 'Reserved') +
+        (c.activeFor ? ' · ' + fmEsc(c.activeFor) : '') + ' · no location on file</span></div></div>');
+    }
+  });
+  el.innerHTML = items.length ? items.join('') : '<div class="fm-empty">Everything on the air has a location.</div>';
+}
+
+function fmGotoConflict(i) {
+  var c = fm.conflicts[i]; if (!c) return;
+  fmStopPlay();
+  fmSetSliderTo(Math.max(c.startMs, Date.now()));
+  fmRefresh();
+  fm.map.fitBounds(L.latLngBounds([[c.a.lat, c.a.lon], [c.b.lat, c.b.lon]]).pad(0.8), { maxZoom: 12 });
+  fmOpenConflictPopup(c, L.latLng((c.a.lat + c.b.lat) / 2, (c.a.lon + c.b.lon) / 2));
+}
+
+// ── Coverage ──
+function fmStatus(msg, isError) {
+  var el = document.getElementById('fmStatus'); if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = isError ? 'var(--status-active)' : 'var(--text-secondary)';
+}
+
+function fmCoverageSource(key) {
+  var rx = fmFt2m(fmNum('fmRxAnt', 6)), margin = fmNum('fmMargin', 6);
+  if (key.indexOf('site:') === 0) {
+    var s = fm.siteById[key.slice(5)]; if (!s) return null;
+    return {
+      key: key, label: s.name, lat: parseFloat(s.lat), lon: parseFloat(s.lon),
+      freqMHz: FM_BAND_MHZ[(document.getElementById('fmSiteBand') || {}).value] || 460,
+      txW: fmNum('fmSiteW', 50), txAntM: fmFt2m(parseFloat(s.antenna_height_ft) || 50),
+      rxAntM: rx, rangeMi: Math.min(fmNum('fmSiteRange', 30), 40), marginDb: margin
+    };
+  }
+  var f = fm.fpByKey[key]; if (!f || !f.located) return null;
+  return {
+    key: key, label: f.title, lat: f.lat, lon: f.lon, freqMHz: f.freq,
+    txW: fmNum('fmTxW', 5), txAntM: fmFt2m(fmNum('fmTxAnt', 6)),
+    rxAntM: rx, rangeMi: Math.min(fmNum('fmRange', 15), 40), marginDb: margin
+  };
+}
+
+function fmToggleCoverage(key) {
+  if (fm.coverage[key]) {
+    fm.map.removeLayer(fm.coverage[key].overlay);
+    delete fm.coverage[key];
+    fm.map.closePopup();
+    fmUpdateLegend();
+    return;
+  }
+  fm.map.closePopup();
+  fmEnsureCoverage(key).then(function () { fmStatus(''); }, function (err) { fmStatus(err.message || String(err), true); });
+}
+
+function fmClearCoverage() {
+  Object.keys(fm.coverage).forEach(function (k) { fm.map.removeLayer(fm.coverage[k].overlay); });
+  fm.coverage = {};
+  fm.lastCheck = null;
+  var r = document.getElementById('fmCheckResult'); if (r) r.innerHTML = '';
+  fmUpdateLegend();
+}
+
+function fmEnsureCoverage(key) {
+  if (fm.coverage[key]) return Promise.resolve(fm.coverage[key]);
+  var src = fmCoverageSource(key);
+  if (!src) return Promise.reject(new Error('That item has no location to compute from.'));
+  var sig = [src.lat.toFixed(5), src.lon.toFixed(5), src.freqMHz, src.txW, src.txAntM.toFixed(2), src.rxAntM.toFixed(2), src.rangeMi, src.marginDb].join('|');
+  var cached = fm.covCache[sig];
+  var p = cached ? Promise.resolve(cached) : fmComputeCoverage(src).then(function (res) { fm.covCache[sig] = res; return res; });
+  return p.then(function (res) {
+    var overlay = L.imageOverlay(res.url, [[res.bounds[0], res.bounds[1]], [res.bounds[2], res.bounds[3]]], { pane: 'fmCov', opacity: 1, interactive: false });
+    overlay.addTo(fm.map);
+    fm.coverage[key] = { overlay: overlay, res: res, src: src };
+    fmUpdateLegend();
+    return fm.coverage[key];
+  });
+}
+
+function fmUpdateLegend() {
+  var el = document.getElementById('fmLegend');
+  if (el) el.style.display = Object.keys(fm.coverage).length ? '' : 'none';
+}
+
+function fmLon2Tile(lon, z) { return Math.floor((lon + 180) / 360 * Math.pow(2, z)); }
+function fmLat2Tile(lat, z) {
+  var r = lat * Math.PI / 180;
+  return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * Math.pow(2, z));
+}
+
+function fmLoadTile(z, x, y) {
+  var k = z + '/' + x + '/' + y;
+  if (fm.tileCache[k]) return Promise.resolve(fm.tileCache[k]);
+  return new Promise(function (resolve, reject) {
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function () {
+      try {
+        var c = document.createElement('canvas'); c.width = 256; c.height = 256;
+        var ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+        var data = ctx.getImageData(0, 0, 256, 256).data;
+        fm.tileCache[k] = data; resolve(data);
+      } catch (e) { reject(new Error('The browser blocked reading terrain data (CORS).')); }
+    };
+    img.onerror = function () { reject(new Error('Could not load terrain tile ' + k + ' — check the network connection.')); };
+    img.src = FM_TERRAIN_URL + k + '.png';
+  });
+}
+
+function fmLoadDem(lat, lon, rangeM) {
+  var dLat = rangeM / 111320 + 0.01, dLon = rangeM / (111320 * Math.cos(lat * Math.PI / 180)) + 0.01;
+  var z, x0, x1, y0, y1;
+  for (z = 12; z >= 8; z--) {
+    x0 = fmLon2Tile(lon - dLon, z); x1 = fmLon2Tile(lon + dLon, z);
+    y0 = fmLat2Tile(lat + dLat, z); y1 = fmLat2Tile(lat - dLat, z);
+    if (x1 - x0 + 1 <= 8 && y1 - y0 + 1 <= 8) break;
+  }
+  var nx = x1 - x0 + 1, ny = y1 - y0 + 1, W = nx * 256, H = ny * 256;
+  var dem = new Float32Array(W * H), jobs = [];
+  fmStatus('Loading terrain (' + (nx * ny) + ' tiles)…');
+  for (var ty = y0; ty <= y1; ty++) for (var tx = x0; tx <= x1; tx++) {
+    (function (tx, ty) {
+      jobs.push(fmLoadTile(z, tx, ty).then(function (px) {
+        var ox = (tx - x0) * 256, oy = (ty - y0) * 256;
+        for (var py = 0; py < 256; py++) for (var pxx = 0; pxx < 256; pxx++) {
+          var i = (py * 256 + pxx) * 4;
+          dem[(oy + py) * W + ox + pxx] = (px[i] * 256 + px[i + 1] + px[i + 2] / 256) - 32768;
+        }
+      }));
+    })(tx, ty);
+  }
+  return Promise.all(jobs).then(function () { return { dem: dem, z: z, x0: x0, y0: y0, w: W, h: H }; });
+}
+
+function fmGetWorker() {
+  if (fm.worker) return fm.worker;
+  var blob = new Blob(['(' + fmWorkerMain.toString() + ')();'], { type: 'application/javascript' });
+  fm.worker = new Worker(URL.createObjectURL(blob));
+  fm.worker.onmessage = function (e) {
+    var d = e.data, job = fm.jobs[d.id]; if (!job) return;
+    delete fm.jobs[d.id];
+    if (d.error) job.reject(new Error(d.error)); else job.resolve(d);
+  };
+  fm.worker.onerror = function (e) {
+    Object.keys(fm.jobs).forEach(function (k) { fm.jobs[k].reject(new Error('Coverage worker failed: ' + (e.message || 'unknown error'))); });
+    fm.jobs = {};
+  };
+  return fm.worker;
+}
+
+function fmComputeCoverage(src) {
+  var rangeM = src.rangeMi * 1609.344;
+  return fmLoadDem(src.lat, src.lon, rangeM).then(function (g) {
+    fmStatus('Tracing terrain for ' + src.label + '…');
+    return new Promise(function (resolve, reject) {
+      var id = ++fm.jobSeq;
+      fm.jobs[id] = { resolve: resolve, reject: reject };
+      var payload = {
+        id: id, dem: g.dem.buffer, z: g.z, x0: g.x0, y0: g.y0, w: g.w, h: g.h,
+        lat: src.lat, lon: src.lon, freqMHz: src.freqMHz, txW: src.txW,
+        txAntM: src.txAntM, rxAntM: src.rxAntM, rangeMi: src.rangeMi, marginDb: src.marginDb
+      };
+      fmGetWorker().postMessage(payload, [g.dem.buffer]);
+    });
+  }).then(function (d) {
+    var c = document.createElement('canvas'); c.width = d.rw; c.height = d.rh;
+    var ctx = c.getContext('2d');
+    var img = ctx.createImageData(d.rw, d.rh);
+    img.data.set(new Uint8ClampedArray(d.raster));
+    ctx.putImageData(img, 0, 0);
+    return {
+      url: c.toDataURL('image/png'), bounds: d.bounds, prx: new Float32Array(d.prx),
+      nR: d.nR, nS: d.nS, stepM: d.stepM, lat: src.lat, lon: src.lon, rangeMi: src.rangeMi, txElev: d.txElev
+    };
+  });
+}
+
+function fmCovQuery(res, lat, lon) {
+  var distM = fmMiles(res.lat, res.lon, lat, lon) * 1609.344;
+  var la1 = res.lat * Math.PI / 180, la2 = lat * Math.PI / 180, dLo = (lon - res.lon) * Math.PI / 180;
+  var brg = Math.atan2(Math.sin(dLo) * Math.cos(la2), Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dLo)) * 180 / Math.PI;
+  var r = ((Math.round(brg) % 360) + 360) % 360;
+  var s = Math.max(0, Math.round(distM / res.stepM) - 1);
+  if (s >= res.nS) return null;
+  var v = res.prx[r * res.nS + s];
+  return v <= -900 ? null : v;
+}
+
+function fmBandOf(dbm) {
+  if (dbm == null) return { t: 'beyond computed range', c: 'none' };
+  if (dbm >= -85) return { t: 'strong', c: 'strong' };
+  if (dbm >= -100) return { t: 'usable', c: 'usable' };
+  if (dbm >= -110) return { t: 'marginal', c: 'marginal' };
+  if (dbm >= -120) return { t: 'interference only', c: 'interf' };
+  return { t: 'below noise', c: 'none' };
+}
+
+function fmProbeHtml(latlng, compact) {
+  var rows = [];
+  Object.keys(fm.coverage).forEach(function (k) {
+    var cv = fm.coverage[k], v = fmCovQuery(cv.res, latlng.lat, latlng.lng), b = fmBandOf(v);
+    rows.push('<div class="fm-pop-row"><span>' + fmEsc(cv.src.label) + '</span><b class="fm-lvl ' + b.c + '">' + (v == null ? '—' : Math.round(v) + ' dBm') + ' · ' + b.t + '</b></div>');
+  });
+  if (!rows.length) return '';
+  return (compact ? '<div class="fm-pop-sub" style="margin-top:8px;">Signal here (estimate)</div>' : '<div class="fm-pop-title">Signal here (estimate)</div>') + rows.join('');
+}
+
+function fmMaxInCircle(res, f) {
+  var best = null, rM = f.radiusMi * 1609.344;
+  var pts = [[f.lat, f.lon]];
+  for (var i = 0; i < 8; i++) pts.push(fmDest(f.lat, f.lon, i * 45, rM * 0.5));
+  for (var j = 0; j < 16; j++) pts.push(fmDest(f.lat, f.lon, j * 22.5, rM));
+  pts.forEach(function (p) {
+    var v = fmCovQuery(res, p[0], p[1]);
+    if (v != null && (best == null || v > best)) best = v;
+  });
+  return best;
+}
+
+function fmVerdict(dbm) {
+  if (dbm == null || dbm < -115) return { cls: 'ok', text: 'Terrain-isolated — estimate shows no usable reach into that area' };
+  if (dbm < -100) return { cls: 'warn', text: 'Possible interference — weak but can open carrier squelch' };
+  return { cls: 'bad', text: 'Likely interference — reaches that area at usable levels' };
+}
+
+function fmCheckPair(ka, kb) {
+  var a = fm.fpByKey[ka], b = fm.fpByKey[kb];
+  if (!a || !b) return;
+  fm.map.closePopup();
+  fmStatus('Checking terrain between ' + a.title + ' and ' + b.title + '…');
+  var out = document.getElementById('fmCheckResult');
+  fmEnsureCoverage(ka).then(function (ca) {
+    return fmEnsureCoverage(kb).then(function (cb) { return [ca, cb]; });
+  }).then(function (r) {
+    var ab = fmMaxInCircle(r[0].res, b), ba = fmMaxInCircle(r[1].res, a);
+    var vab = fmVerdict(ab), vba = fmVerdict(ba);
+    fm.map.fitBounds(L.latLngBounds([[a.lat, a.lon], [b.lat, b.lon]]).pad(0.8), { maxZoom: 12 });
+    fmStatus('');
+    if (out) out.innerHTML =
+      '<div class="fm-card fm-check">' +
+      '<div class="fm-card-title">Terrain check</div>' +
+      '<div class="fm-check-row ' + vab.cls + '"><div class="fm-check-dir">' + fmEsc(a.title) + ' → ' + fmEsc(b.title) + '’s area</div>' +
+      '<div class="fm-check-val">' + (ab == null ? '—' : Math.round(ab) + ' dBm') + '</div><div class="fm-check-text">' + vab.text + '</div></div>' +
+      '<div class="fm-check-row ' + vba.cls + '"><div class="fm-check-dir">' + fmEsc(b.title) + ' → ' + fmEsc(a.title) + '’s area</div>' +
+      '<div class="fm-check-val">' + (ba == null ? '—' : Math.round(ba) + ' dBm') + '</div><div class="fm-check-text">' + vba.text + '</div></div>' +
+      '<div class="fm-note">Strongest point estimate anywhere inside the other footprint, using the coverage assumptions below. PL/DPL tones keep squelch closed but don’t stop co-channel interference. Planning estimate — verify in the field.</div>' +
+      '</div>';
+    if (typeof logEvent === 'function') logEvent('risk', 'Map Terrain Check', a.title + ' ↔ ' + b.title + ' · ' + (ab == null ? 'n/a' : Math.round(ab)) + ' / ' + (ba == null ? 'n/a' : Math.round(ba)) + ' dBm');
+  }, function (err) { fmStatus(err.message || String(err), true); });
+}
+
+// ── Worker (stringified into a Blob; must stay self-contained) ──
+function fmWorkerMain() {
+  self.onmessage = function (e) {
+    var d = e.data;
+    try {
+      var res = fmCompute(d);
+      self.postMessage(res, [res.prx, res.raster]);
+    } catch (err) {
+      self.postMessage({ id: d.id, error: String((err && err.message) || err) });
+    }
+  };
+
+  function fmCompute(d) {
+    var dem = new Float32Array(d.dem), W = d.w, H = d.h;
+    var scale = 256 * Math.pow(2, d.z), ox = d.x0 * 256, oy = d.y0 * 256;
+    var DEG = Math.PI / 180;
+    function elevAt(lat, lon) {
+      var x = (lon + 180) / 360 * scale - ox - 0.5;
+      var s = Math.sin(lat * DEG);
+      var y = (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * scale - oy - 0.5;
+      var x0 = Math.floor(x), y0 = Math.floor(y);
+      if (x0 < 0 || y0 < 0 || x0 >= W - 1 || y0 >= H - 1) return NaN;
+      var fx = x - x0, fy = y - y0, i = y0 * W + x0;
+      return dem[i] * (1 - fx) * (1 - fy) + dem[i + 1] * fx * (1 - fy) + dem[i + W] * (1 - fx) * fy + dem[i + W + 1] * fx * fy;
+    }
+    var R = 6371000, la1 = d.lat * DEG, lo1 = d.lon * DEG;
+    var sinLa1 = Math.sin(la1), cosLa1 = Math.cos(la1);
+    function dest(b, distM) {
+      var ad = distM / R;
+      var la2 = Math.asin(sinLa1 * Math.cos(ad) + cosLa1 * Math.sin(ad) * Math.cos(b));
+      var lo2 = lo1 + Math.atan2(Math.sin(b) * Math.sin(ad) * cosLa1, Math.cos(ad) - sinLa1 * Math.sin(la2));
+      return [la2 / DEG, lo2 / DEG];
+    }
+
+    var rangeM = d.rangeMi * 1609.344;
+    var pixM = 40075016.686 * cosLa1 / scale;
+    var stepM = Math.max(pixM, rangeM / 500);
+    var nS = Math.max(2, Math.floor(rangeM / stepM)), nR = 360;
+    var lambda = 299.792458 / d.freqMHz;
+    var Re = 8494667;                       // 4/3 effective earth radius
+    var txElev = elevAt(d.lat, d.lon); if (!isFinite(txElev)) txElev = 0;
+    var Ht = txElev + d.txAntM;
+    var eirp = 10 * Math.log10(d.txW * 1000);
+    var logF = 20 * Math.log10(d.freqMHz);
+    var prx = new Float32Array(nR * nS);
+    var el = new Float32Array(nS), dist = new Float32Array(nS);
+
+    for (var r = 0; r < nR; r++) {
+      var b = r * DEG;
+      for (var s = 0; s < nS; s++) {
+        var dm = (s + 1) * stepM; dist[s] = dm;
+        var p = dest(b, dm); el[s] = elevAt(p[0], p[1]);
+      }
+      for (var j = 0; j < nS; j++) {
+        if (!isFinite(el[j])) { prx[r * nS + j] = -999; continue; }
+        var D = dist[j], Hr = el[j] + d.rxAntM, vmax = -Infinity;
+        for (var i = 0; i < j; i++) {
+          var e = el[i]; if (!isFinite(e)) continue;
+          var d1 = dist[i], d2 = D - d1;
+          var h = e + d1 * d2 / (2 * Re) - (Ht + (Hr - Ht) * d1 / D);
+          var v = h * Math.sqrt(2 * D / (lambda * d1 * d2));
+          if (v > vmax) vmax = v;
+        }
+        var fspl = 32.44 + 20 * Math.log10(D / 1000) + logF;
+        var hte = Math.max(d.txAntM, Ht - el[j]);
+        var hre = Math.max(d.rxAntM, Hr - txElev);
+        var pe = 40 * Math.log10(D) - 20 * Math.log10(hte) - 20 * Math.log10(hre);
+        var J = 0;
+        if (vmax > -0.78) J = 6.9 + 20 * Math.log10(Math.sqrt((vmax - 0.1) * (vmax - 0.1) + 1) + vmax - 0.1);
+        prx[r * nS + j] = eirp - Math.max(fspl, pe) - J - d.marginDb;
+      }
+    }
+
+    function query(lat, lon) {
+      var la2 = lat * DEG, dLo = (lon - d.lon) * DEG, dLa = la2 - la1;
+      var a = Math.sin(dLa / 2) * Math.sin(dLa / 2) + cosLa1 * Math.cos(la2) * Math.sin(dLo / 2) * Math.sin(dLo / 2);
+      var distM = 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+      var brg = Math.atan2(Math.sin(dLo) * Math.cos(la2), cosLa1 * Math.sin(la2) - sinLa1 * Math.cos(la2) * Math.cos(dLo)) / DEG;
+      var rr = ((Math.round(brg) % 360) + 360) % 360;
+      var ss = Math.max(0, Math.round(distM / stepM) - 1);
+      if (ss >= nS) return -999;
+      return prx[rr * nS + ss];
+    }
+
+    var dLat = rangeM / 111320, dLon = rangeM / (111320 * cosLa1);
+    var north = d.lat + dLat, south = d.lat - dLat, west = d.lon - dLon, east = d.lon + dLon;
+    function mercY(lat) { var s2 = Math.sin(lat * DEG); return Math.log((1 + s2) / (1 - s2)) / 2; }
+    function invMercY(y) { return (2 * Math.atan(Math.exp(y)) - Math.PI / 2) / DEG; }
+    var yN = mercY(north), yS = mercY(south), RW = 512, RH = 512;
+    var raster = new Uint8ClampedArray(RW * RH * 4);
+    for (var py = 0; py < RH; py++) {
+      var lat = invMercY(yN + (yS - yN) * (py + 0.5) / RH);
+      for (var px = 0; px < RW; px++) {
+        var lon = west + (east - west) * (px + 0.5) / RW;
+        var q = query(lat, lon), o = (py * RW + px) * 4;
+        if (q <= -900 || q < -120) continue;
+        if (q >= -85)       { raster[o] = 0;   raster[o + 1] = 200; raster[o + 2] = 120; raster[o + 3] = 150; }
+        else if (q >= -100) { raster[o] = 190; raster[o + 1] = 220; raster[o + 2] = 0;   raster[o + 3] = 130; }
+        else if (q >= -110) { raster[o] = 255; raster[o + 1] = 160; raster[o + 2] = 0;   raster[o + 3] = 120; }
+        else                { raster[o] = 255; raster[o + 1] = 70;  raster[o + 2] = 70;  raster[o + 3] = 80; }
+      }
+    }
+    return {
+      id: d.id, prx: prx.buffer, raster: raster.buffer, rw: RW, rh: RH,
+      nR: nR, nS: nS, stepM: stepM, txElev: txElev, bounds: [south, west, north, east]
+    };
+  }
+}
+
 init();
 
 // Register the service worker for the installable app shell. Wrapped
@@ -26515,7 +27440,7 @@ if ('serviceWorker' in navigator) {
       <!-- User table -->
       <div style="padding:16px 20px 0;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div style="font-family:var(--font-data);font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">System Users</div>
+          <div style="font-family:var(--font-data);font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;">System Users</div>
           <button class="btn-primary" style="font-size:14px;padding:5px 14px;" onclick="openUserForm(null)">+ Add User</button>
         </div>
         <table style="width:100%;border-collapse:collapse;">
@@ -26535,7 +27460,7 @@ if ('serviceWorker' in navigator) {
       <!-- Add / Edit form (hidden by default) -->
       <div id="userFormSection" style="display:none;border-top:1px solid var(--border);margin-top:16px;padding:16px 20px;background:var(--bg-card);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div id="userFormTitle" style="font-family:var(--font-data);font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-primary);">Add New User</div>
+          <div id="userFormTitle" style="font-family:var(--font-data);font-size:16px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-primary);">Add New User</div>
           <button class="modal-close" onclick="closeUserForm()" style="font-size:16px;">✕</button>
         </div>
 
@@ -26711,7 +27636,7 @@ if ('serviceWorker' in navigator) {
     <div class="modal-body" style="gap:0;padding:0;">
 
       <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
-        <div style="font-size:16px;color:var(--text-secondary);line-height:1.6;">
+        <div style="font-size:14px;color:var(--text-secondary);line-height:1.6;">
           Sent automatically by the server at a set time each morning — no need to keep this app open.
           Covers channel status, talkgroups, active incidents, pending requests, today's reservations,
           overdue resources, low availability, and frequency conflicts.
@@ -27045,10 +27970,27 @@ if ('serviceWorker' in navigator) {
         <div id="sr-recur-days-wrap" style="display:none;margin-top:6px;">
           <label class="form-label" style="margin-bottom:6px;">Days</label>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d,i)=>`
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-data);font-size:14px;">
-              <input type="checkbox" name="sr-recur-day" value="${i}" onchange="updateRecurInfo()"> ${d}
-            </label>`).join('')}
+              <input type="checkbox" name="sr-recur-day" value="0" onchange="updateRecurInfo()"> Sun
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-data);font-size:14px;">
+              <input type="checkbox" name="sr-recur-day" value="1" onchange="updateRecurInfo()"> Mon
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-data);font-size:14px;">
+              <input type="checkbox" name="sr-recur-day" value="2" onchange="updateRecurInfo()"> Tue
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-data);font-size:14px;">
+              <input type="checkbox" name="sr-recur-day" value="3" onchange="updateRecurInfo()"> Wed
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-data);font-size:14px;">
+              <input type="checkbox" name="sr-recur-day" value="4" onchange="updateRecurInfo()"> Thu
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-data);font-size:14px;">
+              <input type="checkbox" name="sr-recur-day" value="5" onchange="updateRecurInfo()"> Fri
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-data);font-size:14px;">
+              <input type="checkbox" name="sr-recur-day" value="6" onchange="updateRecurInfo()"> Sat
+            </label>
           </div>
         </div>
         <div id="sr-recur-info" style="display:none;font-size:14px;color:var(--text-dim);margin-top:8px;font-family:var(--font-data);"></div>
@@ -27771,7 +28713,7 @@ if ('serviceWorker' in navigator) {
       <button class="modal-close" onclick="closeBulkAssignIncident()">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:16px;color:var(--text-secondary);margin:0 0 14px;">
+      <p style="font-size:14px;color:var(--text-secondary);margin:0 0 14px;">
         Add <strong id="bulkIncidentCount"></strong> selected <span id="bulkAssignResourceLabel">channel(s)</span> to:
       </p>
       <div class="form-row single">
@@ -28432,7 +29374,7 @@ if ('serviceWorker' in navigator) {
     </div>
     <div class="modal-body" style="padding:20px 24px;">
 
-      <p style="font-size:16px;color:var(--text-secondary);margin:0 0 18px;">
+      <p style="font-size:14px;color:var(--text-secondary);margin:0 0 18px;">
         Editing <strong id="bulkEditCount" style="color:var(--accent);"></strong> selected channel(s).
         Only checked fields will be applied — unchecked fields are left as-is.
       </p>
@@ -28441,7 +29383,7 @@ if ('serviceWorker' in navigator) {
       <div style="margin-bottom:16px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
           <input type="checkbox" id="bulkEdit-status-enabled" onchange="bulkEditSetFieldEnabled('status', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
-          <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Status</span>
+          <span style="font-family:var(--font-data);font-size:16px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Status</span>
         </label>
         <div id="bulkEdit-status-field" style="opacity:0.4;">
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -28465,7 +29407,7 @@ if ('serviceWorker' in navigator) {
       <div style="margin-bottom:16px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
           <input type="checkbox" id="bulkEdit-activefor-enabled" onchange="bulkEditSetFieldEnabled('activefor', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
-          <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Incident / Event Name</span>
+          <span style="font-family:var(--font-data);font-size:16px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Incident / Event Name</span>
         </label>
         <div id="bulkEdit-activefor-field" style="opacity:0.4;">
           <input class="form-input" type="text" id="bulkEdit-activefor" placeholder="e.g. Station Fire — Div Alpha" onfocus="bulkEditAutoEnable('activefor')" oninput="bulkEditAutoEnable('activefor')" style="width:100%;box-sizing:border-box;">
@@ -28477,7 +29419,7 @@ if ('serviceWorker' in navigator) {
       <div style="margin-bottom:12px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
           <input type="checkbox" id="bulkEdit-agency-enabled" onchange="bulkEditSetFieldEnabled('agency', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
-          <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Department / Agency</span>
+          <span style="font-family:var(--font-data);font-size:16px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Department / Agency</span>
         </label>
         <div id="bulkEdit-agency-field" style="opacity:0.4;">
           <input class="form-input" type="text" id="bulkEdit-agency" placeholder="e.g. LACoFD, LASD, LAPD" onfocus="bulkEditAutoEnable('agency')" oninput="bulkEditAutoEnable('agency')" style="width:100%;box-sizing:border-box;">
@@ -28489,7 +29431,7 @@ if ('serviceWorker' in navigator) {
       <div style="margin-bottom:12px;padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
           <input type="checkbox" id="bulkEdit-function-enabled" onchange="bulkEditSetFieldEnabled('function', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
-          <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Function / Purpose</span>
+          <span style="font-family:var(--font-data);font-size:16px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">Function / Purpose</span>
         </label>
         <div id="bulkEdit-function-field" style="opacity:0.4;">
           <select class="form-select" id="bulkEdit-function" onfocus="bulkEditAutoEnable('function')" onchange="bulkEditAutoEnable('function')" onmousedown="bulkEditAutoEnable('function')" style="width:100%;box-sizing:border-box;">
@@ -28503,7 +29445,7 @@ if ('serviceWorker' in navigator) {
       <div style="padding:14px 16px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);">
         <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
           <input type="checkbox" id="bulkEdit-tro-enabled" onchange="bulkEditSetFieldEnabled('tro', this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
-          <span style="font-family:var(--font-data);font-size:14px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">TRO Assignment</span>
+          <span style="font-family:var(--font-data);font-size:16px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.07em;">TRO Assignment</span>
         </label>
         <div id="bulkEdit-tro-field" style="opacity:0.4;">
           <select class="form-select" id="bulkEdit-tro" onfocus="bulkEditAutoEnable('tro')" onchange="bulkEditAutoEnable('tro')" onmousedown="bulkEditAutoEnable('tro')" style="width:100%;box-sizing:border-box;">
@@ -28630,7 +29572,7 @@ if ('serviceWorker' in navigator) {
 <div id="globalSearchOverlay" style="display:none;position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,0.55);padding:0 16px;box-sizing:border-box;" onclick="if(event.target===this)closeGlobalSearch()">
   <div style="max-width:600px;margin:10vh auto 0;background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:8px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,0.4);">
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
-      <span style="font-size:16px;color:var(--text-dim);">🔍</span>
+      <span style="font-size:14px;color:var(--text-dim);">🔍</span>
       <input id="globalSearchInput" type="text" placeholder="Search channels, radios, personnel, sites, incidents…" autocomplete="off"
         style="flex:1;background:none;border:none;outline:none;color:var(--text-primary);font-size:16px;font-family:var(--font-ui);"
         oninput="runGlobalSearch(this.value)" onkeydown="globalSearchKeyNav(event)">
@@ -28647,7 +29589,7 @@ if ('serviceWorker' in navigator) {
       <div class="modal-title" id="themedConfirmTitle">Confirm</div>
     </div>
     <div class="modal-body">
-      <div id="themedConfirmMessage" style="font-size:16px;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;"></div>
+      <div id="themedConfirmMessage" style="font-size:14px;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" id="themedConfirmCancelBtn" onclick="_themedConfirmResolve(false)">Cancel</button>
@@ -28785,9 +29727,6 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
-</body>
-</html>
-
 <!-- ── AUDIT TRAIL MODAL ── -->
 <div class="modal-overlay" id="auditModal">
   <div class="modal" style="max-width:900px;height:82vh;display:flex;flex-direction:column;">
@@ -28815,7 +29754,7 @@ if ('serviceWorker' in navigator) {
       <button class="btn-secondary" style="font-size:14px;padding:5px 10px;margin-left:auto;" onclick="exportAuditCSV()">⬇ Export CSV</button>
     </div>
     <div style="flex:1;overflow-y:auto;" id="auditModalBody">
-      <div style="text-align:center;padding:40px;color:var(--text-dim);font-size:16px;">Loading…</div>
+      <div style="text-align:center;padding:40px;color:var(--text-dim);font-size:14px;">Loading…</div>
     </div>
     <div class="modal-footer" style="flex-shrink:0;">
       <span id="auditRecordCount" style="font-family:var(--font-data);font-size:14px;color:var(--text-dim);"></span>
@@ -28823,3 +29762,6 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 </div>
+
+</body>
+</html>
